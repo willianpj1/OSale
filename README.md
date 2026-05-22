@@ -40,7 +40,6 @@ O **OSale** nasceu da necessidade real de organizar o fluxo de trabalho de uma a
 | JavaScript / HTML | — | Linguagens base do frontend |
 | Bootstrap | 5.3.8 | Framework CSS responsivo |
 | Bootstrap Icons | ^1.13.1 | Ícones do sistema |
-| Font Awesome | 7.2.0 | Ícones complementares |
 | jQuery | 3.7.1 | Manipulação do DOM e requisições Ajax |
 | DataTables (BS5) | 2.3.8 | Tabelas com paginação, busca e ordenação |
 | DataTables Responsive | 3.0.8 | Responsividade nas tabelas |
@@ -82,10 +81,10 @@ O **OSale** nasceu da necessidade real de organizar o fluxo de trabalho de uma a
                     └──┬───────┬───┘
                        │       │
           ┌────────────▼──┐  ┌─▼────────────┐
-          │  PostgreSQL   │  │    Redis      │
-          │  (app_postgres│  │  (app_redis)  │
-          │    port 5432) │  │   port 6379)  │
-          └───────────────┘  └───────────────┘
+          │  PostgreSQL   │  │    Redis     │
+          │  (app_postgres│  │  (app_redis) │
+          │    port 5432) │  │   (port 6379)│
+          └───────────────┘  └──────────────┘
 ```
 
 As páginas HTML são renderizadas **no servidor** pelo Slim + Twig View e entregues prontas ao browser. O Vite gerencia o pipeline de assets (JS/CSS), gerando os bundles otimizados que o Nginx serve como arquivos estáticos.
@@ -106,14 +105,18 @@ As páginas HTML são renderizadas **no servidor** pelo Slim + Twig View e entre
 │   │   └── storage/              # Dados persistidos do PostgreSQL
 │   └── redis/                    # Dados persistidos do Redis
 ├── public/                       # Document root (index.php + assets compilados)
-├── src/
+├── App/
 │   ├── Controllers/              # Controllers das rotas
-│   ├── Repositories/             # Acesso ao banco via DBAL
-│   ├── Services/                 # Regras de negócio
+│   ├── Database/                 # Acesso ao banco via DBAL
+|   |   |__Migration/             # Tabela de migrations via Doctrine
+│   ├── Helpers/                  # 
 │   ├── Middleware/               # Autenticação, CSRF, etc.
-│   └── Routes/                   # Definição de rotas Slim
-├── templates/                    # Templates Twig
-├── migrations/                   # Migrations do Doctrine
+│   ├── Routes/                   # Definição de rotas Slim
+|   ├── Trait/
+|   ├── View/
+|   |   ├──Layout/
+|   |   ├──Pages/
+|   └   └──Partial/
 ├── resources/
 │   ├── js/                       # Fontes JavaScript (Vite)
 │   └── css/                      # Fontes CSS/SCSS (Vite)
@@ -139,8 +142,8 @@ As páginas HTML são renderizadas **no servidor** pelo Slim + Twig View e entre
 **1. Clone o repositório**
 
 ```bash
-git clone https://github.com/seu-usuario/techstock.git
-cd techstock
+git clone https://github.com/willianpj1/OSale.git
+cd OSale
 ```
 
 **2. Copie e configure as variáveis de ambiente**
