@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    {{ vite('resources/css/app.css') }}
+    <title>Cadastro</title>
+</head>
+
+<body>
+    <div class="min-vh-100 d-flex align-items-center justify-content-center bg-body-tertiary py-4">
+        <div class="w-100" style="max-width: 520px;">
+
+            <div class="card border-0 shadow-lg rounded-4">
+                <div class="card-body p-4 p-sm-5">
+
+                    <div class="text-center mb-4">
+                        <div class="bg-success bg-opacity-10 text-success rounded-3 d-inline-flex align-items-center justify-content-center mb-3"
+                            style="width:56px; height:56px;">
+                            <i class="fa-solid fa-user-plus fa-lg"></i>
+                        </div>
+                        <h1 class="h4 fw-semibold mb-1">Criar conta</h1>
+                        <p class="text-muted small mb-0">Preencha os dados para se cadastrar</p>
+                    </div>
+
+                    <form id="form">
+
+                        <div class="row g-3 mb-3">
+                            <div class="col-sm-6">
+                                <label for="nome"
+                                    class="form-label fw-medium small text-uppercase text-muted">Nome</label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-body border-end-0">
+                                        <i class="fa-regular fa-user text-muted"></i>
+                                    </span>
+                                    <input type="text" class="form-control border-start-0 ps-0" id="nome" name="nome"
+                                        placeholder="Seu nome" required>
+                                </div>
+                            </div>
+                            <div class="col-sm-6">
+                                <label for="sobrenome"
+                                    class="form-label fw-medium small text-uppercase text-muted">Sobrenome</label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-body border-end-0">
+                                        <i class="fa-regular fa-user text-muted"></i>
+                                    </span>
+                                    <input type="text" class="form-control border-start-0 ps-0" id="sobrenome"
+                                        name="sobrenome" placeholder="Seu sobrenome" required>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="email"
+                                class="form-label fw-medium small text-uppercase text-muted">E-mail</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-body border-end-0">
+                                    <i class="fa-regular fa-envelope text-muted"></i>
+                                </span>
+                                <input type="email" class="form-control border-start-0 ps-0" id="email" name="email"
+                                    placeholder="seu@email.com" autocomplete="email" required>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="telefone"
+                                class="form-label fw-medium small text-uppercase text-muted">Telefone</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-body border-end-0">
+                                    <i class="fa-solid fa-tty"></i>
+                                </span>
+                                <input type="tel" class="form-control border-start-0 ps-0" id="telefone" name="telefone"
+                                    placeholder="(99) 9 9999-9999" autocomplete="off" required>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="cpf" class="form-label fw-medium small text-uppercase text-muted">CPF</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-body border-end-0">
+                                    <i class="fa-solid fa-id-card text-muted fa-sm"></i>
+                                </span>
+                                <input type="text" class="form-control border-start-0 ps-0" id="cpf" name="cpf"
+                                    placeholder="000.000.000-00" autocomplete="off" required>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="rg" class="form-label fw-medium small text-uppercase text-muted">RG</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-body border-end-0">
+                                    <i class="fa-solid fa-address-card text-muted fa-sm"></i>
+                                </span>
+                                <input type="text" class="form-control border-start-0 ps-0" id="rg" name="rg"
+                                    placeholder="0000000" autocomplete="off" required>
+                            </div>
+                        </div>
+
+                        <div class="mb-2">
+                            <label for="senha"
+                                class="form-label fw-medium small text-uppercase text-muted">Senha</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-body border-end-0">
+                                    <i class="fa-solid fa-lock text-muted fa-sm"></i>
+                                </span>
+                                <input type="password" class="form-control border-start-0 ps-0" id="senha" name="senha"
+                                    placeholder="Mínimo 8 caracteres" autocomplete="new-password" required>
+                                <button class="btn btn-outline-secondary border-start-0" type="button" id="toggleSenha"
+                                    tabindex="-1">
+                                    <i class="fa-regular fa-eye fa-sm"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <button type="button" id="btnCadastrar"  class="btn btn-success btn-lg rounded-3 w-100 mb-3">
+                            <i class="fa-solid fa-user-plus me-2"></i>Cadastrar
+                        </button>
+
+                    </form>
+
+                    <hr class="my-3 text-muted">
+
+                    <p class="text-center text-muted small mb-0">
+                        Já tem conta?
+                        <a href="/login" class="text-primary text-decoration-none fw-medium">Entrar</a>
+                    </p>
+
+                </div>
+            </div>
+
+            <p class="text-center text-muted mt-3" style="font-size: 0.75rem;">
+                <i class="fa-solid fa-shield-halved me-1"></i>Conexão segura e criptografada
+            </p>
+
+        </div>
+    </div>
+
+    {{ vite('resources/js/app.js') }}
+    {{ vite('resources/js/pages/register.js') }}
+
+</body>
+
+</html>

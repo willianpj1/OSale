@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    {{ vite('resources/css/app.css') }}
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <title>Login</title>
+</head>
+
+<body>
+
+    <div class="min-vh-100 d-flex align-items-center justify-content-center bg-body-tertiary">
+        <div class="w-100" style="max-width: 420px;">
+
+            <div class="card border-0 shadow-lg rounded-4">
+                <div class="card-body p-4 p-sm-5">
+
+                    <div class="text-center mb-4">
+                        <div class="bg-primary bg-opacity-10 text-primary rounded-3 d-inline-flex align-items-center justify-content-center mb-3"
+                            style="width:56px; height:56px;">
+                            <i class="fa-solid fa-lock fa-lg"></i>
+                        </div>
+                        <h1 class="h4 fw-semibold mb-1">Bem-vindo de volta</h1>
+                        <p class="text-muted small mb-0">Autenticação do sistema</p>
+                    </div>
+
+                    <form id="form">
+
+                        <div class="mb-3">
+                            <label for="login"
+                                class="form-label fw-medium small text-uppercase text-muted ls-1">Login</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-body border-end-0">
+                                    <i class="fa-regular fa-user text-muted"></i>
+                                </span>
+                                <input type="text" class="form-control border-start-0 ps-0" id="login" name="login"
+                                    placeholder="CPF, telefone ou e-mail" autocomplete="username" required>
+                            </div>
+                        </div>
+
+                        <div class="mb-2">
+                            <label for="senha"
+                                class="form-label fw-medium small text-uppercase text-muted">Senha</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-body border-end-0">
+                                    <i class="fa-solid fa-lock text-muted fa-sm"></i>
+                                </span>
+                                <input type="password" class="form-control border-start-0 ps-0" id="senha" name="senha"
+                                    placeholder="Informe sua senha" autocomplete="current-password" required>
+                                <button class="btn btn-outline-secondary border-start-0" type="button" id="toggleSenha"
+                                    tabindex="-1">
+                                    <i class="fa-regular fa-eye fa-sm"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="text-end mb-4">
+                            <a href="#" class="small text-primary text-decoration-none">Esqueceu a senha?</a>
+                        </div>
+
+                        <div class="d-grid gap-2 mb-3">
+                            <button id="buttonLogin" type="button" class="btn btn-primary btn-lg rounded-3">
+                                <i class="fa-solid fa-right-to-bracket me-2"></i>Entrar
+                            </button>
+                            <div class="btn">
+                                <div id="g_id_onload"
+                                    data-client_id="448184564632-1639rpiei73kqumo0187cr4t56taccu5.apps.googleusercontent.com"
+                                    data-context="signin" data-ux_mode="popup" data-login_uri="/authentication/google"
+                                    data-itp_support="true">
+                                </div>
+                                <div class="g_id_signin" data-type="standard" data-shape="rectangular"
+                                    data-theme="outline" data-text="signin_with" data-size="large"
+                                    data-logo_alignment="left">
+                                </div>
+                            </div>
+                        </div>
+
+                    </form>
+
+                    <hr class="my-3 text-muted">
+
+                    <p class="text-center text-muted small mb-0">
+                        Não tem conta?
+                        <a href="/cadastro" class="text-primary text-decoration-none fw-medium">Cadastre-se</a>
+                    </p>
+
+                </div>
+            </div>
+
+            <p class="text-center text-muted mt-3" style="font-size: 0.75rem;">
+                <i class="fa-solid fa-shield-halved me-1"></i>Conexão segura e criptografada
+            </p>
+
+        </div>
+    </div>
+
+    {{ vite('resources/js/app.js') }}
+    {{ vite('resources/js/pages/login.js') }}
+</body>
+
+</html>
