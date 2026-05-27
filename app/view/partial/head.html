@@ -1,42 +1,313 @@
-<nav class="navbar bg-primary navbar-expand-lg bg-body-tertiary">
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=DM+Sans:wght@300;400;500&display=swap');
+
+    :root {
+        --bg: #0e0e0e;
+        --surface: #161616;
+        --border: #242424;
+        --white: #f0f0f0;
+        --muted: #666666;
+        --accent: #ffffff;
+    }
+
+    .navbar-custom {
+        font-family: 'DM Sans', sans-serif;
+        background-color: var(--bg);
+        border-bottom: 1px solid var(--border);
+        padding: 0.75rem 0;
+        position: relative;
+    }
+
+    /* Grain overlay */
+    .navbar-custom::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+        pointer-events: none;
+        opacity: 0.25;
+        z-index: 0;
+    }
+
+    .navbar-custom .container-fluid {
+        position: relative;
+        z-index: 1;
+    }
+
+    /* Brand */
+    .navbar-custom .navbar-brand {
+        font-family: 'Playfair Display', serif;
+        font-weight: 900;
+        font-size: 1.55rem;
+        color: var(--white) !important;
+        letter-spacing: -0.01em;
+        transition: color 0.2s ease;
+        padding-right: 1.5rem;
+        border-right: 1px solid var(--border);
+        margin-right: 1.5rem;
+        font-style: italic;
+    }
+
+    .navbar-custom .navbar-brand:hover {
+        color: var(--accent) !important;
+        text-shadow: 0 0 20px rgba(255,255,255,0.3);
+    }
+
+    /* Nav links */
+    .navbar-custom .nav-link {
+        font-size: 0.78rem;
+        font-weight: 500;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--muted) !important;
+        padding: 0.5rem 1rem !important;
+        transition: color 0.2s ease;
+        position: relative;
+    }
+
+    .navbar-custom .nav-link::after {
+        content: '';
+        position: absolute;
+        bottom: -1px;
+        left: 1rem;
+        right: 1rem;
+        height: 1px;
+        background: var(--white);
+        transform: scaleX(0);
+        transition: transform 0.25s ease;
+        transform-origin: left;
+    }
+
+    .navbar-custom .nav-link:hover,
+    .navbar-custom .nav-link.active {
+        color: var(--white) !important;
+    }
+
+    .navbar-custom .nav-link:hover::after,
+    .navbar-custom .nav-link.active::after {
+        transform: scaleX(1);
+    }
+
+    /* Dropdown arrow override */
+    .navbar-custom .nav-link.dropdown-toggle::after {
+        border-color: var(--muted) transparent transparent;
+        position: static;
+        display: inline-block;
+        margin-left: 0.35em;
+        vertical-align: 0.1em;
+    }
+
+    /* Dropdown menu */
+    .navbar-custom .dropdown-menu {
+        background-color: var(--surface);
+        border: 1px solid var(--border);
+        border-top: 1px solid var(--white);
+        border-radius: 2px;
+        padding: 0.5rem 0;
+        margin-top: 0.5rem;
+        box-shadow: 0 12px 40px rgba(0,0,0,0.6);
+    }
+
+    .navbar-custom .dropdown-item {
+        font-family: 'DM Sans', sans-serif;
+        font-size: 0.75rem;
+        font-weight: 400;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: var(--muted);
+        padding: 0.55rem 1.25rem;
+        transition: color 0.2s ease, background 0.2s ease;
+    }
+
+    .navbar-custom .dropdown-item i {
+        color: var(--white);
+        width: 16px;
+        margin-right: 0.5rem;
+        opacity: 0.5;
+    }
+
+    .navbar-custom .dropdown-item:hover {
+        background-color: rgba(255,255,255,0.05);
+        color: var(--white);
+    }
+
+    .navbar-custom .dropdown-item:hover i {
+        opacity: 1;
+    }
+
+    /* Icons in nav */
+    .navbar-custom .nav-link i {
+        color: var(--muted);
+        margin-right: 0.4rem;
+        font-size: 0.72rem;
+        transition: color 0.2s ease;
+    }
+
+    .navbar-custom .nav-link:hover i,
+    .navbar-custom .nav-link.active i {
+        color: var(--white);
+    }
+
+    /* Logout button */
+    .navbar-custom .btn-sair {
+        font-family: 'DM Sans', sans-serif;
+        font-size: 0.72rem;
+        font-weight: 500;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--muted);
+        background: transparent;
+        border: 1px solid var(--border);
+        border-radius: 2px;
+        padding: 0.45rem 1.1rem;
+        transition: background 0.25s ease, border-color 0.25s ease, color 0.25s ease;
+    }
+
+    .navbar-custom .btn-sair i {
+        color: var(--muted);
+        transition: color 0.25s ease;
+    }
+
+    .navbar-custom .btn-sair:hover {
+        background: var(--white);
+        border-color: var(--white);
+        color: var(--bg);
+    }
+
+    .navbar-custom .btn-sair:hover i {
+        color: var(--bg);
+    }
+
+    /* Toggler */
+    .navbar-custom .navbar-toggler {
+        border-color: var(--border);
+        padding: 0.3rem 0.6rem;
+    }
+
+    .navbar-custom .navbar-toggler-icon {
+        background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30'%3e%3cpath stroke='rgba(102,102,102,0.9)' stroke-linecap='round' stroke-miterlimit='10' stroke-width='2' d='M4 7h22M4 15h22M4 23h22'/%3e%3c/svg%3e");
+    }
+</style>
+
+<nav class="navbar navbar-custom navbar-expand-lg">
     <div class="container-fluid">
-        <a class="navbar-brand" href="/">Senac</a>
-        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent"
-            aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+        <a class="navbar-brand" href="/">OSale</a>
+
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse"
+            data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent"
+            aria-expanded="false" aria-label="Toggle navigation">
             <span class="navbar-toggler-icon"></span>
         </button>
+
         <div class="collapse navbar-collapse" id="navbarSupportedContent">
             <ul class="navbar-nav me-auto mb-2 mb-lg-0">
                 <li class="nav-item">
-                    <a class="nav-link active" aria-current="page" href="/">
-                        <i class="fa-solid fa-house"></i>
+                    <a class="nav-link" href="/">
+                        <i class="bi bi-house"></i>
                         Home
                     </a>
                 </li>
                 <li class="nav-item dropdown">
-                    <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown"
-                        aria-expanded="false">
-                        <i class="fa-solid fa-plus"></i>
+                    <a class="nav-link dropdown-toggle" href="#" role="button"
+                        data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="bi bi-tools"></i>
+                        Ordens de Serviço
+                    </a>
+                    <ul class="dropdown-menu">
+                        <li>
+                            <a class="dropdown-item" href="/os/nova">
+                                <i class="bi bi-plus-lg"></i>
+                                Nova OS
+                            </a>
+                        </li>
+                        <li>
+                            <a class="dropdown-item" href="/os/lista">
+                                <i class="bi bi-list"></i>
+                                Listar OS
+                            </a>
+                        </li>
+                    </ul>
+                </li>
+                <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle" href="#" role="button"
+                        data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="bi bi-graph-up"></i>
+                        Vendas
+                    </a>
+                    <ul class="dropdown-menu">
+                        <li>
+                            <a class="dropdown-item" href="/venda/nova">
+                                <i class="bi bi-cart-plus"></i>
+                                Nova Venda
+                            </a>
+                        </li>
+                        <li>
+                            <a class="dropdown-item" href="/venda/lista">
+                                <i class="bi bi-receipt"></i>
+                                Listar Vendas
+                            </a>
+                        </li>
+                    </ul>
+                </li>
+                <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle" href="#" role="button"
+                        data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="bi bi-plus-lg"></i>
                         Cadastro
                     </a>
                     <ul class="dropdown-menu">
                         <li>
+                            <a class="dropdown-item" href="/usuario/lista">
+                                <i class="bi bi-person-gear"></i>
+                                Usuário
+                            </a>
+                        </li>
+                        <li>
                             <a class="dropdown-item" href="/cliente/lista">
-                                <i class="fa-solid fa-user-plus"></i>
+                                <i class="bi bi-person-plus"></i>
                                 Cliente
+                            </a>
+                        </li>
+                        <li>
+                            <a class="dropdown-item" href="/produto/lista">
+                                <i class="bi bi-box"></i>
+                                Produto
+                            </a>
+                        </li>
+                    </ul>
+                </li>
+                <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle" href="#" role="button"
+                        data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="bi bi-list-ul"></i>
+                        Listas
+                    </a>
+                    <ul class="dropdown-menu">
+                        <li>
+                            <a class="dropdown-item" href="/usuario/lista">
+                                <i class="bi bi-list"></i>
+                                Usuário
+                            </a>
+                        </li>
+                        <li>
+                            <a class="dropdown-item" href="/cliente/lista">
+                                <i class="bi bi-list"></i>
+                                Cliente
+                            </a>
+                        </li>
+                        <li>
+                            <a class="dropdown-item" href="/produto/lista">
+                                <i class="bi bi-list"></i>
+                                Produto
                             </a>
                         </li>
                     </ul>
                 </li>
             </ul>
-            <ul class="navbar-nav ms-auto mb-2 mb-lg-0">
-                <li class="nav-item">
-                    <a class="nav-link text-black" href="/authentication/logout">
-                        <i class="fa-solid fa-right-from-bracket"></i>
-                        Sair
-                    </a>
-                </li>
-            </ul>
+
+            <a href="/logout" class="btn btn-sair ms-auto">
+                <i class="bi bi-box-arrow-right me-2"></i>Sair
+            </a>
         </div>
     </div>
 </nav>
