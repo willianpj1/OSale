@@ -2,7 +2,7 @@
     "name": "root/nginx",
     "autoload": {
         "psr-4": {
-            "app\\": "app/"
+            "app\\": "App/"
         }
     },
     "autoload-dev": {
@@ -32,7 +32,7 @@
         "laravel/pint": "^1.0"
     },
     "scripts": {
-        "test": "pest",
+        "test": "pest --testsuite=Architecture --bail",
         "test:cov": "pest --coverage --min=80",
         "test:html": "pest --coverage-html storage/coverage/",
         "analyse": "phpstan analyse",
