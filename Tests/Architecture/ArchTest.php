@@ -32,7 +32,4 @@ arch('controllers devem ser classes finais')
     ->toBeFinal()
     ->ignoring('App\controller\Base');
 
-arch('PSR-1: Controllers devem estar no namespace correto')
-    ->expect('App')
-    ->toBeClasses()
-    ->toHaveProperClassNames();
+

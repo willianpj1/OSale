@@ -48,19 +48,7 @@ final class Version20260526212208 extends AbstractMigration
             ['id'],
             ['onDelete' => 'RESTRICT', 'onUpdate' => 'CASCADE'],
             'fk_soc_ordem_servico_id'
-        );
- 
-        $this->addSql("ALTER TABLE service_order_closings ADD CONSTRAINT soc_forma_pagamento_check
-            CHECK (forma_pagamento IN ('dinheiro', 'pix', 'cartao_credito', 'cartao_debito', 'transferencia'))");
- 
-        $this->addSql('ALTER TABLE service_order_closings ADD CONSTRAINT soc_total_pecas_check
-            CHECK (total_pecas >= 0)');
- 
-        $this->addSql('ALTER TABLE service_order_closings ADD CONSTRAINT soc_total_servicos_check
-            CHECK (total_servicos >= 0)');
- 
-        $this->addSql('ALTER TABLE service_order_closings ADD CONSTRAINT soc_total_geral_check
-            CHECK (total_geral >= 0)');
+        ); 
     }
  
     public function down(Schema $schema): void

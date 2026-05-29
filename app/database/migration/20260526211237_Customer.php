@@ -32,8 +32,7 @@ final class Version20260526211237 extends AbstractMigration
         $table->addIndex(['nome'],  'clients_nome_idx');
         $table->addIndex(['email'], 'clients_email_idx');
  
-        $this->addSql("ALTER TABLE clients ADD CONSTRAINT clients_tipo_check
-            CHECK (tipo IN ('pessoa_fisica', 'pessoa_juridica'))");
+       
     }
  
     public function down(Schema $schema): void

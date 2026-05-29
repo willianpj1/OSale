@@ -32,9 +32,7 @@ final class Version20260526211227 extends AbstractMigration
         $table->setPrimaryKey(['id']);
         $table->addUniqueIndex(['email'], 'users_email_unique');
         $table->addIndex(['nome'],         'users_nome_idx');
-
-        $this->addSql("ALTER TABLE users ADD CONSTRAINT users_perfil_check
-            CHECK (perfil IN ('admin', 'tecnico', 'visualizador'))");
+   
     }
 
     public function down(Schema $schema): void

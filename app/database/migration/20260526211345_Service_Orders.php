@@ -73,12 +73,6 @@ final class Version20260526211345 extends AbstractMigration
             ['onDelete' => 'RESTRICT', 'onUpdate' => 'CASCADE'],
             'fk_so_criado_por'
         );
- 
-        $this->addSql("ALTER TABLE service_orders ADD CONSTRAINT so_status_check
-            CHECK (status IN ('aberta', 'em_andamento', 'aguardando_peca', 'concluida', 'cancelada'))");
- 
-        $this->addSql("ALTER TABLE service_orders ADD CONSTRAINT so_prioridade_check
-            CHECK (prioridade IN ('baixa', 'normal', 'alta'))");
     }
  
     public function down(Schema $schema): void

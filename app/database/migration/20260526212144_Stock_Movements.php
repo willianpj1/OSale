@@ -37,7 +37,7 @@ final class Version20260526212144 extends AbstractMigration
         $table->addIndex(['tipo'],             'sm_tipo_idx');
 
         $table->addForeignKeyConstraint(
-            'stock_items',
+            'products',
             ['item_estoque_id'],
             ['id'],
             ['onDelete' => 'RESTRICT', 'onUpdate' => 'CASCADE'],
@@ -60,11 +60,6 @@ final class Version20260526212144 extends AbstractMigration
             'fk_sm_ordem_servico_id'
         );
 
-        $this->addSql("ALTER TABLE stock_movements ADD CONSTRAINT sm_tipo_check
-            CHECK (tipo IN ('entrada', 'saida', 'ajuste'))");
-
-        $this->addSql('ALTER TABLE stock_movements ADD CONSTRAINT sm_quantidade_check
-            CHECK (quantidade > 0)');
     }
 
     public function down(Schema $schema): void
