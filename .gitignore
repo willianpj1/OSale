@@ -144,3 +144,5 @@ vite.config.ts.timestamp-*
 /docker/postgres/storage
 /vendor
 *.lock
+*.rdb
+public/hot
