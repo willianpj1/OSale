@@ -148,3 +148,4 @@ vite.config.ts.timestamp-*
 public/hot
 /docker/traefik/certs
 /docker/traefik/certs
+/public
