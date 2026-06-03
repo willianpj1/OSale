@@ -20,19 +20,24 @@ final class Version20260526211227 extends AbstractMigration
 
         $table->addColumn('id',            'bigint',   ['autoincrement' => true]);
         $table->addColumn('nome',          'text',     ['notnull' => true]);
-        $table->addColumn('email',         'text',     ['notnull' => true]);
+        $table->addColumn('sobrenome',     'text',     ['notnull' => false, 'default' => null]);
+        $table->addColumn('email',         'text',     ['notnull' => false, 'default' => null]);
         $table->addColumn('senha',         'text',     ['notnull' => true]);
         $table->addColumn('perfil',        'text',     ['notnull' => true,  'default' => 'tecnico']);
         $table->addColumn('telefone',      'text',     ['notnull' => false, 'default' => null]);
         $table->addColumn('whatsapp',      'text',     ['notnull' => false, 'default' => null]);
-        $table->addColumn('ativo',         'boolean',  ['default' => true]);
+        $table->addColumn('google_id',     'text',     ['notnull' => false, 'default' => null]);
+        $table->addColumn('cpf',           'text',     ['notnull' => false, 'default' => null]);
+        $table->addColumn('rg',            'text',     ['notnull' => false, 'default' => null]);
+        $table->addColumn('ativo',         'boolean',  ['default' => false]);
+        $table->addColumn('administrador', 'boolean',  ['default' => false]);
         $table->addColumn('criado_em',     'datetime', ['default' => 'CURRENT_TIMESTAMP']);
         $table->addColumn('atualizado_em', 'datetime', ['default' => 'CURRENT_TIMESTAMP']);
 
         $table->setPrimaryKey(['id']);
-        $table->addUniqueIndex(['email'], 'users_email_unique');
-        $table->addIndex(['nome'],         'users_nome_idx');
-   
+        $table->addUniqueIndex(['email'],     'users_email_unique');
+        $table->addUniqueIndex(['google_id'], 'users_google_id_unique');
+        $table->addIndex(['nome'],             'users_nome_idx');
     }
 
     public function down(Schema $schema): void

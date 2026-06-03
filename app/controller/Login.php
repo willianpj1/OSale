@@ -46,7 +46,7 @@ final class Login extends Base
 
             return $response->withHeader('Location', '/home')->withStatus(302);
         } catch (\Throwable $e) {
-            error_log('[Login::googleOneTap] ' . $e->getMessage());
+            error_log('[Login::googleOneTap] ERRO: ' . $e->getMessage());
             return $response->withHeader('Location', '/login?erro=falha_google')->withStatus(302);
         }
     }
@@ -75,9 +75,9 @@ final class Login extends Base
             return $json(false, 'Preencha todos os campos.', 400);
         }
 
-        $conn = \App\database\DB::connection();
+        $conn = \app\database\DB::connection();
 
-        $existing = \App\database\DB::select('id')->from('users')
+        $existing = \app\database\DB::select('id')->from('users')
             ->where(
                 'email = ' . $conn->quote($email) .
                 ' OR cpf = ' . $conn->quote($cpf)
@@ -122,9 +122,9 @@ final class Login extends Base
             return $json(false, 'Preencha todos os campos.', 400);
         }
 
-        $conn = \App\database\DB::connection();
+        $conn = \app\database\DB::connection();
 
-        $user = \App\database\DB::select('*')
+        $user = \app\database\DB::select('*')
             ->from('users')
             ->where(
                 'email = ' . $conn->quote($login) .
@@ -165,16 +165,16 @@ final class Login extends Base
 
     private function findOrCreateGoogleUser(string $googleId, string $email, string $nome, string $sobrenome): array
     {
-        $conn = \App\database\DB::connection();
+        $conn = \app\database\DB::connection();
 
-        $user = \App\database\DB::select('*')->from('users')
+        $user = \app\database\DB::select('*')->from('users')
             ->where('google_id = ' . $conn->quote($googleId))
             ->fetchAssociative();
 
         if ($user) return $user;
 
         if ($email !== '') {
-            $user = \App\database\DB::select('*')->from('users')
+            $user = \app\database\DB::select('*')->from('users')
                 ->where('email = ' . $conn->quote($email))
                 ->fetchAssociative();
 
@@ -196,7 +196,7 @@ final class Login extends Base
             'administrador' => 0,
         ]);
 
-        return \App\database\DB::select('*')->from('users')
+        return \app\database\DB::select('*')->from('users')
             ->where('google_id = ' . $conn->quote($googleId))
             ->fetchAssociative();
     }
