@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace app\controller;
+namespace App\Controller;
 
 use DateTime;
 use Doctrine\DBAL\Connection;
@@ -17,15 +17,15 @@ final class Company extends Base
 
     public function __construct(?Connection $db = null)
     {
-        $this->db = $db ?? \App\database\DB::connection();
+        $this->db = $db ?? \App\Database\DB::connection();
     }
 
     public function list(ServerRequestInterface $request, ResponseInterface $response): ResponseInterface
     {
         return $this->getTwig()
             ->render($response, $this->setView('list-company'), [
-                'titulo' => 'Lista de empresas',
-            ])
+                'titulo' => 'Lista de empresas',    
+            ])  
             ->withHeader('Content-Type', 'text/html')
             ->withStatus(200);
     }
@@ -37,7 +37,7 @@ final class Company extends Base
         $company = [];
 
         if (!is_null($id)) {
-            $qb = \App\database\DB::select('*')->from('company');
+            $qb = \App\Database\DB::select('*')->from('company');
 
             $company = $qb
                 ->where('id = ' . $qb->createPositionalParameter($id, ParameterType::INTEGER))
@@ -54,7 +54,6 @@ final class Company extends Base
             ->withHeader('Content-Type', 'text/html')
             ->withStatus(200);
     }
-
     public function insert(ServerRequestInterface $request, ResponseInterface $response): ResponseInterface
     {
         $form = $request->getParsedBody();
@@ -101,7 +100,6 @@ final class Company extends Base
             return $this->json($response, ['status' => false, 'msg' => 'Restrição: ' . $e->getMessage(), 'id' => 0], 500);
         }
     }
-
     public function update(ServerRequestInterface $request, ResponseInterface $response): ResponseInterface
     {
         $form = $request->getParsedBody();
@@ -147,7 +145,6 @@ final class Company extends Base
             return $this->json($response, ['status' => false, 'msg' => 'Restrição: ' . $e->getMessage(), 'id' => 0], 500);
         }
     }
-
     public function delete(ServerRequestInterface $request, ResponseInterface $response): ResponseInterface
     {
         $form = $request->getParsedBody();
@@ -174,7 +171,6 @@ final class Company extends Base
             return $this->json($response, ['status' => false, 'msg' => 'Restrição: ' . $e->getMessage(), 'id' => 0], 500);
         }
     }
-
     public function listingdata(ServerRequestInterface $request, ResponseInterface $response): ResponseInterface
     {
         $form   = $request->getParsedBody();
@@ -201,12 +197,12 @@ final class Company extends Base
         $orderField = $columns[$posField];
 
         try {
-            $totalRecords = (int) \App\database\DB::select('COUNT(*)')
+            $totalRecords = (int) \App\Database\DB::select('COUNT(*)')
                 ->from('company')
                 ->where('excluido = false')
                 ->fetchOne();
 
-            $query = \App\database\DB::select('*')->from('company')->where('excluido = false');
+            $query = \App\Database\DB::select('*')->from('company')->where('excluido = false');
 
             if (!is_null($term) && $term !== '') {
                 $query->setParameter('term', '%' . $term . '%');

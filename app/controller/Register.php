@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace app\controller;
+namespace App\Controller;
 
 final class Register extends Base
 {
@@ -28,9 +28,9 @@ final class Register extends Base
         $senha     = $form['senha'];
 
         try {
-            $existeEmail = \app\database\DB::select('id')
+            $existeEmail = \App\Database\DB::select('id')
                 ->from('users')
-                ->where('email = ' . \app\database\DB::connection()->quote($email))
+                ->where('email = ' . \App\Database\DB::connection()->quote($email))
                 ->fetchOne();
 
             if ($existeEmail) {
@@ -40,9 +40,9 @@ final class Register extends Base
                 ], 409);
             }
 
-            $existeCpf = \app\database\DB::select('id')
+            $existeCpf = \App\Database\DB::select('id')
                 ->from('users')
-                ->where('cpf = ' . \app\database\DB::connection()->quote($cpf))
+                ->where('cpf = ' . \App\Database\DB::connection()->quote($cpf))
                 ->fetchOne();
 
             if ($existeCpf) {
@@ -59,7 +59,7 @@ final class Register extends Base
         }
 
         try {
-            \app\database\DB::connection()->insert('users', [
+            \App\Database\DB::connection()->insert('users', [
                 'nome'      => $nome,
                 'sobrenome' => $sobrenome,
                 'email'     => $email,
