@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace app\database\migration;
+namespace App\Database\Migration;
 
 use Doctrine\DBAL\Schema\Schema;
 use Doctrine\Migrations\AbstractMigration;
@@ -16,7 +16,7 @@ final class Version20260526211345 extends AbstractMigration
  
     public function up(Schema $schema): void
     {
-        $table = $schema->createTable('service_orders');
+        $table = $schema->createTable('serviceorders');
  
         $table->addColumn('id',             'bigint',   ['autoincrement' => true]);
         $table->addColumn('cliente_id',     'bigint',   ['notnull' => true]);

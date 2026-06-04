@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace app\controller;
+namespace App\Controller;
 
 use DateTime;
 use Doctrine\DBAL\ParameterType;
 use Exception;
-use App\database\DB;
+use App\Database\DB;
 
 final class Customer extends Base
 {
@@ -63,14 +63,14 @@ final class Customer extends Base
             ]);
             $id = $conn->lastInsertId();
             return $this->json($response, [
-                'status' => true, 
-                'msg'    => 'Salvo com sucesso!', 
+                'status' => true,
+                'msg'    => 'Salvo com sucesso!',
                 'id'     => (int)$id
             ], 201);
         } catch (Exception $e) {
             return $this->json($response, [
-                'status' => false, 
-                'msg'    => 'Erro ao inserir: ' . $e->getMessage(), 
+                'status' => false,
+                'msg'    => 'Erro ao inserir: ' . $e->getMessage(),
                 'id'     => 0
             ], 500);
         }
@@ -126,7 +126,7 @@ final class Customer extends Base
         $term = $form['search']['value'] ?? null;
         $start = (int)($form['start'] ?? 0);
         $length = (int)($form['length'] ?? 10);
-        
+
         $columns = [0 => 'id', 1 => 'nome', 2 => 'cpf', 3 => 'rg', 4 => 'ativo', 5 => 'criado_em'];
         $posField = (isset($form['order'][0]['column'])) ? (int)$form['order'][0]['column'] : 0;
         $orderType = strtoupper($form['order'][0]['dir'] ?? 'DESC');
@@ -147,8 +147,8 @@ final class Customer extends Base
             $rows = [];
             foreach ($customers as $key => $value) {
                 $rows[$key] = [
-                    $value['id'], 
-                    $value['nome'], 
+                    $value['id'],
+                    $value['nome'],
                     $value['cpf'] ?? '',
                     $value['rg'] ?? '',
                     ($value['ativo']) ? 'Ativo' : 'Inativo',
