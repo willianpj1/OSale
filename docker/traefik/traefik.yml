@@ -1,12 +1,15 @@
+# Logs em nível adequado para produção; "DEBUG" só ao investigar
 log:
   level: INFO
   format: json
 
+# Log de acesso em JSON, sem ruído de health check
 accessLog:
   format: json
   filters:
     statusCodes: ["400-599"]
 
+# Pontos de entrada: 80 só redireciona para 443
 entryPoints:
   web:
     address: ":80"
@@ -19,18 +22,22 @@ entryPoints:
   websecure:
     address: ":443"
 
+# Descoberta de serviços
 providers:
   docker:
-    exposedByDefault: false
+    exposedByDefault: false        # só expõe quem tem traefik.enable=true
   file:
     filename: /etc/traefik/dynamic.yml
     watch: true
 
+# Resolver ACME — usado SOMENTE em produção (em dev fica inerte, sem custo)
 certificatesResolvers:
   letsencrypt:
     acme:
       email: voce@seu-dominio.com
       storage: /etc/traefik/acme/acme.json
+      # Comente a linha caServer p/ usar produção; descomente p/ staging em testes
+      # caServer: https://acme-staging-v02.api.letsencrypt.org/directory
       dnsChallenge:
         provider: cloudflare
         resolvers:
