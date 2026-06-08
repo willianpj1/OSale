@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace app\controller;
+namespace App\Controller;
 
 use Firebase\JWT\JWT;
 
@@ -17,7 +17,6 @@ final class Login extends Base
             'titulo' => 'Login',
         ])->withHeader('Content-Type', 'text/html')->withStatus(200);
     }
-
     public function googleOneTap($request, $response)
     {
         $form       = $request->getParsedBody();
@@ -46,11 +45,10 @@ final class Login extends Base
 
             return $response->withHeader('Location', '/home')->withStatus(302);
         } catch (\Throwable $e) {
-            error_log('[Login::googleOneTap] ' . $e->getMessage());
+            error_log('[Login::googleOneTap] ERRO: ' . $e->getMessage());
             return $response->withHeader('Location', '/login?erro=falha_google')->withStatus(302);
         }
     }
-
     public function preRegister($request, $response)
     {
         $json = function (bool $status, string $msg, int $httpCode) use ($response) {
@@ -75,9 +73,9 @@ final class Login extends Base
             return $json(false, 'Preencha todos os campos.', 400);
         }
 
-        $conn = \App\database\DB::connection();
+        $conn = \App\Database\DB::connection();
 
-        $existing = \App\database\DB::select('id')->from('users')
+        $existing = \App\Database\DB::select('id')->from('users')
             ->where(
                 'email = ' . $conn->quote($email) .
                 ' OR cpf = ' . $conn->quote($cpf)
@@ -101,7 +99,6 @@ final class Login extends Base
 
         return $json(true, 'Usuário cadastrado com sucesso!', 201);
     }
-
     public function authenticate($request, $response)
     {
         $json = function (bool $status, string $message, int $httpCode) use ($response) {
@@ -122,9 +119,9 @@ final class Login extends Base
             return $json(false, 'Preencha todos os campos.', 400);
         }
 
-        $conn = \App\database\DB::connection();
+        $conn = \App\Database\DB::connection();
 
-        $user = \App\database\DB::select('*')
+        $user = \App\Database\DB::select('*')
             ->from('users')
             ->where(
                 'email = ' . $conn->quote($login) .
@@ -145,7 +142,6 @@ final class Login extends Base
 
         return $json(true, 'Autenticado com sucesso.', 200);
     }
-
     public function logout($request, $response)
     {
         if (session_status() === PHP_SESSION_NONE) {
@@ -162,19 +158,18 @@ final class Login extends Base
 
         return $response->withHeader('Location', '/login')->withStatus(302);
     }
-
     private function findOrCreateGoogleUser(string $googleId, string $email, string $nome, string $sobrenome): array
     {
-        $conn = \App\database\DB::connection();
+        $conn = \App\Database\DB::connection();
 
-        $user = \App\database\DB::select('*')->from('users')
+        $user = \App\Database\DB::select('*')->from('users')
             ->where('google_id = ' . $conn->quote($googleId))
             ->fetchAssociative();
 
         if ($user) return $user;
 
         if ($email !== '') {
-            $user = \App\database\DB::select('*')->from('users')
+            $user = \App\Database\DB::select('*')->from('users')
                 ->where('email = ' . $conn->quote($email))
                 ->fetchAssociative();
 
@@ -196,11 +191,10 @@ final class Login extends Base
             'administrador' => 0,
         ]);
 
-        return \App\database\DB::select('*')->from('users')
+        return \App\Database\DB::select('*')->from('users')
             ->where('google_id = ' . $conn->quote($googleId))
             ->fetchAssociative();
     }
-
     private function verifyGoogleIdToken(string $idToken): array
     {
         $url = 'https://oauth2.googleapis.com/tokeninfo?id_token=' . urlencode($idToken);
@@ -218,7 +212,6 @@ final class Login extends Base
 
         return $payload;
     }
-
     private function buildCookie(array $user): void
     {
         $now     = time();
@@ -239,7 +232,6 @@ final class Login extends Base
             'secure'   => ($_ENV['APP_ENV'] ?? 'production') === 'production',
         ]);
     }
-
     private function buildSession(array $user): void
     {
         if (session_status() === PHP_SESSION_NONE) {

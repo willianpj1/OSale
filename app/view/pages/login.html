@@ -5,10 +5,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     {{ vite('resources/css/app.css') }}
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=DM+Sans:wght@300;400;500&display=swap">
-    
+    <link rel="stylesheet"
+        href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=DM+Sans:wght@300;400;500&display=swap">
+
     <title>Login | OSale</title>
-    
+
     <style>
         :root {
             --bg: #0e0e0e;
@@ -20,7 +21,11 @@
             --accent: #ffffff;
         }
 
-        *, *::before, *::after { box-sizing: border-box; }
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+        }
 
         body {
             background-color: var(--bg);
@@ -101,15 +106,28 @@
         }
 
         /* Corner accents */
-        .login-card::before, .login-card::after {
+        .login-card::before,
+        .login-card::after {
             content: '';
             position: absolute;
             width: 20px;
             height: 20px;
             border: 2px solid var(--white);
         }
-        .login-card::before { top: -1px; left: -1px; border-right: 0; border-bottom: 0; }
-        .login-card::after { bottom: -1px; right: -1px; border-left: 0; border-top: 0; }
+
+        .login-card::before {
+            top: -1px;
+            left: -1px;
+            border-right: 0;
+            border-bottom: 0;
+        }
+
+        .login-card::after {
+            bottom: -1px;
+            right: -1px;
+            border-left: 0;
+            border-top: 0;
+        }
 
         .login-heading {
             font-family: 'Playfair Display', serif;
@@ -146,7 +164,9 @@
             overflow: hidden;
         }
 
-        .field-group:focus-within { border-color: var(--white); }
+        .field-group:focus-within {
+            border-color: var(--white);
+        }
 
         .field-icon {
             padding: 0 0.85rem;
@@ -176,8 +196,13 @@
             font-size: 0.9rem;
         }
 
-        .field-toggle:hover { color: var(--white); }
-        .field-mb { margin-bottom: 1.25rem; }
+        .field-toggle:hover {
+            color: var(--white);
+        }
+
+        .field-mb {
+            margin-bottom: 1.25rem;
+        }
 
         .forgot-link {
             display: block;
@@ -188,7 +213,10 @@
             margin: 0.5rem 0 1.75rem;
             transition: color 0.2s ease;
         }
-        .forgot-link:hover { color: var(--white); }
+
+        .forgot-link:hover {
+            color: var(--white);
+        }
 
         .btn-row {
             display: flex;
@@ -219,7 +247,9 @@
             transition: all 0.2s ease;
         }
 
-        .btn-entrar:hover { background: #e0e0e0; }
+        .btn-entrar:hover {
+            background: #e0e0e0;
+        }
 
         .google-wrap {
             flex: 1;
@@ -236,11 +266,30 @@
             margin: 1.5rem 0;
         }
 
-        .login-divider-line { flex: 1; height: 1px; background: var(--border); }
-        .login-divider-text { font-size: 0.68rem; letter-spacing: 0.18em; text-transform: uppercase; color: var(--muted); }
+        .login-divider-line {
+            flex: 1;
+            height: 1px;
+            background: var(--border);
+        }
 
-        .login-footer-text { text-align: center; font-size: 0.75rem; color: var(--muted); }
-        .login-footer-text a { color: var(--white); text-decoration: none; font-weight: 500; }
+        .login-divider-text {
+            font-size: 0.68rem;
+            letter-spacing: 0.18em;
+            text-transform: uppercase;
+            color: var(--muted);
+        }
+
+        .login-footer-text {
+            text-align: center;
+            font-size: 0.75rem;
+            color: var(--muted);
+        }
+
+        .login-footer-text a {
+            color: var(--white);
+            text-decoration: none;
+            font-weight: 500;
+        }
 
         .secure-badge {
             text-align: center;
@@ -250,11 +299,22 @@
             text-transform: uppercase;
             color: var(--muted);
         }
-        .secure-badge i { margin-right: 0.4rem; opacity: 0.5; }
+
+        .secure-badge i {
+            margin-right: 0.4rem;
+            opacity: 0.5;
+        }
 
         @keyframes fadeUp {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
     </style>
 </head>
@@ -264,7 +324,7 @@
     <div class="login-wrapper">
 
         <div class="login-brand">
-            <p class="login-brand-name text-black">OSale</p>
+            <p class="login-brand-name text-white">OSale</p>
             <p class="login-brand-sub">Gestão de OS & Vendas</p>
         </div>
 
@@ -297,26 +357,19 @@
                 <a href="#" class="forgot-link">Esqueceu a senha?</a>
 
                 <div class="btn-row">
-                    <button type="submit" class="btn-entrar">
+                    <button type="button" id="buttonLogin" class="btn-entrar">
                         <i class="bi bi-box-arrow-in-right"></i> Entrar
                     </button>
-                    
+
                     <div class="google-wrap">
                         <div id="g_id_onload"
-                            data-client_id="591155148069-vcqbmp0577r9dsecqpouoefin0ecgfjo.apps.googleusercontent.com"
-                            data-context="signin"
-                            data-ux_mode="popup"
-                            data-login_uri="http://localhost/auth/google"
-                            data-auto_prompt="false">
+                            data-client_id="591155148069-gltjesm036fk9tuoshnasjtbaikclngv.apps.googleusercontent.com"
+                            data-context="signin" data-ux_mode="redirect"
+                            data-login_uri="http://localhost/auth/google/callback" data-auto_prompt="false">
                         </div>
-                        <div class="g_id_signin"
-                            data-type="standard"
-                            data-shape="rectangular"
-                            data-theme="filled_black"
-                            data-text="signin_with"
-                            data-size="large"
-                            data-logo_alignment="left"
-                            data-width="190"> </div>
+                        <div class="g_id_signin" data-type="standard" data-shape="rectangular" data-theme="filled_black"
+                            data-text="signin_with" data-size="large" data-logo_alignment="left" data-width="190">
+                        </div>
                     </div>
                 </div>
             </form>
@@ -342,4 +395,5 @@
     <script src="https://accounts.google.com/gsi/client" async></script>
 
 </body>
+
 </html>

@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace app\controller;
+namespace App\Controller;
 
 use DateTime;
 use Doctrine\DBAL\ParameterType;
 use Exception;
-use App\database\DB;
+use App\Database\DB;
 
 final class Supplier extends Base
 {
