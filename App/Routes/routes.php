@@ -1,32 +1,104 @@
 <?php
 
-declare(strict_types=1);
+use app\controller\User;
+use app\controller\Cliente;
+use app\controller\Login;
+use app\controller\Empresa;
+use app\controller\Fornecedor;
+use app\controller\Home;
+use app\controller\PaymentTerms;
+use app\controller\AdjustmentStock;
+use app\controller\Produto;
+use app\controller\Sale;
+use Slim\Routing\RouteCollectorProxy;
 
-use App\Controller\Login;
-use App\Controller\Register;
-use App\Controller\Home;
-use App\Controller\Customer;
-use App\Middleware\Middleware;
+$app->get('/', Home::class . ':home'); #->add(Auth::route());
+$app->get('/home', Home::class . ':home'); #->add(Auth::route());
+#$app->get('/', ControllerHome::class . ':home')->add(Middlewares::route());
 
-// ── Rotas públicas ────────────────────────────────────────────────────────────
+$app->get('/login', Login::class . ':login');
 
-$app->get('/login',  Login::class . ':login');#->add(Middleware::web());
-$app->post('/login', Login::class . ':authenticate');
+$app->group('/home', function (RouteCollectorProxy $group) {
+    #$group->post('/tema', Home::class . ':tema');
+});
 
-$app->post('/auth/google',          Login::class . ':googleOneTap');
-$app->post('/auth/google/callback', Login::class . ':googleOneTap');
-
-$app->get('/cadastro',  Register::class . ':register');
-$app->post('/cadastro', Register::class . ':store');
-
-$app->get('/logout', Login::class . ':logout');
-
-// ── Rotas protegidas ──────────────────────────────────────────────────────────
-
-$app->get('/',     Home::class . ':home');#->add(Middleware::web());
-$app->get('/home', Home::class . ':home');#->add(Middleware::web());
-
-$app->group('/cliente', function ($group) {
-    $group->get('/lista',        Customer::class . ':list');
-    $group->post('/listingdata', Customer::class . ':listingdata');
-});#->add(Middleware::web());
+$app->group('/venda', function (RouteCollectorProxy $group) {
+    $group->get('/lista', Sale::class . ':lista');
+    $group->get('/cadastro', Sale::class . ':cadastro');
+    $group->get('/alterar/{id}', Sale::class . ':alterar');
+    $group->post('/insert', Sale::class . ':insert');
+    $group->post('/update', Sale::class . ':update');
+    $group->post('/insertitem', Sale::class . ':insertitem');
+    $group->post('/listitemsale', Sale::class . ':listitemsale');
+});
+$app->group('/login', function (RouteCollectorProxy $group) {
+    $group->post('/precadastro', Login::class . ':precadastro');
+    $group->post('/autenticar', Login::class . ':autenticar');
+});
+$app->group('/usuario', function (RouteCollectorProxy $group) {
+    $group->get('/lista', User::class . ':lista'); #->add(Auth::route());
+    $group->get('/cadastro', User::class . ':cadastro'); #->add(Auth::route());
+    $group->get('/alterar/{id}', User::class . ':alterar'); #->add(Auth::route());
+    $group->get('/print', User::class . ':print');
+    $group->post('/update', User::class . ':update');
+    $group->post('/listuser', User::class . ':listuser');
+    $group->post('/insert', User::class . ':insert');
+    $group->post('/delete', User::class . ':delete');
+});
+$app->group('/cliente', function (RouteCollectorProxy $group) {
+    $group->get('/lista', Cliente::class . ':lista'); #->add(Auth::route());
+    $group->get('/cadastro', Cliente::class . ':cadastro'); #->add(Auth::route());
+    $group->get('/alterar/{id}', Cliente::class . ':alterar'); #->add(Auth::route());
+    $group->get('/print', Cliente::class . ':print');
+    $group->post('/update', Cliente::class . ':update');
+    $group->post('/listcliente', Cliente::class . ':listcliente');
+    $group->post('/insert', Cliente::class . ':insert');
+    $group->post('/delete', Cliente::class . ':delete');
+});
+$app->group('/empresa', function (RouteCollectorProxy $group) {
+    $group->get('/lista', Empresa::class . ':lista'); #->add(Auth::route());
+    $group->get('/cadastro', Empresa::class . ':cadastro'); #->add(Auth::route());
+    $group->get('/alterar/{id}', Empresa::class . ':alterar'); #->add(Auth::route());
+    $group->get('/print', Empresa::class . ':print');
+    $group->post('/update', Empresa::class . ':update');
+    $group->post('/listempresa', Empresa::class . ':listempresa');
+    $group->post('/insert', Empresa::class . ':insert');
+    $group->post('/delete', Empresa::class . ':delete');
+});
+$app->group('/fornecedor', function (RouteCollectorProxy $group) {
+    $group->get('/lista', Fornecedor::class . ':lista'); #->add(Auth::route());
+    $group->get('/cadastro', Fornecedor::class . ':cadastro'); #->add(Auth::route());
+    $group->get('/alterar/{id}', Fornecedor::class . ':alterar'); #->add(Auth::route());
+    $group->get('/print', Fornecedor::class . ':print');
+    $group->post('/update', Fornecedor::class . ':update');
+    $group->post('/listfornecedor', Fornecedor::class . ':listfornecedor');
+    $group->post('/insert', Fornecedor::class . ':insert');
+    $group->post('/delete', Fornecedor::class . ':delete');
+});
+$app->group('/produto', function (RouteCollectorProxy $group) {
+    $group->get('/lista', Produto::class . ':lista'); #->add(Auth::route());
+    $group->get('/cadastro', Produto::class . ':cadastro'); #->add(Auth::route());
+    $group->get('/alterar/{id}', Produto::class . ':alterar'); #->add(Auth::route());
+    $group->get('/print', Produto::class . ':print');
+    $group->post('/update', Produto::class . ':update');
+    $group->post('/listproduto', Produto::class . ':listproduto');
+    $group->post('/insert', Produto::class . ':insert');
+    $group->post('/delete', Produto::class . ':delete');
+    $group->post('/listproductdata', Produto::class . ':listproductdata');
+    $group->post('/selecionarestoque', Produto::class . ':selecionarestoque');
+});
+$app->group('/pagamento', function (RouteCollectorProxy $group) {
+    $group->get('/lista', PaymentTerms::class . ':lista');
+    $group->get('/cadastro', PaymentTerms::class . ':cadastro');
+    $group->get('/alterar/{id}', PaymentTerms::class . ':alterar');
+    $group->post('/insert', PaymentTerms::class . ':insert');
+    $group->post('/listpagamento', PaymentTerms::class . ':listpagamento');
+    $group->post('/insertinstallment', PaymentTerms::class . ':insertInstallment');
+    $group->post('/loaddatainstallments', PaymentTerms::class . ':loaddatainstallments');
+    $group->post('/deleteinstallment', PaymentTerms::class . ':deleteinstallment');
+});
+$app->group('/ajusteestoque', function (RouteCollectorProxy $group) {
+    $group->get('/lista', AdjustmentStock::class . ':lista');
+    $group->post('/cadastro', AdjustmentStock::class . ':cadastro');
+    $group->post('/listajusteestoque', AdjustmentStock::class . ':listajusteestoque');
+});
