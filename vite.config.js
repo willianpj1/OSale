@@ -45,16 +45,12 @@ export default defineConfig(({ command }) => ({
         cssCodeSplit: true,
         rolldownOptions: {
             input: {
-                // CSS como entry INDEPENDENTE — não acoplado ao JS
-                style: resolve(__dirname, 'resources/css/app.css'),
-                style: resolve(__dirname, 'resources/css/home.css'),
-                // JS principal — sem nenhum import de CSS dentro dele
                 app: resolve(__dirname, 'resources/js/app.js'),
-                // Entries por página
-                'pages/customer': resolve(__dirname, 'resources/js/pages/customer.js'),
+                'home-css': resolve(__dirname, 'resources/css/home.css'),
+                'pages/customer':      resolve(__dirname, 'resources/js/pages/customer.js'),
                 'pages/list-customer': resolve(__dirname, 'resources/js/pages/list-customer.js'),
-                'pages/register': resolve(__dirname, 'resources/js/pages/register.js'),
-                'pages/login': resolve(__dirname, 'resources/js/pages/login.js'),
+                'pages/register':      resolve(__dirname, 'resources/js/pages/register.js'),
+                'pages/login':         resolve(__dirname, 'resources/js/pages/login.js'),
             },
             output: {
                 entryFileNames: '[name]-[hash].js',
