@@ -4,10 +4,9 @@ declare(strict_types=1);
 
 namespace App\Controller;
 
-use DateTime;
-use Doctrine\DBAL\ParameterType;
-use Exception;
 use App\Database\DB;
+use DateTime;
+use Exception;
 
 final class Customer extends Base
 {
@@ -20,145 +19,281 @@ final class Customer extends Base
             ->withHeader('Content-Type', 'text/html')
             ->withStatus(200);
     }
+
     public function details($request, $response, $args)
     {
-        $id = $args['id'] ?? null;
-        $action = ($id === null) ? 'c' : 'e';
+        $id       = $args['id'] ?? null;
+        $action   = ($id === null) ? 'c' : 'e';
         $customer = [];
+        $contacts = [];
 
-        if (!is_null($id)) {
-            $qb = DB::select('*')->from('customer');
-            $customer = $qb
-                ->where('id = ' . $qb->createPositionalParameter($id, ParameterType::INTEGER))
-                ->fetchAssociative();
+        if ($id !== null) {
+            $customer = DB::queryOne(
+                'SELECT * FROM customers WHERE id = :id AND excluido = false',
+                ['id' => $id]
+            );
+            $contacts = DB::query(
+                'SELECT * FROM contacts WHERE entidade = :entidade AND entidade_id = :id ORDER BY principal DESC, id ASC',
+                ['entidade' => 'customer', 'id' => $id]
+            );
         }
+
         return $this->getTwig()
             ->render($response, $this->setView('customer'), [
                 'titulo'   => 'Detalhes do cliente',
                 'id'       => $id,
                 'action'   => $action,
-                'customer' => $customer
+                'customer' => $customer,
+                'contacts' => $contacts,
             ])
             ->withHeader('Content-Type', 'text/html')
             ->withStatus(200);
     }
+
     public function insert($request, $response)
     {
         $form = $request->getParsedBody();
-        $fieldsAndValues = [
-            'nome'     => $form['nomeExibicao'] ?? '',
-            'cpf'      => $form['numeroDocumento'] ?? null,
-            'rg'       => $form['registroSecundario'] ?? null,
-            'ativo'    => isset($form['ativo']) ? filter_var($form['ativo'], FILTER_VALIDATE_BOOLEAN) : true,
-            'excluido' => false
-        ];
+        $nome = trim($form['nome'] ?? '');
+
+        if ($nome === '') {
+            return $this->json($response, ['status' => false, 'msg' => 'O campo nome é obrigatório', 'id' => 0], 400);
+        }
+
         try {
-            $conn = DB::connection();
-            $conn->insert('customer', $fieldsAndValues, [
-                'ativo'    => ParameterType::BOOLEAN,
-                'excluido' => ParameterType::BOOLEAN,
-                'nome'     => ParameterType::STRING,
-                'cpf'      => ParameterType::STRING,
-                'rg'       => ParameterType::STRING,
-            ]);
-            $id = $conn->lastInsertId();
-            return $this->json($response, [
-                'status' => true,
-                'msg'    => 'Salvo com sucesso!',
-                'id'     => (int)$id
-            ], 201);
+            $now = (new DateTime())->format('Y-m-d H:i:s');
+
+            DB::execute(
+                'INSERT INTO customers 
+                    (nome, tipo, cpf_cnpj, rg_ie, cep, logradouro, numero, complemento, bairro, cidade, estado, observacoes, ativo, excluido, criado_em, atualizado_em)
+                 VALUES 
+                    (:nome, :tipo, :cpf_cnpj, :rg_ie, :cep, :logradouro, :numero, :complemento, :bairro, :cidade, :estado, :observacoes, :ativo, false, :criado_em, :atualizado_em)',
+                [
+                    'nome'        => $nome,
+                    'tipo'        => $form['tipo']        ?? 'fisica',
+                    'cpf_cnpj'    => $form['cpf_cnpj']    ?? null,
+                    'rg_ie'       => $form['rg_ie']       ?? null,
+                    'cep'         => $form['cep']         ?? null,
+                    'logradouro'  => $form['logradouro']  ?? null,
+                    'numero'      => $form['numero']      ?? null,
+                    'complemento' => $form['complemento'] ?? null,
+                    'bairro'      => $form['bairro']      ?? null,
+                    'cidade'      => $form['cidade']      ?? null,
+                    'estado'      => $form['estado']      ?? null,
+                    'observacoes' => $form['observacoes'] ?? null,
+                    'ativo'       => isset($form['ativo']) ? filter_var($form['ativo'], FILTER_VALIDATE_BOOLEAN) : true,
+                    'criado_em'   => $now,
+                    'atualizado_em' => $now,
+                ]
+            );
+
+            $id = (int) DB::lastInsertId('customers_id_seq');
+
+            return $this->json($response, ['status' => true, 'msg' => 'Cliente salvo com sucesso!', 'id' => $id], 201);
         } catch (Exception $e) {
-            return $this->json($response, [
-                'status' => false,
-                'msg'    => 'Erro ao inserir: ' . $e->getMessage(),
-                'id'     => 0
-            ], 500);
+            return $this->json($response, ['status' => false, 'msg' => 'Erro ao inserir: ' . $e->getMessage(), 'id' => 0], 500);
         }
     }
+
     public function update($request, $response)
     {
         $form = $request->getParsedBody();
-        $id = $form['id'] ?? null;
+        $id   = $form['id'] ?? null;
 
         if (!$id) {
             return $this->json($response, ['status' => false, 'msg' => 'ID não informado', 'id' => 0], 403);
         }
-        $fieldsAndValues = [
-            'nome'          => $form['nomeExibicao'] ?? '',
-            'cpf'           => $form['numeroDocumento'] ?? null,
-            'rg'            => $form['registroSecundario'] ?? null,
-            'ativo'         => isset($form['ativo']) ? filter_var($form['ativo'], FILTER_VALIDATE_BOOLEAN) : true,
-            'atualizado_em' => (new DateTime())->format('Y-m-d H:i:s')
-        ];
+
+        $nome = trim($form['nome'] ?? '');
+        if ($nome === '') {
+            return $this->json($response, ['status' => false, 'msg' => 'O campo nome é obrigatório', 'id' => 0], 400);
+        }
+
         try {
-            $conn = DB::connection();
-            $conn->update('customer', $fieldsAndValues, ['id' => $id], [
-                'ativo' => ParameterType::BOOLEAN,
-                'id'    => ParameterType::INTEGER
-            ]);
-            return $this->json($response, ['status' => true, 'msg' => 'Alterado com sucesso!', 'id' => (int)$id], 200);
+            DB::execute(
+                'UPDATE customers SET
+                    nome = :nome, tipo = :tipo, cpf_cnpj = :cpf_cnpj, rg_ie = :rg_ie,
+                    cep = :cep, logradouro = :logradouro, numero = :numero, complemento = :complemento,
+                    bairro = :bairro, cidade = :cidade, estado = :estado, observacoes = :observacoes,
+                    ativo = :ativo, atualizado_em = :atualizado_em
+                 WHERE id = :id AND excluido = false',
+                [
+                    'nome'          => $nome,
+                    'tipo'          => $form['tipo']        ?? 'fisica',
+                    'cpf_cnpj'      => $form['cpf_cnpj']    ?? null,
+                    'rg_ie'         => $form['rg_ie']       ?? null,
+                    'cep'           => $form['cep']         ?? null,
+                    'logradouro'    => $form['logradouro']  ?? null,
+                    'numero'        => $form['numero']      ?? null,
+                    'complemento'   => $form['complemento'] ?? null,
+                    'bairro'        => $form['bairro']      ?? null,
+                    'cidade'        => $form['cidade']      ?? null,
+                    'estado'        => $form['estado']      ?? null,
+                    'observacoes'   => $form['observacoes'] ?? null,
+                    'ativo'         => isset($form['ativo']) ? filter_var($form['ativo'], FILTER_VALIDATE_BOOLEAN) : true,
+                    'atualizado_em' => (new DateTime())->format('Y-m-d H:i:s'),
+                    'id'            => $id,
+                ]
+            );
+
+            return $this->json($response, ['status' => true, 'msg' => 'Cliente atualizado com sucesso!', 'id' => (int) $id], 200);
         } catch (Exception $e) {
             return $this->json($response, ['status' => false, 'msg' => 'Erro ao atualizar: ' . $e->getMessage(), 'id' => 0], 500);
         }
     }
+
     public function delete($request, $response)
     {
         $form = $request->getParsedBody();
-        $id = $form['id'] ?? null;
+        $id   = $form['id'] ?? null;
+
         if (!$id) {
-            return $this->json($response, ['status' => false, 'msg' => 'ID não informado', 'id' => 0], 403);
+            return $this->json($response, ['status' => false, 'msg' => 'Informe o código do cliente', 'id' => 0], 403);
         }
+
         try {
-            $isDeleted = DB::connection()->update(
-                'customer',
-                ['excluido' => true, 'atualizado_em' => (new DateTime())->format('Y-m-d H:i:s')],
-                ['id' => $id],
-                ['excluido' => ParameterType::BOOLEAN, 'id' => ParameterType::INTEGER]
+            DB::execute(
+                'UPDATE customers SET excluido = true, atualizado_em = :now WHERE id = :id',
+                ['now' => (new DateTime())->format('Y-m-d H:i:s'), 'id' => $id]
             );
-            return $this->json($response, ['status' => true, 'msg' => 'Removido com sucesso!', 'id' => (int)$id]);
+
+            return $this->json($response, ['status' => true, 'msg' => 'Cliente removido com sucesso!', 'id' => (int) $id]);
         } catch (Exception $e) {
             return $this->json($response, ['status' => false, 'msg' => 'Erro ao excluir: ' . $e->getMessage(), 'id' => 0], 500);
         }
     }
+
     public function listingdata($request, $response)
     {
-        $form = $request->getParsedBody();
-        $term = $form['search']['value'] ?? null;
-        $start = (int)($form['start'] ?? 0);
-        $length = (int)($form['length'] ?? 10);
+        $form   = $request->getParsedBody();
+        $term   = $form['search']['value'] ?? null;
+        $start  = (int) ($form['start']  ?? 0);
+        $length = (int) ($form['length'] ?? 10);
 
-        $columns = [0 => 'id', 1 => 'nome', 2 => 'cpf', 3 => 'rg', 4 => 'ativo', 5 => 'criado_em'];
-        $posField = (isset($form['order'][0]['column'])) ? (int)$form['order'][0]['column'] : 0;
-        $orderType = strtoupper($form['order'][0]['dir'] ?? 'DESC');
-        $orderField = $columns[$posField] ?? 'id';
+        $columns = [
+            0 => 'id',
+            1 => 'nome',
+            2 => 'cpf_cnpj',
+            3 => 'tipo',
+            4 => 'cidade',
+            5 => 'ativo',
+            6 => 'criado_em',
+        ];
+
+        $posField   = isset($columns[(int) ($form['order'][0]['column'] ?? 0)]) ? (int) $form['order'][0]['column'] : 0;
+        $orderType  = in_array(strtoupper($form['order'][0]['dir'] ?? 'DESC'), ['ASC', 'DESC']) ? strtoupper($form['order'][0]['dir']) : 'DESC';
+        $orderField = $columns[$posField];
 
         try {
-            $totalRecords = (int) DB::select('COUNT(*)')->from('customer')->where('excluido = false')->fetchOne();
-            $query = DB::select('*')->from('customer')->where('excluido = false');
+            $where  = 'WHERE excluido = false';
+            $params = [];
 
-            if ($term) {
-                $query->setParameter('term', '%' . $term . '%');
-                $query->andWhere($query->expr()->or('nome ILIKE :term', 'cpf ILIKE :term'));
+            if (!empty($term)) {
+                $where   .= ' AND (nome ILIKE :term OR cpf_cnpj ILIKE :term OR cidade ILIKE :term)';
+                $params['term'] = '%' . $term . '%';
             }
 
-            $filteredRecords = (int) (clone $query)->select('COUNT(*)')->fetchOne();
-            $customers = $query->orderBy($orderField, $orderType)->setFirstResult($start)->setMaxResults($length)->fetchAllAssociative();
+            $totalRecords    = (int) DB::queryOne('SELECT COUNT(*) as total FROM customers WHERE excluido = false')['total'];
+            $filteredRecords = (int) DB::queryOne("SELECT COUNT(*) as total FROM customers {$where}", $params)['total'];
+
+            $params['limit']  = $length;
+            $params['offset'] = $start;
+
+            $customers = DB::query(
+                "SELECT * FROM customers {$where} ORDER BY {$orderField} {$orderType} LIMIT :limit OFFSET :offset",
+                $params
+            );
 
             $rows = [];
             foreach ($customers as $key => $value) {
                 $rows[$key] = [
                     $value['id'],
                     $value['nome'],
-                    $value['cpf'] ?? '',
-                    $value['rg'] ?? '',
-                    ($value['ativo']) ? 'Ativo' : 'Inativo',
+                    $value['cpf_cnpj'] ?? '',
+                    $value['tipo'] === 'fisica' ? 'Pessoa Física' : 'Pessoa Jurídica',
+                    $value['cidade'] ?? '',
+                    $value['ativo'] ? 'Ativo' : 'Inativo',
                     (new DateTime($value['criado_em']))->format('d/m/Y H:i:s'),
-                    "<td><button class='btn btn-sm btn-danger' onclick='ShowModal({$value['id']});'>Excluir</button></td>"
+                    "<td>
+                        <a class='btn btn-sm btn-warning' href='/cliente/detalhes/{$value['id']}'><i class='bi bi-pencil-square'></i> Editar</a>
+                        <button type='button' class='btn btn-sm btn-danger' onclick='ShowModal({$value['id']});'><i class='bi bi-trash'></i> Excluir</button>
+                    </td>",
                 ];
             }
-            return $this->json($response, ['recordsTotal' => $totalRecords, 'recordsFiltered' => $filteredRecords, 'data' => $rows], 200);
+
+            return $this->json($response, [
+                'recordsTotal'    => $totalRecords,
+                'recordsFiltered' => $filteredRecords,
+                'data'            => $rows,
+            ], 200);
         } catch (Exception $e) {
             return $this->json($response, ['status' => false, 'msg' => $e->getMessage()], 500);
+        }
+    }
+
+    // ── Contacts ─────────────────────────────────────────────────────────────
+
+    public function contactInsert($request, $response, $args)
+    {
+        $id   = $args['id'] ?? null;
+        $form = $request->getParsedBody();
+
+        if (!$id) {
+            return $this->json($response, ['status' => false, 'msg' => 'ID do cliente não informado', 'id' => 0], 403);
+        }
+
+        $contato = trim($form['contato'] ?? '');
+        if ($contato === '') {
+            return $this->json($response, ['status' => false, 'msg' => 'O campo contato é obrigatório', 'id' => 0], 400);
+        }
+
+        try {
+            // Se marcou como principal, desmarca os outros
+            if (filter_var($form['principal'] ?? false, FILTER_VALIDATE_BOOLEAN)) {
+                DB::execute(
+                    'UPDATE contacts SET principal = false WHERE entidade = :entidade AND entidade_id = :id',
+                    ['entidade' => 'customer', 'id' => $id]
+                );
+            }
+
+            DB::execute(
+                'INSERT INTO contacts (entidade, entidade_id, tipo, nome, contato, principal, criado_em)
+                 VALUES (:entidade, :entidade_id, :tipo, :nome, :contato, :principal, :criado_em)',
+                [
+                    'entidade'    => 'customer',
+                    'entidade_id' => $id,
+                    'tipo'        => $form['tipo']      ?? 'telefone',
+                    'nome'        => $form['nome']      ?? null,
+                    'contato'     => $contato,
+                    'principal'   => filter_var($form['principal'] ?? false, FILTER_VALIDATE_BOOLEAN),
+                    'criado_em'   => (new DateTime())->format('Y-m-d H:i:s'),
+                ]
+            );
+
+            $contactId = (int) DB::lastInsertId('contacts_id_seq');
+
+            return $this->json($response, ['status' => true, 'msg' => 'Contato adicionado!', 'id' => $contactId], 201);
+        } catch (Exception $e) {
+            return $this->json($response, ['status' => false, 'msg' => 'Erro: ' . $e->getMessage(), 'id' => 0], 500);
+        }
+    }
+
+    public function contactDelete($request, $response, $args)
+    {
+        $contactId = $args['contactId'] ?? null;
+
+        if (!$contactId) {
+            return $this->json($response, ['status' => false, 'msg' => 'ID do contato não informado', 'id' => 0], 403);
+        }
+
+        try {
+            DB::execute('DELETE FROM contacts WHERE id = :id AND entidade = :entidade', [
+                'id'       => $contactId,
+                'entidade' => 'customer',
+            ]);
+
+            return $this->json($response, ['status' => true, 'msg' => 'Contato removido!', 'id' => (int) $contactId]);
+        } catch (Exception $e) {
+            return $this->json($response, ['status' => false, 'msg' => 'Erro: ' . $e->getMessage(), 'id' => 0], 500);
         }
     }
 }

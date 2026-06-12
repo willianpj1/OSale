@@ -3,8 +3,8 @@
 {% block breadcrumbs %}
 <ol class="breadcrumb float-sm-end">
     <li class="breadcrumb-item"><a href="/">Início</a></li>
-    <li class="breadcrumb-item"><a href="/cliente/lista">Lista de clientes</a></li>
-    <li class="breadcrumb-item active" aria-current="page">Detalhes do cliente</li>
+    <li class="breadcrumb-item"><a href="/fornecedor/lista">Lista de fornecedores</a></li>
+    <li class="breadcrumb-item active" aria-current="page">Detalhes do fornecedor</li>
 </ol>
 {% endblock %}
 
@@ -14,58 +14,41 @@
     <input type="hidden" id="id" name="id" value="{{ id }}">
     <div class="row g-3">
 
-        {# Dados principais #}
         <div class="col-12">
             <div class="card">
                 <div class="card-header d-flex align-items-center gap-2">
-                    <a href="/cliente/lista" class="btn btn-warning">
+                    <a href="/fornecedor/lista" class="btn btn-warning">
                         <i class="bi bi-chevron-left"></i> Voltar
                     </a>
-                    <span class="fw-semibold">Dados do cliente</span>
+                    <span class="fw-semibold">Dados do fornecedor</span>
                 </div>
                 <div class="card-body">
                     <div class="row">
-                        <div class="col-lg-4 col-md-6">
-                            <div class="form-floating mb-3">
-                                <select class="form-select" id="tipo" name="tipo">
-                                    <option value="fisica" {{ customer.tipo == 'fisica' ? 'selected' : '' }}>Pessoa Física</option>
-                                    <option value="juridica" {{ customer.tipo == 'juridica' ? 'selected' : '' }}>Pessoa Jurídica</option>
-                                </select>
-                                <label for="tipo">Tipo</label>
-                            </div>
-                        </div>
-                        <div class="col-lg-4 col-md-6">
-                            <div class="form-floating mb-3">
-                                <input autofocus type="text" class="form-control" id="cpf_cnpj" name="cpf_cnpj"
-                                    placeholder="CPF / CNPJ" value="{{ customer.cpf_cnpj }}">
-                                <label for="cpf_cnpj">CPF / CNPJ</label>
-                            </div>
-                        </div>
-                        <div class="col-lg-4 col-md-6">
-                            <div class="form-floating mb-3">
-                                <input type="text" class="form-control" id="rg_ie" name="rg_ie"
-                                    placeholder="RG / IE" value="{{ customer.rg_ie }}">
-                                <label for="rg_ie">RG / Inscrição Estadual</label>
-                            </div>
-                        </div>
                         <div class="col-lg-8 col-md-6">
                             <div class="form-floating mb-3">
-                                <input type="text" class="form-control" id="nome" name="nome"
-                                    placeholder="Nome / Razão Social" value="{{ customer.nome }}" required>
-                                <label for="nome">Nome / Razão Social</label>
+                                <input autofocus type="text" class="form-control" id="nome" name="nome"
+                                    placeholder="Razão Social / Nome" value="{{ supplier.nome }}" required>
+                                <label for="nome">Razão Social / Nome</label>
+                            </div>
+                        </div>
+                        <div class="col-lg-4 col-md-6">
+                            <div class="form-floating mb-3">
+                                <input type="text" class="form-control" id="cnpj" name="cnpj"
+                                    placeholder="CNPJ" value="{{ supplier.cnpj }}">
+                                <label for="cnpj">CNPJ</label>
                             </div>
                         </div>
                         <div class="col-12">
                             <div class="form-floating mb-3">
                                 <textarea class="form-control" id="observacoes" name="observacoes"
-                                    placeholder="Observações" style="height:80px">{{ customer.observacoes }}</textarea>
+                                    placeholder="Observações" style="height:80px">{{ supplier.observacoes }}</textarea>
                                 <label for="observacoes">Observações</label>
                             </div>
                         </div>
                         <div class="col-12">
                             <div class="form-check">
                                 <input class="form-check-input" type="checkbox" id="ativo" name="ativo"
-                                    value="true" {{ customer.ativo ? 'checked' : '' }}>
+                                    value="true" {{ supplier.ativo ? 'checked' : '' }}>
                                 <label class="form-check-label" for="ativo">Ativo</label>
                             </div>
                         </div>
@@ -74,7 +57,6 @@
             </div>
         </div>
 
-        {# Endereço #}
         <div class="col-12">
             <div class="card">
                 <div class="card-header fw-semibold">Endereço</div>
@@ -83,49 +65,49 @@
                         <div class="col-lg-3 col-md-4">
                             <div class="form-floating mb-3">
                                 <input type="text" class="form-control" id="cep" name="cep"
-                                    placeholder="CEP" value="{{ customer.cep }}">
+                                    placeholder="CEP" value="{{ supplier.cep }}">
                                 <label for="cep">CEP</label>
                             </div>
                         </div>
                         <div class="col-lg-7 col-md-8">
                             <div class="form-floating mb-3">
                                 <input type="text" class="form-control" id="logradouro" name="logradouro"
-                                    placeholder="Logradouro" value="{{ customer.logradouro }}">
+                                    placeholder="Logradouro" value="{{ supplier.logradouro }}">
                                 <label for="logradouro">Logradouro</label>
                             </div>
                         </div>
                         <div class="col-lg-2 col-md-4">
                             <div class="form-floating mb-3">
                                 <input type="text" class="form-control" id="numero" name="numero"
-                                    placeholder="Número" value="{{ customer.numero }}">
+                                    placeholder="Número" value="{{ supplier.numero }}">
                                 <label for="numero">Número</label>
                             </div>
                         </div>
                         <div class="col-lg-4 col-md-4">
                             <div class="form-floating mb-3">
                                 <input type="text" class="form-control" id="complemento" name="complemento"
-                                    placeholder="Complemento" value="{{ customer.complemento }}">
+                                    placeholder="Complemento" value="{{ supplier.complemento }}">
                                 <label for="complemento">Complemento</label>
                             </div>
                         </div>
                         <div class="col-lg-3 col-md-4">
                             <div class="form-floating mb-3">
                                 <input type="text" class="form-control" id="bairro" name="bairro"
-                                    placeholder="Bairro" value="{{ customer.bairro }}">
+                                    placeholder="Bairro" value="{{ supplier.bairro }}">
                                 <label for="bairro">Bairro</label>
                             </div>
                         </div>
                         <div class="col-lg-3 col-md-4">
                             <div class="form-floating mb-3">
                                 <input type="text" class="form-control" id="cidade" name="cidade"
-                                    placeholder="Cidade" value="{{ customer.cidade }}">
+                                    placeholder="Cidade" value="{{ supplier.cidade }}">
                                 <label for="cidade">Cidade</label>
                             </div>
                         </div>
                         <div class="col-lg-2 col-md-4">
                             <div class="form-floating mb-3">
                                 <input type="text" class="form-control" id="estado" name="estado"
-                                    placeholder="UF" maxlength="2" value="{{ customer.estado }}">
+                                    placeholder="UF" maxlength="2" value="{{ supplier.estado }}">
                                 <label for="estado">UF</label>
                             </div>
                         </div>
@@ -134,7 +116,6 @@
             </div>
         </div>
 
-        {# Contatos — só exibe se já tiver ID (edição) #}
         {% if id %}
         <div class="col-12">
             <div class="card">
@@ -190,7 +171,6 @@
     </div>
 </form>
 
-{# Modal contato #}
 <div class="modal fade" id="modal-contact" tabindex="-1">
     <div class="modal-dialog">
         <div class="modal-content">
@@ -202,7 +182,7 @@
                 <div class="row g-3">
                     <div class="col-md-6">
                         <div class="form-floating">
-                            <select class="form-select" id="c-tipo" name="c_tipo">
+                            <select class="form-select" id="c-tipo">
                                 <option value="telefone">Telefone</option>
                                 <option value="whatsapp">WhatsApp</option>
                                 <option value="email">E-mail</option>
@@ -214,7 +194,7 @@
                     <div class="col-md-6">
                         <div class="form-floating">
                             <input type="text" class="form-control" id="c-nome" placeholder="Label">
-                            <label for="c-nome">Label (ex: Celular pessoal)</label>
+                            <label for="c-nome">Label</label>
                         </div>
                     </div>
                     <div class="col-12">
@@ -243,5 +223,5 @@
 {% endblock %}
 
 {% block script %}
-{{ vite('resources/js/pages/customer.js') }}
+{{ vite('resources/js/pages/supplier.js') }}
 {% endblock %}

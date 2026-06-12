@@ -31,7 +31,7 @@ final class Sales extends AbstractMigration
             ->addColumn('observacoes',      'text',      ['null' => true,  'default' => null])
             ->addColumn('excluido',         'boolean',   ['null' => false, 'default' => false])
             ->addColumn('criado_em',        'timestamp', ['null' => false, 'default' => 'CURRENT_TIMESTAMP'])
-            ->addColumn('atualizado_em',    'timestamp', ['null' => false, 'default' => 'CURRENT_TIMESTAMP'])
+            ->addColumn('atualizado_em', 'timestamp', ['null' => false, 'default' => 'CURRENT_TIMESTAMP'])
 
             ->addForeignKey('customer_id', 'customers', 'id', [
                 'delete'     => 'SET NULL',

@@ -1,7 +1,5 @@
 <?php
-
 declare(strict_types=1);
-
 use Phinx\Migration\AbstractMigration;
 
 final class Suppliers extends AbstractMigration
@@ -13,11 +11,6 @@ final class Suppliers extends AbstractMigration
         $table
             ->addColumn('nome',          'string',    ['limit' => 200, 'null' => false])
             ->addColumn('cnpj',          'string',    ['limit' => 18,  'null' => true,  'default' => null])
-            ->addColumn('email',         'string',    ['limit' => 255, 'null' => true,  'default' => null])
-            ->addColumn('telefone',      'string',    ['limit' => 20,  'null' => true,  'default' => null])
-            ->addColumn('whatsapp',      'string',    ['limit' => 20,  'null' => true,  'default' => null])
-            ->addColumn('contato',       'string',    ['limit' => 150, 'null' => true,  'default' => null])
-            // nome do contato comercial
             ->addColumn('cep',           'string',    ['limit' => 9,   'null' => true,  'default' => null])
             ->addColumn('logradouro',    'string',    ['limit' => 255, 'null' => true,  'default' => null])
             ->addColumn('numero',        'string',    ['limit' => 10,  'null' => true,  'default' => null])

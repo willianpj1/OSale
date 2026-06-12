@@ -3,7 +3,7 @@
 {% block breadcrumbs %}
 <ol class="breadcrumb float-sm-end">
     <li class="breadcrumb-item"><a href="/">Início</a></li>
-    <li class="breadcrumb-item active" aria-current="page">Lista de clientes</li>
+    <li class="breadcrumb-item active" aria-current="page">Lista de fornecedores</li>
 </ol>
 {% endblock %}
 
@@ -12,19 +12,18 @@
     <div class="col-12">
         <div class="card">
             <div class="card-header">
-                <a href="/cliente/detalhes" class="btn btn-success">
+                <a href="/fornecedor/detalhes" class="btn btn-success">
                     <i class="bi bi-plus-lg"></i>
                     Cadastro
                 </a>
             </div>
             <div class="card-body">
-                <table class="table table-bordered table-striped table-hover" id="table-customer">
+                <table class="table table-bordered table-striped table-hover" id="table-supplier">
                     <thead>
                         <tr>
                             <th>Código</th>
                             <th>Nome</th>
-                            <th>CPF / CNPJ</th>
-                            <th>Tipo</th>
+                            <th>CNPJ</th>
                             <th>Cidade</th>
                             <th>Ativo</th>
                             <th>Criado em</th>
@@ -43,5 +42,5 @@
 {% endblock %}
 
 {% block script %}
-{{ vite('resources/js/pages/list-customer.js') }}
+{{ vite('resources/js/pages/list-supplier.js') }}
 {% endblock %}

@@ -1,7 +1,5 @@
 <?php
-
 declare(strict_types=1);
-
 use Phinx\Migration\AbstractMigration;
 
 final class Customers extends AbstractMigration
@@ -16,9 +14,6 @@ final class Customers extends AbstractMigration
             // tipo: 'fisica' | 'juridica'
             ->addColumn('cpf_cnpj',      'string',    ['limit' => 18,  'null' => true,  'default' => null])
             ->addColumn('rg_ie',         'string',    ['limit' => 30,  'null' => true,  'default' => null])
-            ->addColumn('email',         'string',    ['limit' => 255, 'null' => true,  'default' => null])
-            ->addColumn('telefone',      'string',    ['limit' => 20,  'null' => true,  'default' => null])
-            ->addColumn('whatsapp',      'string',    ['limit' => 20,  'null' => true,  'default' => null])
             ->addColumn('cep',           'string',    ['limit' => 9,   'null' => true,  'default' => null])
             ->addColumn('logradouro',    'string',    ['limit' => 255, 'null' => true,  'default' => null])
             ->addColumn('numero',        'string',    ['limit' => 10,  'null' => true,  'default' => null])
@@ -34,7 +29,6 @@ final class Customers extends AbstractMigration
 
             ->addIndex(['cpf_cnpj'], ['name' => 'customers_cpf_cnpj_idx'])
             ->addIndex(['nome'],     ['name' => 'customers_nome_idx'])
-            ->addIndex(['email'],    ['name' => 'customers_email_idx'])
             ->addIndex(['excluido'], ['name' => 'customers_excluido_idx'])
 
             ->create();

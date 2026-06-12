@@ -2,12 +2,11 @@
 
 declare(strict_types=1);
 
-namespace app\controller;
+namespace App\Controller;
 
+use App\Database\DB;
 use DateTime;
-use Doctrine\DBAL\ParameterType;
 use Exception;
-use App\database\DB;
 
 final class Product extends Base
 {
@@ -27,19 +26,28 @@ final class Product extends Base
         $action  = ($id === null) ? 'c' : 'e';
         $product = [];
 
-        if (!is_null($id)) {
-            $qb = DB::select('*')->from('product');
-            $product = $qb
-                ->where('id = ' . $qb->createPositionalParameter($id, ParameterType::INTEGER))
-                ->fetchAssociative();
+        if ($id !== null) {
+            $product = DB::queryOne(
+                'SELECT p.*, s.nome as supplier_nome 
+                 FROM products p
+                 LEFT JOIN suppliers s ON s.id = p.supplier_id
+                 WHERE p.id = :id AND p.excluido = false',
+                ['id' => $id]
+            );
         }
+
+        // Lista de fornecedores para o select do formulário
+        $suppliers = DB::query(
+            'SELECT id, nome FROM suppliers WHERE excluido = false AND ativo = true ORDER BY nome ASC'
+        );
 
         return $this->getTwig()
             ->render($response, $this->setView('product'), [
-                'titulo'  => 'Detalhes do produto',
-                'id'      => $id,
-                'action'  => $action,
-                'product' => $product,
+                'titulo'    => 'Detalhes do produto',
+                'id'        => $id,
+                'action'    => $action,
+                'product'   => $product,
+                'suppliers' => $suppliers,
             ])
             ->withHeader('Content-Type', 'text/html')
             ->withStatus(200);
@@ -54,32 +62,37 @@ final class Product extends Base
             return $this->json($response, ['status' => false, 'msg' => 'O campo nome é obrigatório', 'id' => 0], 400);
         }
 
-        $fieldsAndValues = [
-            'nome'              => $nome,
-            'codigo_barra'      => $form['codigo_barra']      ?? null,
-            'unidade'           => $form['unidade']           ?? null,
-            'preco_compra'      => (float) ($form['preco_compra']     ?? 0),
-            'total_imposto'     => (float) ($form['total_imposto']    ?? 0),
-            'margem_lucro'      => (float) ($form['margem_lucro']     ?? 0),
-            'custo_operacional' => (float) ($form['custo_operacional'] ?? 0),
-            'preco_venda'       => (float) ($form['preco_venda']       ?? 0),
-            'descricao'         => $form['descricao']         ?? null,
-            'ativo'             => isset($form['ativo']) ? filter_var($form['ativo'], FILTER_VALIDATE_BOOLEAN) : true,
-            'excluido'          => false,
-        ];
-
         try {
-            $conn = DB::connection();
-            $conn->insert('product', $fieldsAndValues, [
-                'ativo'    => ParameterType::BOOLEAN,
-                'excluido' => ParameterType::BOOLEAN
-            ]);
+            $now = (new DateTime())->format('Y-m-d H:i:s');
 
-            $id = $conn->lastInsertId();
+            DB::execute(
+                'INSERT INTO products
+                    (supplier_id, nome, codigo_barra, sku, unidade, descricao, preco_compra, margem_lucro, preco_venda, estoque_atual, estoque_minimo, ativo, excluido, criado_em, atualizado_em)
+                 VALUES
+                    (:supplier_id, :nome, :codigo_barra, :sku, :unidade, :descricao, :preco_compra, :margem_lucro, :preco_venda, :estoque_atual, :estoque_minimo, :ativo, false, :criado_em, :atualizado_em)',
+                [
+                    'supplier_id'    => $form['supplier_id']   ? (int) $form['supplier_id'] : null,
+                    'nome'           => $nome,
+                    'codigo_barra'   => $form['codigo_barra']  ?? null,
+                    'sku'            => $form['sku']           ?? null,
+                    'unidade'        => $form['unidade']       ?? 'un',
+                    'descricao'      => $form['descricao']     ?? null,
+                    'preco_compra'   => (float) ($form['preco_compra']  ?? 0),
+                    'margem_lucro'   => (float) ($form['margem_lucro']  ?? 0),
+                    'preco_venda'    => (float) ($form['preco_venda']   ?? 0),
+                    'estoque_atual'  => (float) ($form['estoque_atual'] ?? 0),
+                    'estoque_minimo' => (float) ($form['estoque_minimo'] ?? 0),
+                    'ativo'          => isset($form['ativo']) ? filter_var($form['ativo'], FILTER_VALIDATE_BOOLEAN) : true,
+                    'criado_em'      => $now,
+                    'atualizado_em'  => $now,
+                ]
+            );
 
-            return $this->json($response, ['status' => true, 'msg' => 'Salvo com sucesso!', 'id' => (int) $id], 201);
+            $id = (int) DB::lastInsertId('products_id_seq');
+
+            return $this->json($response, ['status' => true, 'msg' => 'Produto salvo com sucesso!', 'id' => $id], 201);
         } catch (Exception $e) {
-            return $this->json($response, ['status' => false, 'msg' => 'Restrição: ' . $e->getMessage(), 'id' => 0], 500);
+            return $this->json($response, ['status' => false, 'msg' => 'Erro ao inserir: ' . $e->getMessage(), 'id' => 0], 500);
         }
     }
 
@@ -88,7 +101,7 @@ final class Product extends Base
         $form = $request->getParsedBody();
         $id   = $form['id'] ?? null;
 
-        if (is_null($id)) {
+        if (!$id) {
             return $this->json($response, ['status' => false, 'msg' => 'Por favor informe o ID do registro', 'id' => 0], 403);
         }
 
@@ -97,35 +110,34 @@ final class Product extends Base
             return $this->json($response, ['status' => false, 'msg' => 'O campo nome é obrigatório', 'id' => 0], 400);
         }
 
-        $fieldsAndValues = [
-            'nome'              => $nome,
-            'codigo_barra'      => $form['codigo_barra']      ?? null,
-            'unidade'           => $form['unidade']           ?? null,
-            'preco_compra'      => (float) ($form['preco_compra']     ?? 0),
-            'total_imposto'     => (float) ($form['total_imposto']    ?? 0),
-            'margem_lucro'      => (float) ($form['margem_lucro']     ?? 0),
-            'custo_operacional' => (float) ($form['custo_operacional'] ?? 0),
-            'preco_venda'       => (float) ($form['preco_venda']       ?? 0),
-            'descricao'         => $form['descricao']         ?? null,
-            'ativo'             => isset($form['ativo']) ? filter_var($form['ativo'], FILTER_VALIDATE_BOOLEAN) : true,
-            'atualizado_em'     => (new DateTime())->format('Y-m-d H:i:s'),
-        ];
-
         try {
-            $conn = DB::connection();
-            $isUpdated = $conn->update('product', $fieldsAndValues, ['id' => $id, 'excluido' => false], [
-                'ativo' => ParameterType::BOOLEAN,
-                'id'    => ParameterType::INTEGER,
-                'excluido' => ParameterType::BOOLEAN
-            ]);
+            DB::execute(
+                'UPDATE products SET
+                    supplier_id = :supplier_id, nome = :nome, codigo_barra = :codigo_barra, sku = :sku,
+                    unidade = :unidade, descricao = :descricao, preco_compra = :preco_compra,
+                    margem_lucro = :margem_lucro, preco_venda = :preco_venda,
+                    estoque_minimo = :estoque_minimo, ativo = :ativo, atualizado_em = :atualizado_em
+                 WHERE id = :id AND excluido = false',
+                [
+                    'supplier_id'    => $form['supplier_id']  ? (int) $form['supplier_id'] : null,
+                    'nome'           => $nome,
+                    'codigo_barra'   => $form['codigo_barra'] ?? null,
+                    'sku'            => $form['sku']          ?? null,
+                    'unidade'        => $form['unidade']      ?? 'un',
+                    'descricao'      => $form['descricao']    ?? null,
+                    'preco_compra'   => (float) ($form['preco_compra']  ?? 0),
+                    'margem_lucro'   => (float) ($form['margem_lucro']  ?? 0),
+                    'preco_venda'    => (float) ($form['preco_venda']   ?? 0),
+                    'estoque_minimo' => (float) ($form['estoque_minimo'] ?? 0),
+                    'ativo'          => isset($form['ativo']) ? filter_var($form['ativo'], FILTER_VALIDATE_BOOLEAN) : true,
+                    'atualizado_em'  => (new DateTime())->format('Y-m-d H:i:s'),
+                    'id'             => $id,
+                ]
+            );
 
-            if (!$isUpdated) {
-                return $this->json($response, ['status' => false, 'msg' => 'Produto não encontrado', 'id' => 0], 403);
-            }
-
-            return $this->json($response, ['status' => true, 'msg' => 'Atualizado com sucesso!', 'id' => (int) $id], 200);
+            return $this->json($response, ['status' => true, 'msg' => 'Produto atualizado com sucesso!', 'id' => (int) $id], 200);
         } catch (Exception $e) {
-            return $this->json($response, ['status' => false, 'msg' => 'Restrição: ' . $e->getMessage(), 'id' => 0], 500);
+            return $this->json($response, ['status' => false, 'msg' => 'Erro ao atualizar: ' . $e->getMessage(), 'id' => 0], 500);
         }
     }
 
@@ -134,72 +146,97 @@ final class Product extends Base
         $form = $request->getParsedBody();
         $id   = $form['id'] ?? null;
 
-        if (is_null($id) || $id === '') {
+        if (!$id) {
             return $this->json($response, ['status' => false, 'msg' => 'Informe o código do produto', 'id' => 0], 403);
         }
 
         try {
-            $isDeleted = DB::connection()->update(
-                'product',
-                ['excluido' => true, 'atualizado_em' => (new DateTime())->format('Y-m-d H:i:s')],
-                ['id' => $id],
-                ['excluido' => ParameterType::BOOLEAN, 'id' => ParameterType::INTEGER]
+            DB::execute(
+                'UPDATE products SET excluido = true, atualizado_em = :now WHERE id = :id',
+                ['now' => (new DateTime())->format('Y-m-d H:i:s'), 'id' => $id]
             );
 
-            if (!$isDeleted) {
-                return $this->json($response, ['status' => false, 'msg' => 'Produto não encontrado', 'id' => $id], 403);
-            }
-
-            return $this->json($response, ['status' => true, 'msg' => 'Excluído com sucesso!', 'id' => (int) $id]);
+            return $this->json($response, ['status' => true, 'msg' => 'Produto removido com sucesso!', 'id' => (int) $id]);
         } catch (Exception $e) {
-            return $this->json($response, ['status' => false, 'msg' => 'Restrição: ' . $e->getMessage(), 'id' => 0], 500);
+            return $this->json($response, ['status' => false, 'msg' => 'Erro ao excluir: ' . $e->getMessage(), 'id' => 0], 500);
         }
     }
 
     public function listingdata($request, $response)
     {
-        $form = $request->getParsedBody();
+        $form   = $request->getParsedBody();
         $term   = $form['search']['value'] ?? null;
         $start  = (int) ($form['start']  ?? 0);
         $length = (int) ($form['length'] ?? 10);
 
-        $columns = [0 => 'id', 1 => 'nome', 2 => 'codigo_barra', 3 => 'unidade', 4 => 'preco_venda', 5 => 'ativo', 6 => 'criado_em', 7 => 'atualizado_em'];
+        $columns = [
+            0 => 'p.id',
+            1 => 'p.nome',
+            2 => 'p.codigo_barra',
+            3 => 'p.unidade',
+            4 => 'p.preco_venda',
+            5 => 'p.estoque_atual',
+            6 => 'p.ativo',
+            7 => 'p.criado_em',
+        ];
 
-        $posField   = (isset($form['order'][0]['column']) && isset($columns[(int) $form['order'][0]['column']])) ? (int) $form['order'][0]['column'] : 0;
-        $orderType  = strtoupper($form['order'][0]['dir'] ?? 'DESC');
-        $orderType  = in_array($orderType, ['ASC', 'DESC'], true) ? $orderType : 'DESC';
+        $posField   = isset($columns[(int) ($form['order'][0]['column'] ?? 0)]) ? (int) $form['order'][0]['column'] : 0;
+        $orderType  = in_array(strtoupper($form['order'][0]['dir'] ?? 'DESC'), ['ASC', 'DESC']) ? strtoupper($form['order'][0]['dir']) : 'DESC';
         $orderField = $columns[$posField];
 
         try {
-            $totalRecords = (int) DB::select('COUNT(*)')->from('product')->where('excluido = false')->fetchOne();
-            $query = DB::select('*')->from('product')->where('excluido = false');
+            $where  = 'WHERE p.excluido = false';
+            $params = [];
 
-            if (!is_null($term) && $term !== '') {
-                $query->setParameter('term', '%' . $term . '%');
-                $query->andWhere($query->expr()->or('CAST(id AS TEXT) ILIKE :term', 'nome ILIKE :term', 'codigo_barra ILIKE :term'));
+            if (!empty($term)) {
+                $where          .= ' AND (p.nome ILIKE :term OR p.codigo_barra ILIKE :term OR p.sku ILIKE :term)';
+                $params['term']  = '%' . $term . '%';
             }
 
-            $filteredRecords = (int) (clone $query)->select('COUNT(*)')->fetchOne();
-            $products = $query->orderBy($orderField, $orderType)->setFirstResult($start)->setMaxResults($length)->fetchAllAssociative();
+            $totalRecords    = (int) DB::queryOne('SELECT COUNT(*) as total FROM products p WHERE p.excluido = false')['total'];
+            $filteredRecords = (int) DB::queryOne("SELECT COUNT(*) as total FROM products p {$where}", $params)['total'];
+
+            $params['limit']  = $length;
+            $params['offset'] = $start;
+
+            $products = DB::query(
+                "SELECT p.*, s.nome as supplier_nome
+                 FROM products p
+                 LEFT JOIN suppliers s ON s.id = p.supplier_id
+                 {$where} ORDER BY {$orderField} {$orderType} LIMIT :limit OFFSET :offset",
+                $params
+            );
 
             $rows = [];
             foreach ($products as $key => $value) {
+                $estoqueClass = (float) $value['estoque_atual'] <= (float) $value['estoque_minimo']
+                    ? 'text-danger fw-bold'
+                    : '';
+
                 $rows[$key] = [
                     $value['id'],
                     $value['nome'],
-                    $value['codigo_barra'] ?? '',
-                    $value['unidade']      ?? '',
-                    number_format((float) ($value['preco_venda'] ?? 0), 2, ',', '.'),
-                    ($value['ativo'] === true) ? 'Ativo' : 'Inativo',
+                    $value['codigo_barra']  ?? '',
+                    $value['unidade']       ?? '',
+                    'R$ ' . number_format((float) $value['preco_venda'], 2, ',', '.'),
+                    "<span class='{$estoqueClass}'>" . number_format((float) $value['estoque_atual'], 3, ',', '.') . "</span>",
+                    $value['supplier_nome'] ?? '—',
+                    $value['ativo'] ? 'Ativo' : 'Inativo',
                     (new DateTime($value['criado_em']))->format('d/m/Y H:i:s'),
-                    (new DateTime($value['atualizado_em']))->format('d/m/Y H:i:s'),
-                    "<td><a class='btn btn-sm btn-warning' href='/produto/detalhes/{$value['id']}'><i class='fa-solid fa-pen-to-square'></i> Editar</a> <button class='btn btn-sm btn-danger' onclick='ShowModal({$value['id']});'><i class='fa-solid fa-trash'></i> Excluir</button></td>",
+                    "<td>
+                        <a class='btn btn-sm btn-warning' href='/produto/detalhes/{$value['id']}'><i class='bi bi-pencil-square'></i> Editar</a>
+                        <button type='button' class='btn btn-sm btn-danger' onclick='ShowModal({$value['id']});'><i class='bi bi-trash'></i> Excluir</button>
+                    </td>",
                 ];
             }
 
-            return $this->json($response, ['recordsTotal' => $totalRecords, 'recordsFiltered' => $filteredRecords, 'data' => $rows], 200);
+            return $this->json($response, [
+                'recordsTotal'    => $totalRecords,
+                'recordsFiltered' => $filteredRecords,
+                'data'            => $rows,
+            ], 200);
         } catch (Exception $e) {
-            return $this->json($response, ['status' => false, 'msg' => 'Restrição: ' . $e->getMessage(), 'id' => 0], 500);
+            return $this->json($response, ['status' => false, 'msg' => $e->getMessage()], 500);
         }
     }
 }

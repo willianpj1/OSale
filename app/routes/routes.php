@@ -6,11 +6,16 @@ use App\Controller\Login;
 use App\Controller\Register;
 use App\Controller\Home;
 use App\Controller\Customer;
+use App\Controller\Product;
+use App\Controller\Supplier;
+use App\Controller\Service;
+use App\Controller\ServiceOrder;
+use App\Controller\Sale;
 use App\Middleware\Middleware;
 
 // ── Rotas públicas ────────────────────────────────────────────────────────────
 
-$app->get('/login',  Login::class . ':login');#->add(Middleware::web());
+$app->get('/login',  Login::class . ':login');
 $app->post('/login', Login::class . ':authenticate');
 
 $app->post('/auth/google',          Login::class . ':googleOneTap');
@@ -23,10 +28,90 @@ $app->get('/logout', Login::class . ':logout');
 
 // ── Rotas protegidas ──────────────────────────────────────────────────────────
 
-$app->get('/',     Home::class . ':home');#->add(Middleware::web());
-$app->get('/home', Home::class . ':home');#->add(Middleware::web());
+$app->get('/',     Home::class . ':home');
+$app->get('/home', Home::class . ':home');
+
+// ── Clientes ──────────────────────────────────────────────────────────────────
 
 $app->group('/cliente', function ($group) {
-    $group->get('/lista',        Customer::class . ':list');
-    $group->post('/listingdata', Customer::class . ':listingdata');
-});#->add(Middleware::web());
+    $group->get('/lista',             Customer::class . ':list');
+    $group->get('/detalhes',          Customer::class . ':details');
+    $group->get('/detalhes/{id}',     Customer::class . ':details');
+    $group->post('/listingdata',      Customer::class . ':listingdata');
+    $group->post('/inserir',          Customer::class . ':insert');
+    $group->post('/atualizar',        Customer::class . ':update');
+    $group->post('/excluir',          Customer::class . ':delete');
+    $group->post('/{id}/contato',             Customer::class . ':contactInsert');
+    $group->post('/{id}/contato/{contactId}', Customer::class . ':contactDelete');
+});
+
+// ── Fornecedores ──────────────────────────────────────────────────────────────
+
+$app->group('/fornecedor', function ($group) {
+    $group->get('/lista',             Supplier::class . ':list');
+    $group->get('/detalhes',          Supplier::class . ':details');
+    $group->get('/detalhes/{id}',     Supplier::class . ':details');
+    $group->post('/listingdata',      Supplier::class . ':listingdata');
+    $group->post('/inserir',          Supplier::class . ':insert');
+    $group->post('/atualizar',        Supplier::class . ':update');
+    $group->post('/excluir',          Supplier::class . ':delete');
+    $group->post('/{id}/contato',             Supplier::class . ':contactInsert');
+    $group->post('/{id}/contato/{contactId}', Supplier::class . ':contactDelete');
+});
+
+// ── Produtos ──────────────────────────────────────────────────────────────────
+
+$app->group('/produto', function ($group) {
+    $group->get('/lista',             Product::class . ':list');
+    $group->get('/detalhes',          Product::class . ':details');
+    $group->get('/detalhes/{id}',     Product::class . ':details');
+    $group->post('/listingdata',      Product::class . ':listingdata');
+    $group->post('/inserir',          Product::class . ':insert');
+    $group->post('/atualizar',        Product::class . ':update');
+    $group->post('/excluir',          Product::class . ':delete');
+});
+
+// ── Serviços ──────────────────────────────────────────────────────────────────
+
+$app->group('/servico', function ($group) {
+    $group->get('/lista',             Service::class . ':list');
+    $group->get('/detalhes',          Service::class . ':details');
+    $group->get('/detalhes/{id}',     Service::class . ':details');
+    $group->post('/listingdata',      Service::class . ':listingdata');
+    $group->post('/inserir',          Service::class . ':insert');
+    $group->post('/atualizar',        Service::class . ':update');
+    $group->post('/excluir',          Service::class . ':delete');
+});
+
+// ── Ordens de Serviço ─────────────────────────────────────────────────────────
+
+$app->group('/os', function ($group) {
+    $group->get('/lista',             ServiceOrder::class . ':list');
+    $group->get('/detalhes',          ServiceOrder::class . ':details');
+    $group->get('/detalhes/{id}',     ServiceOrder::class . ':details');
+    $group->post('/listingdata',      ServiceOrder::class . ':listingdata');
+    $group->post('/inserir',          ServiceOrder::class . ':insert');
+    $group->post('/atualizar',        ServiceOrder::class . ':update');
+    $group->post('/excluir',          ServiceOrder::class . ':delete');
+    $group->post('/{id}/item',            ServiceOrder::class . ':itemInsert');
+    $group->post('/{id}/item/{itemId}',   ServiceOrder::class . ':itemDelete');
+    $group->get('/buscar/produtos',   ServiceOrder::class . ':searchProducts');
+    $group->get('/buscar/servicos',   ServiceOrder::class . ':searchServices');
+});
+
+// ── Vendas ────────────────────────────────────────────────────────────────────
+
+$app->group('/venda', function ($group) {
+    $group->get('/lista',             Sale::class . ':list');
+    $group->get('/detalhes',          Sale::class . ':details');
+    $group->get('/detalhes/{id}',     Sale::class . ':details');
+    $group->post('/listingdata',      Sale::class . ':listingdata');
+    $group->post('/inserir',          Sale::class . ':insert');
+    $group->post('/atualizar',        Sale::class . ':update');
+    $group->post('/finalizar',        Sale::class . ':finalize');
+    $group->post('/excluir',          Sale::class . ':delete');
+    $group->post('/{id}/item',            Sale::class . ':itemInsert');
+    $group->post('/{id}/item/{itemId}',   Sale::class . ':itemDelete');
+    $group->get('/buscar/produtos',   Sale::class . ':searchProducts');
+    $group->get('/buscar/servicos',   Sale::class . ':searchServices');
+});

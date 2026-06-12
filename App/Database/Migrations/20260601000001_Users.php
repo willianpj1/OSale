@@ -8,30 +8,18 @@ final class Users extends AbstractMigration
 {
     public function change(): void
     {
-        $table = $this->table('users');
-
-        $table
-            ->addColumn('nome',          'string',    ['limit' => 150, 'null' => false])
-            ->addColumn('sobrenome',     'string',    ['limit' => 150, 'null' => true,  'default' => null])
-            ->addColumn('email',         'string',    ['limit' => 255, 'null' => true,  'default' => null])
-            ->addColumn('senha',         'text',      ['null' => false])
-            ->addColumn('perfil',        'string',    ['limit' => 30,  'null' => false, 'default' => 'tecnico'])
-            // perfil: 'admin' | 'tecnico' | 'atendente'
-            ->addColumn('telefone',      'string',    ['limit' => 20,  'null' => true,  'default' => null])
-            ->addColumn('whatsapp',      'string',    ['limit' => 20,  'null' => true,  'default' => null])
-            ->addColumn('cpf',           'string',    ['limit' => 14,  'null' => true,  'default' => null])
-            ->addColumn('rg',            'string',    ['limit' => 20,  'null' => true,  'default' => null])
-            ->addColumn('google_id',     'string',    ['limit' => 255, 'null' => true,  'default' => null])
-            ->addColumn('ativo',         'boolean',   ['null' => false, 'default' => true])
-            ->addColumn('administrador', 'boolean',   ['null' => false, 'default' => false])
-            ->addColumn('criado_em',     'timestamp', ['null' => false, 'default' => 'CURRENT_TIMESTAMP'])
-            ->addColumn('atualizado_em', 'timestamp', ['null' => false, 'default' => 'CURRENT_TIMESTAMP'])
-
-            ->addIndex(['email'],     ['unique' => true, 'name' => 'users_email_unique'])
-            ->addIndex(['cpf'],       ['unique' => true, 'name' => 'users_cpf_unique'])
-            ->addIndex(['google_id'], ['unique' => true, 'name' => 'users_google_id_unique'])
-            ->addIndex(['nome'],      ['name' => 'users_nome_idx'])
-
+        $table = $this->table('users', ['id' => false, 'primary_key' => ['id']]);
+        $table->addColumn('id', 'biginteger', ['identity' => true, 'null' => false])
+            ->addColumn('nome', 'text', ['null' => true])
+            ->addColumn('senha', 'text', ['null' => true])
+            ->addColumn('salario', 'decimal', ['null' => true, 'default' => 0, 'precision' => 18, 'scale' => 4])
+            ->addColumn('sobrenome', 'text', ['null' => true])
+            ->addColumn('rg', 'text', ['null' => true])
+            ->addColumn('cpf', 'text', ['null' => true])
+            ->addColumn('ativo', 'boolean', ['null' => true])
+            ->addColumn('administrador', 'boolean', ['null' => true])
+            ->addColumn('data_cadastro', 'datetime', ['null' => true, 'default' => 'CURRENT_TIMESTAMP'])
+            ->addColumn('data_atualizacao', 'datetime', ['null' => true, 'default' => 'CURRENT_TIMESTAMP'])
             ->create();
     }
 }
