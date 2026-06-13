@@ -25,7 +25,8 @@ final class Customer extends Base
         $id       = $args['id'] ?? null;
         $action   = ($id === null) ? 'c' : 'e';
         $customer = [];
-        $contacts = [];
+        $contacts  = [];
+        $addresses = [];
 
         if ($id !== null) {
             $customer = DB::queryOne(
@@ -36,15 +37,20 @@ final class Customer extends Base
                 'SELECT * FROM contacts WHERE entidade = :entidade AND entidade_id = :id ORDER BY principal DESC, id ASC',
                 ['entidade' => 'customer', 'id' => $id]
             );
+            $addresses = DB::query(
+                'SELECT * FROM addresses WHERE entidade = :entidade AND entidade_id = :id ORDER BY principal DESC, id ASC',
+                ['entidade' => 'customer', 'id' => $id]
+            );
         }
 
         return $this->getTwig()
             ->render($response, $this->setView('customer'), [
-                'titulo'   => 'Detalhes do cliente',
-                'id'       => $id,
-                'action'   => $action,
-                'customer' => $customer,
-                'contacts' => $contacts,
+                'titulo'    => 'Detalhes do cliente',
+                'id'        => $id,
+                'action'    => $action,
+                'customer'  => $customer,
+                'contacts'  => $contacts,
+                'addresses' => $addresses,
             ])
             ->withHeader('Content-Type', 'text/html')
             ->withStatus(200);
@@ -64,24 +70,17 @@ final class Customer extends Base
 
             DB::execute(
                 'INSERT INTO customers 
-                    (nome, tipo, cpf_cnpj, rg_ie, cep, logradouro, numero, complemento, bairro, cidade, estado, observacoes, ativo, excluido, criado_em, atualizado_em)
+                    (nome, tipo, cpf_cnpj, rg_ie, observacoes, ativo, excluido, criado_em, atualizado_em)
                  VALUES 
-                    (:nome, :tipo, :cpf_cnpj, :rg_ie, :cep, :logradouro, :numero, :complemento, :bairro, :cidade, :estado, :observacoes, :ativo, false, :criado_em, :atualizado_em)',
+                    (:nome, :tipo, :cpf_cnpj, :rg_ie, :observacoes, :ativo, false, :criado_em, :atualizado_em)',
                 [
-                    'nome'        => $nome,
-                    'tipo'        => $form['tipo']        ?? 'fisica',
-                    'cpf_cnpj'    => $form['cpf_cnpj']    ?? null,
-                    'rg_ie'       => $form['rg_ie']       ?? null,
-                    'cep'         => $form['cep']         ?? null,
-                    'logradouro'  => $form['logradouro']  ?? null,
-                    'numero'      => $form['numero']      ?? null,
-                    'complemento' => $form['complemento'] ?? null,
-                    'bairro'      => $form['bairro']      ?? null,
-                    'cidade'      => $form['cidade']      ?? null,
-                    'estado'      => $form['estado']      ?? null,
-                    'observacoes' => $form['observacoes'] ?? null,
-                    'ativo'       => isset($form['ativo']) ? filter_var($form['ativo'], FILTER_VALIDATE_BOOLEAN) : true,
-                    'criado_em'   => $now,
+                    'nome'          => $nome,
+                    'tipo'          => $form['tipo']        ?? 'fisica',
+                    'cpf_cnpj'      => $form['cpf_cnpj']    ?? null,
+                    'rg_ie'         => $form['rg_ie']       ?? null,
+                    'observacoes'   => $form['observacoes'] ?? null,
+                    'ativo'         => isset($form['ativo']) ? filter_var($form['ativo'], FILTER_VALIDATE_BOOLEAN) : true,
+                    'criado_em'     => $now,
                     'atualizado_em' => $now,
                 ]
             );
@@ -112,22 +111,13 @@ final class Customer extends Base
             DB::execute(
                 'UPDATE customers SET
                     nome = :nome, tipo = :tipo, cpf_cnpj = :cpf_cnpj, rg_ie = :rg_ie,
-                    cep = :cep, logradouro = :logradouro, numero = :numero, complemento = :complemento,
-                    bairro = :bairro, cidade = :cidade, estado = :estado, observacoes = :observacoes,
-                    ativo = :ativo, atualizado_em = :atualizado_em
+                    observacoes = :observacoes, ativo = :ativo, atualizado_em = :atualizado_em
                  WHERE id = :id AND excluido = false',
                 [
                     'nome'          => $nome,
                     'tipo'          => $form['tipo']        ?? 'fisica',
                     'cpf_cnpj'      => $form['cpf_cnpj']    ?? null,
                     'rg_ie'         => $form['rg_ie']       ?? null,
-                    'cep'           => $form['cep']         ?? null,
-                    'logradouro'    => $form['logradouro']  ?? null,
-                    'numero'        => $form['numero']      ?? null,
-                    'complemento'   => $form['complemento'] ?? null,
-                    'bairro'        => $form['bairro']      ?? null,
-                    'cidade'        => $form['cidade']      ?? null,
-                    'estado'        => $form['estado']      ?? null,
                     'observacoes'   => $form['observacoes'] ?? null,
                     'ativo'         => isset($form['ativo']) ? filter_var($form['ativo'], FILTER_VALIDATE_BOOLEAN) : true,
                     'atualizado_em' => (new DateTime())->format('Y-m-d H:i:s'),
@@ -174,9 +164,8 @@ final class Customer extends Base
             1 => 'nome',
             2 => 'cpf_cnpj',
             3 => 'tipo',
-            4 => 'cidade',
-            5 => 'ativo',
-            6 => 'criado_em',
+            4 => 'ativo',
+            5 => 'criado_em',
         ];
 
         $posField   = isset($columns[(int) ($form['order'][0]['column'] ?? 0)]) ? (int) $form['order'][0]['column'] : 0;
@@ -188,8 +177,8 @@ final class Customer extends Base
             $params = [];
 
             if (!empty($term)) {
-                $where   .= ' AND (nome ILIKE :term OR cpf_cnpj ILIKE :term OR cidade ILIKE :term)';
-                $params['term'] = '%' . $term . '%';
+                $where           .= ' AND (nome ILIKE :term OR cpf_cnpj ILIKE :term)';
+                $params['term']   = '%' . $term . '%';
             }
 
             $totalRecords    = (int) DB::queryOne('SELECT COUNT(*) as total FROM customers WHERE excluido = false')['total'];
@@ -210,7 +199,6 @@ final class Customer extends Base
                     $value['nome'],
                     $value['cpf_cnpj'] ?? '',
                     $value['tipo'] === 'fisica' ? 'Pessoa Física' : 'Pessoa Jurídica',
-                    $value['cidade'] ?? '',
                     $value['ativo'] ? 'Ativo' : 'Inativo',
                     (new DateTime($value['criado_em']))->format('d/m/Y H:i:s'),
                     "<td>
@@ -230,7 +218,7 @@ final class Customer extends Base
         }
     }
 
-    // ── Contacts ─────────────────────────────────────────────────────────────
+    // ── Contacts ──────────────────────────────────────────────────────────────
 
     public function contactInsert($request, $response, $args)
     {
@@ -247,7 +235,6 @@ final class Customer extends Base
         }
 
         try {
-            // Se marcou como principal, desmarca os outros
             if (filter_var($form['principal'] ?? false, FILTER_VALIDATE_BOOLEAN)) {
                 DB::execute(
                     'UPDATE contacts SET principal = false WHERE entidade = :entidade AND entidade_id = :id',
@@ -292,6 +279,77 @@ final class Customer extends Base
             ]);
 
             return $this->json($response, ['status' => true, 'msg' => 'Contato removido!', 'id' => (int) $contactId]);
+        } catch (Exception $e) {
+            return $this->json($response, ['status' => false, 'msg' => 'Erro: ' . $e->getMessage(), 'id' => 0], 500);
+        }
+    }
+
+    // ── Addresses ─────────────────────────────────────────────────────────────
+
+    public function addressInsert($request, $response, $args)
+    {
+        $id   = $args['id'] ?? null;
+        $form = $request->getParsedBody();
+
+        if (!$id) {
+            return $this->json($response, ['status' => false, 'msg' => 'ID do cliente não informado', 'id' => 0], 403);
+        }
+
+        $logradouro = trim($form['logradouro'] ?? '');
+        if ($logradouro === '') {
+            return $this->json($response, ['status' => false, 'msg' => 'O campo logradouro é obrigatório', 'id' => 0], 400);
+        }
+
+        try {
+            if (filter_var($form['principal'] ?? false, FILTER_VALIDATE_BOOLEAN)) {
+                DB::execute(
+                    'UPDATE addresses SET principal = false WHERE entidade = :entidade AND entidade_id = :id',
+                    ['entidade' => 'customer', 'id' => $id]
+                );
+            }
+
+            DB::execute(
+                'INSERT INTO addresses (entidade, entidade_id, nome, cep, logradouro, numero, complemento, bairro, cidade, estado, principal, criado_em)
+                 VALUES (:entidade, :entidade_id, :nome, :cep, :logradouro, :numero, :complemento, :bairro, :cidade, :estado, :principal, :criado_em)',
+                [
+                    'entidade'    => 'customer',
+                    'entidade_id' => $id,
+                    'nome'        => $form['nome']        ?? null,
+                    'cep'         => $form['cep']         ?? null,
+                    'logradouro'  => $logradouro,
+                    'numero'      => $form['numero']      ?? null,
+                    'complemento' => $form['complemento'] ?? null,
+                    'bairro'      => $form['bairro']      ?? null,
+                    'cidade'      => $form['cidade']      ?? null,
+                    'estado'      => $form['estado']      ?? null,
+                    'principal'   => filter_var($form['principal'] ?? false, FILTER_VALIDATE_BOOLEAN),
+                    'criado_em'   => (new DateTime())->format('Y-m-d H:i:s'),
+                ]
+            );
+
+            $addressId = (int) DB::lastInsertId('addresses_id_seq');
+
+            return $this->json($response, ['status' => true, 'msg' => 'Endereço adicionado!', 'id' => $addressId], 201);
+        } catch (Exception $e) {
+            return $this->json($response, ['status' => false, 'msg' => 'Erro: ' . $e->getMessage(), 'id' => 0], 500);
+        }
+    }
+
+    public function addressDelete($request, $response, $args)
+    {
+        $addressId = $args['addressId'] ?? null;
+
+        if (!$addressId) {
+            return $this->json($response, ['status' => false, 'msg' => 'ID do endereço não informado', 'id' => 0], 403);
+        }
+
+        try {
+            DB::execute('DELETE FROM addresses WHERE id = :id AND entidade = :entidade', [
+                'id'       => $addressId,
+                'entidade' => 'customer',
+            ]);
+
+            return $this->json($response, ['status' => true, 'msg' => 'Endereço removido!', 'id' => (int) $addressId]);
         } catch (Exception $e) {
             return $this->json($response, ['status' => false, 'msg' => 'Erro: ' . $e->getMessage(), 'id' => 0], 500);
         }

@@ -9,110 +9,131 @@
 
         <div class="collapse navbar-collapse" id="navbarSupportedContent">
             <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+
                 <li class="nav-item">
                     <a class="nav-link" href="/">
-                        <i class="bi bi-house"></i>
-                        Home
+                        <i class="bi bi-house"></i> Home
                     </a>
                 </li>
+
+                {# Ordens de Serviço #}
                 <li class="nav-item dropdown">
-                    <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown"
-                        aria-expanded="false">
-                        <i class="bi bi-tools"></i>
-                        Ordens de Serviço
+                    <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                        <i class="bi bi-tools"></i> Ordens de Serviço
                     </a>
                     <ul class="dropdown-menu">
                         <li>
-                            <a class="dropdown-item" href="/os/nova">
-                                <i class="bi bi-plus-lg"></i>
-                                Nova OS
+                            <a class="dropdown-item" href="/os/detalhes">
+                                <i class="bi bi-plus-lg"></i> Nova OS
                             </a>
                         </li>
                         <li>
                             <a class="dropdown-item" href="/os/lista">
-                                <i class="bi bi-list"></i>
-                                Listar OS
+                                <i class="bi bi-list"></i> Listar OS
                             </a>
                         </li>
                     </ul>
                 </li>
+
+                {# Vendas #}
                 <li class="nav-item dropdown">
-                    <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown"
-                        aria-expanded="false">
-                        <i class="bi bi-graph-up"></i>
-                        Vendas
+                    <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                        <i class="bi bi-graph-up"></i> Vendas
                     </a>
                     <ul class="dropdown-menu">
                         <li>
-                            <a class="dropdown-item" href="/venda/nova">
-                                <i class="bi bi-cart-plus"></i>
-                                Nova Venda
+                            <a class="dropdown-item" href="/venda/detalhes">
+                                <i class="bi bi-cart-plus"></i> Nova Venda
                             </a>
                         </li>
                         <li>
                             <a class="dropdown-item" href="/venda/lista">
-                                <i class="bi bi-receipt"></i>
-                                Listar Vendas
+                                <i class="bi bi-receipt"></i> Listar Vendas
                             </a>
                         </li>
                     </ul>
                 </li>
+
+                {# Cadastros #}
                 <li class="nav-item dropdown">
-                    <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown"
-                        aria-expanded="false">
-                        <i class="bi bi-plus-lg"></i>
-                        Cadastro
+                    <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                        <i class="bi bi-person-lines-fill"></i> Cadastros
                     </a>
                     <ul class="dropdown-menu">
+                        <li><h6 class="dropdown-header">Pessoas</h6></li>
                         <li>
-                            <a class="dropdown-item" href="/usuario/lista">
-                                <i class="bi bi-person-gear"></i>
-                                Usuário
+                            <a class="dropdown-item" href="/cliente/detalhes">
+                                <i class="bi bi-person-plus"></i> Novo Cliente
                             </a>
                         </li>
                         <li>
-                            <a class="dropdown-item" href="/cliente/lista">
-                                <i class="bi bi-person-plus"></i>
-                                Cliente
+                            <a class="dropdown-item" href="/fornecedor/detalhes">
+                                <i class="bi bi-truck"></i> Novo Fornecedor
+                            </a>
+                        </li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><h6 class="dropdown-header">Produtos &amp; Serviços</h6></li>
+                        <li>
+                            <a class="dropdown-item" href="/produto/detalhes">
+                                <i class="bi bi-box-seam"></i> Novo Produto
                             </a>
                         </li>
                         <li>
-                            <a class="dropdown-item" href="/produto/lista">
-                                <i class="bi bi-box"></i>
-                                Produto
+                            <a class="dropdown-item" href="/servico/detalhes">
+                                <i class="bi bi-wrench-adjustable"></i> Novo Serviço
+                            </a>
+                        </li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><h6 class="dropdown-header">Usuários</h6></li>
+                        <li>
+                            <a class="dropdown-item" href="/usuario/detalhes">
+                                <i class="bi bi-person-gear"></i> Novo Usuário
                             </a>
                         </li>
                     </ul>
                 </li>
+
+                {# Listas #}
                 <li class="nav-item dropdown">
-                    <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown"
-                        aria-expanded="false">
-                        <i class="bi bi-list-ul"></i>
-                        Listas
+                    <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                        <i class="bi bi-list-ul"></i> Listas
                     </a>
                     <ul class="dropdown-menu">
-                        <li>
-                            <a class="dropdown-item" href="/usuario/lista">
-                                <i class="bi bi-list"></i>
-                                Usuário
-                            </a>
-                        </li>
+                        <li><h6 class="dropdown-header">Pessoas</h6></li>
                         <li>
                             <a class="dropdown-item" href="/cliente/lista">
-                                <i class="bi bi-list"></i>
-                                Cliente
+                                <i class="bi bi-people"></i> Clientes
                             </a>
                         </li>
                         <li>
+                            <a class="dropdown-item" href="/fornecedor/lista">
+                                <i class="bi bi-building"></i> Fornecedores
+                            </a>
+                        </li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><h6 class="dropdown-header">Produtos &amp; Serviços</h6></li>
+                        <li>
                             <a class="dropdown-item" href="/produto/lista">
-                                <i class="bi bi-list"></i>
-                                Produto
+                                <i class="bi bi-boxes"></i> Produtos
+                            </a>
+                        </li>
+                        <li>
+                            <a class="dropdown-item" href="/servico/lista">
+                                <i class="bi bi-wrench-adjustable-circle"></i> Serviços
+                            </a>
+                        </li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><h6 class="dropdown-header">Usuários</h6></li>
+                        <li>
+                            <a class="dropdown-item" href="/usuario/lista">
+                                <i class="bi bi-people-fill"></i> Usuários
                             </a>
                         </li>
                     </ul>
                 </li>
+
             </ul>
-            </button>
+
             <button id="btn-theme-toggle" class="btn btn-sair">
                 <i class="bi bi-sun"></i>
             </button>

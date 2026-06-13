@@ -20,4 +20,4 @@
 @import "bootstrap-icons/font/bootstrap-icons.css";
 
 /* Navbar + reset global */
-@import "./navbar.css";
+@import "./pages/navbar.css";

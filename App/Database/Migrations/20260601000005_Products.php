@@ -14,7 +14,6 @@ final class Products extends AbstractMigration
             ->addColumn('supplier_id',    'integer',   ['null' => true,  'default' => null])
             ->addColumn('nome',           'string',    ['limit' => 200,  'null' => false])
             ->addColumn('codigo_barra',   'string',    ['limit' => 50,   'null' => true,  'default' => null])
-            ->addColumn('sku',            'string',    ['limit' => 50,   'null' => true,  'default' => null])
             ->addColumn('unidade',        'string',    ['limit' => 5,    'null' => false, 'default' => 'un'])
             // unidade: 'un' | 'kg' | 'm' | 'l'
             ->addColumn('descricao',      'text',      ['null' => true,  'default' => null])

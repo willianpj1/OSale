@@ -6,6 +6,7 @@
     <li class="breadcrumb-item"><a href="/produto/lista">Lista de produtos</a></li>
     <li class="breadcrumb-item active" aria-current="page">Detalhes do produto</li>
 </ol>
+{{ vite('resources/css/pages/product.css') }}
 {% endblock %}
 
 {% block main %}
@@ -47,13 +48,6 @@
                                 <input type="text" class="form-control" id="codigo_barra" name="codigo_barra"
                                     placeholder="Código de barras" value="{{ product.codigo_barra }}">
                                 <label for="codigo_barra">Código de barras</label>
-                            </div>
-                        </div>
-                        <div class="col-lg-4 col-md-6">
-                            <div class="form-floating mb-3">
-                                <input type="text" class="form-control" id="sku" name="sku"
-                                    placeholder="SKU" value="{{ product.sku }}">
-                                <label for="sku">SKU</label>
                             </div>
                         </div>
                         <div class="col-lg-4 col-md-6">

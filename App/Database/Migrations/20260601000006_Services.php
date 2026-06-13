@@ -15,7 +15,6 @@ final class Services extends AbstractMigration
             ->addColumn('descricao',      'text',      ['null' => true,  'default' => null])
             ->addColumn('preco',          'decimal',   ['precision' => 10, 'scale' => 2, 'null' => false, 'default' => '0.00'])
             ->addColumn('tempo_estimado', 'string',    ['limit' => 50, 'null' => true, 'default' => null])
-            // ex: "30 minutos", "1-2 dias" — texto livre
             ->addColumn('ativo',          'boolean',   ['null' => false, 'default' => true])
             ->addColumn('excluido',       'boolean',   ['null' => false, 'default' => false])
             ->addColumn('criado_em',      'timestamp', ['null' => false, 'default' => 'CURRENT_TIMESTAMP'])
