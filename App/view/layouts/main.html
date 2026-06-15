@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" href="{{icon}}" sizes="any">
+    <title>{{titulo}} | OSale</title>
+    {{ vite('resources/js/app.js') }}
+    {% block css %}{% endblock %}
+</head>
+
+<body>
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-12">
+                {% include 'partial/head.html' %}
+            </div>
+        </div>
+        <main>
+            {% if show_breadcrumbs is not defined or show_breadcrumbs %}
+            <div class="page-header">
+                <div class="row g-3 align-items-center">
+                    <div class="col-sm-6">
+                        <h3>{{titulo}}</h3>
+                    </div>
+                    <div class="col-sm-6">
+                        {% block breadcrumbs %}{% endblock %}
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            <div class="row">
+                <div class="col-12">
+                    {% block main %}
+                    {% endblock %}
+                </div>
+            </div>
+        </main>
+    </div>
+
+    {{ vite('resources/js/app.js') }}
+    {% block script %}{% endblock %}
+</body>
+
+</html>
