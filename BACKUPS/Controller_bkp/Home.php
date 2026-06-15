@@ -1,16 +1,18 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Controller;
 
-class Home extends Base
+
+final class Home extends Base
 {
     public function home($request, $response)
     {
-                $dadosTemplate = [
-            'titulo' => 'Página inicial'
-        ];
         return $this->getTwig()
-            ->render($response, $this->setView('home'), $dadosTemplate)
+            ->render($response, $this->setView('home'), [
+                'titulo' => '',
+            ])
             ->withHeader('Content-Type', 'text/html')
             ->withStatus(200);
     }
