@@ -11,7 +11,7 @@ final class Report extends Base
     {
         return $this->getTwig()
             ->render($response, $this->setView('report'), [
-                'titulo' => '',
+                'titulo' => 'Relatórios',
             ])
             ->withHeader('Content-Type', 'text/html')
             ->withStatus(200);

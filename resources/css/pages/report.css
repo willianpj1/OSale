@@ -1,0 +1,96 @@
+/* ── report.css ────────────────────────────────────────────────────────────── */
+
+/* ── Breadcrumb ────────────────────────────────────────────────────────────── */
+.breadcrumb {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.7rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin: 0;
+    background: transparent;
+}
+
+.breadcrumb-item a {
+    color: var(--muted);
+    text-decoration: none;
+    transition: color 0.2s ease;
+}
+
+.breadcrumb-item a:hover {
+    color: var(--white);
+}
+
+.breadcrumb-item.active {
+    color: var(--white);
+}
+
+.breadcrumb-item + .breadcrumb-item::before {
+    color: var(--border);
+}
+
+/* ── Layout Principal ──────────────────────────────────────────────────────── */
+main {
+    padding: 0 1.5rem 2rem;
+}
+
+/* ── Cards (Estrutura Base) ────────────────────────────────────────────────── */
+body .card {
+    background-color: var(--surface) !important;
+    border: 1px solid var(--border) !important;
+    border-radius: 2px;
+    color: var(--white);
+    margin-bottom: 0.5rem;
+}
+
+body .card-header {
+    background-color: transparent !important;
+    border-bottom: 1px solid var(--border);
+    padding: 0.85rem 1.25rem;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.75rem;
+    font-weight: 500;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--muted);
+}
+
+body .card-header .fw-semibold,
+body .card-header span.fw-semibold {
+    color: var(--white) !important;
+}
+
+body .card-header i {
+    opacity: 0.6;
+}
+
+body .card-body {
+    padding: 1.25rem;
+}
+
+/* ── Área dos gráficos (ECharts) ───────────────────────────────────────────── */
+
+/*
+   O ECharts usa tema claro por padrão (texto escuro sobre fundo claro).
+   Para manter a legibilidade independente do tema da aplicação (dark/light),
+   o container do gráfico recebe um "canvas" claro fixo.
+*/
+.chart-container {
+    width: 100%;
+    height: 380px;
+    background-color: #ffffff;
+    border-radius: 2px;
+    padding: 0.75rem;
+    box-sizing: border-box;
+}
+
+@media (max-width: 991px) {
+    .chart-container {
+        height: 320px;
+    }
+}
+
+@media (max-width: 575px) {
+    .chart-container {
+        height: 280px;
+    }
+}
