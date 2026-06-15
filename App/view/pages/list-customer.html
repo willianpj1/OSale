@@ -5,6 +5,7 @@
     <li class="breadcrumb-item"><a href="/">Início</a></li>
     <li class="breadcrumb-item active" aria-current="page">Lista de clientes</li>
 </ol>
+{{ vite('resources/css/pages/customer.css') }}
 {% endblock %}
 
 {% block main %}
@@ -13,7 +14,7 @@
         <div class="card">
             <div class="card-header">
                 <a href="/cliente/detalhes" class="btn btn-success">
-                    <i class="fa-solid fa-plus"></i>
+                    <i class="bi bi-plus-lg"></i>
                     Cadastro
                 </a>
             </div>
@@ -23,11 +24,10 @@
                         <tr>
                             <th>Código</th>
                             <th>Nome</th>
-                            <th>CPF | CNPJ</th>
-                            <th>Nascimento | Fundação</th>
-                            <th>Ativo?</th>
+                            <th>CPF / CNPJ</th>
+                            <th>Tipo</th>
+                            <th>Ativo</th>
                             <th>Criado em</th>
-                            <th>Atualizado em</th>
                             <th>Ação</th>
                         </tr>
                     </thead>
