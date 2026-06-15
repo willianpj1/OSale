@@ -1,0 +1,76 @@
+{% extends 'layouts/main.html' %}
+
+{% block breadcrumbs %}
+<ol class="breadcrumb float-sm-end">
+    <li class="breadcrumb-item"><a href="/">Início</a></li>
+    <li class="breadcrumb-item"><a href="/servico/lista">Lista de serviços</a></li>
+    <li class="breadcrumb-item active" aria-current="page">Detalhes do serviço</li>
+</ol>
+{% endblock %}
+
+{% block main %}
+<form id="form">
+    <input type="hidden" id="action" name="action" value="{{ action }}">
+    <input type="hidden" id="id" name="id" value="{{ id }}">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header d-flex align-items-center gap-2">
+                    <a href="/servico/lista" class="btn btn-warning">
+                        <i class="bi bi-chevron-left"></i> Voltar
+                    </a>
+                    <span class="fw-semibold">Dados do serviço</span>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-lg-8 col-md-6">
+                            <div class="form-floating mb-3">
+                                <input autofocus type="text" class="form-control" id="nome" name="nome"
+                                    placeholder="Nome do serviço" value="{{ service.nome }}" required>
+                                <label for="nome">Nome do serviço</label>
+                            </div>
+                        </div>
+                        <div class="col-lg-2 col-md-3">
+                            <div class="form-floating mb-3">
+                                <input type="text" class="form-control" id="preco" name="preco"
+                                    placeholder="Preço" value="{{ service.preco }}" required>
+                                <label for="preco">Preço</label>
+                            </div>
+                        </div>
+                        <div class="col-lg-2 col-md-3">
+                            <div class="form-floating mb-3">
+                                <input type="text" class="form-control" id="tempo_estimado" name="tempo_estimado"
+                                    placeholder="Tempo estimado" value="{{ service.tempo_estimado }}">
+                                <label for="tempo_estimado">Tempo estimado</label>
+                            </div>
+                        </div>
+                        <div class="col-12">
+                            <div class="form-floating mb-3">
+                                <textarea class="form-control" id="descricao" name="descricao"
+                                    placeholder="Descrição" style="height:100px">{{ service.descricao }}</textarea>
+                                <label for="descricao">Descrição</label>
+                            </div>
+                        </div>
+                        <div class="col-12">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="ativo" name="ativo"
+                                    value="true" {{ service.ativo ? 'checked' : '' }}>
+                                <label class="form-check-label" for="ativo">Ativo</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer">
+                    <button id="insert" type="button" class="btn btn-success">
+                        <i class="bi bi-floppy"></i> Salvar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</form>
+{% endblock %}
+
+{% block script %}
+{{ vite('resources/js/pages/service.js') }}
+{% endblock %}
