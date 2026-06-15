@@ -33,3 +33,7 @@ import flatpickr from 'flatpickr'
 import { Portuguese } from 'flatpickr/dist/l10n/pt.js'
 flatpickr.localize(Portuguese)
 window.flatpickr = flatpickr
+
+// .6 importa o scripts do echarts
+import * as echarts from  'echarts'
+window.echarts = echarts
