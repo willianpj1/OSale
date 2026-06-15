@@ -1,4 +1,3 @@
-import FindCompany from "../components/find-company.js";
 import Requests from "../components/requests.js";
 import Validate from "../components/validate.js";
 
@@ -7,38 +6,67 @@ const Id     = document.getElementById('id');
 const Cnpj   = document.getElementById('numeroDocumento');
 const Insert = document.getElementById('insert');
 
-Inputmask({ mask: ['999.999.999-99', '99.999.999/9999-99'], keepStatic: true }).mask("#numeroDocumento");
-Inputmask({ mask: ['99/99/9999'] }).mask("#dataRegistro");
-$('#dataRegistro').flatpickr({
-    enableTime: false,
-    dateFormat: "d/m/Y",
-    locale: "pt"
-});
+// ── Inicialização de Máscaras e Plugins ──────────────────────────────────────
 
-const findCompany = new FindCompany({ cnpjField: 'numeroDocumento', cnaeValue: 'cnae', cnaeSearch: 'codigoAtividadeEconomica' });
-if (document.getElementById('codigoAtividadeEconomica')) {
-    findCompany.FindCompanyCnae();
+// Aplica a máscara dupla (CPF/CNPJ) usando o Inputmask global do app.js
+if (Cnpj) {
+    Inputmask({ 
+        mask: ['999.999.999-99', '99.999.999/9999-99'], 
+        keepStatic: true 
+    }).mask(Cnpj);
 }
 
+// Máscara e Inicialização do Flatpickr para a Data de Registro
+const dataRegistro = document.getElementById('dataRegistro');
+if (dataRegistro) {
+    Inputmask({ mask: ['99/99/9999'] }).mask(dataRegistro);
+    $(dataRegistro).flatpickr({
+        enableTime: false,
+        dateFormat: "d/m/Y",
+        locale: "pt"
+    });
+}
+
+// ── Salvar Fornecedor (Ações de Insert / Update) ──────────────────────────────
+
 async function applyChanges() {
-    $('button').prop('disabled', true);
+    // Bloqueia interações para evitar cliques duplicados
+    $('button, input, checkbox').prop('disabled', true);
+
+    let originalCnpjValue = '';
+    if (Cnpj) {
+        originalCnpjValue = Cnpj.value;
+        // Envia apenas números limpos para o banco não recusar o INSERT/UPDATE
+        Cnpj.value = Cnpj.inputmask ? Cnpj.inputmask.unmaskedvalue() : originalCnpjValue;
+    }
+
+    // Validação do formulário
     const IsValid = Validate.SetForm('form').Validate();
     if (!IsValid) {
         Swal.fire({
             icon: 'error',
             title: 'Erro',
-            text: `Por favor, corrija os erros no formulário antes de salvar.`,
+            text: 'Por favor, corrija os erros no formulário antes de salvar.',
             timer: 3000,
             timerProgressBar: true,
         });
+        
+        // Se a validação falhar, devolve a máscara visual e destrava a tela
+        if (Cnpj) Cnpj.value = originalCnpjValue;
+        $('button, input, checkbox').prop('disabled', false);
         return;
     }
+
     const requests = new Requests();
     try {
         const response = (Action.value !== 'e')
             ? await requests.setForm('form').post('/fornecedor/insert')
             : await requests.setForm('form').post('/fornecedor/update');
+
         if (!response.status) {
+            // Se o servidor rejeitar, desfaz a limpeza do valor para o usuário ver o campo formatado
+            if (Cnpj) Cnpj.value = originalCnpjValue;
+
             Swal.fire({
                 icon: 'error',
                 title: 'Erro',
@@ -48,8 +76,11 @@ async function applyChanges() {
             });
             return;
         }
+
         const baseUrl = window.location.origin;
         const redirectUrl = `${baseUrl}/fornecedor/detalhes/${response.id}`;
+
+        // Caso seja uma Edição bem-sucedida
         if (Action.value === 'e') {
             Swal.fire({
                 icon: 'success',
@@ -62,9 +93,15 @@ async function applyChanges() {
             });
             return;
         }
+
+        // Caso seja uma Inserção nova bem-sucedida
         Action.value = 'e';
         Id.value = response.id;
         window.history.pushState({}, '', redirectUrl);
+        
+        // Restaura a máscara para a exibição ficar correta
+        if (Cnpj) Cnpj.value = originalCnpjValue;
+
         Swal.fire({
             icon: 'success',
             title: 'Sucesso',
@@ -72,7 +109,11 @@ async function applyChanges() {
             timer: 3000,
             timerProgressBar: true,
         });
+
     } catch (error) {
+        // Fallback para erros inesperados
+        if (Cnpj) Cnpj.value = originalCnpjValue;
+
         Swal.fire({
             icon: 'error',
             title: 'Erro',
@@ -81,18 +122,15 @@ async function applyChanges() {
             timerProgressBar: true,
         });
     } finally {
+        // Garante o desbloqueio dos campos
         $('button, input, checkbox').prop('disabled', false);
     }
 }
 
-Cnpj.addEventListener('blur', async () => {
-    const cleaned = Cnpj.value.replace(/\D/g, '');
-    if (Cnpj.value.trim() === '' || cleaned.length < 14) {
-        return;
-    }
-    await findCompany.FindCompanyData();
-});
+// ── Eventos de Escuta (Listeners) ──────────────────────────────────────────────
 
-Insert.addEventListener('click', async () => {
-    await applyChanges();
-});
+if (Insert) {
+    Insert.addEventListener('click', async () => {
+        await applyChanges();
+    });
+}

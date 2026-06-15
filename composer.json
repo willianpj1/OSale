@@ -1,22 +1,21 @@
 {
-    "name": "root/nginx",
+    "name": "root/osale",
     "autoload": {
         "psr-4": {
-            "app\\": "app/"
+            "App\\": "App/"
         }
     },
     "autoload-dev": {
         "psr-4": {
-            "tests\\": "tests/"
+            "Tests\\": "Tests/"
         }
     },
     "require": {
-        "doctrine/dbal": "^4.4",
-        "doctrine/migrations": "^3.9",
         "firebase/php-jwt": "^7.0",
         "league/oauth2-client": "^2.9",
         "league/oauth2-google": "^5.0",
-        "robmorgan/phinx": "^0.16.11",
+        "php-di/php-di": "^7.1",
+        "robmorgan/phinx": "^0.16",
         "slim/psr7": "^1.8",
         "slim/slim": "^4.15",
         "slim/twig-view": "^3.4",
@@ -39,6 +38,10 @@
         "analyse": "phpstan analyse",
         "format": "pint",
         "format:check": "pint --test",
+        "migrate": "phinx migrate",
+        "migrate:rollback": "phinx rollback",
+        "migrate:status": "phinx status",
+        "migrate:create": "phinx create",
         "ci": [
             "@format:check",
             "@analyse",

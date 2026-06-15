@@ -4,30 +4,32 @@ declare(strict_types=1);
 
 namespace App\Database;
 
-use Doctrine\DBAL\Connection as DBALConnection;
-use Doctrine\DBAL\DriverManager;
-
 final class Connection
 {
-    private static ?DBALConnection $instance = null;
-    #Retorna a conexão DBAL — cria uma única vez por processo.
-    public static function get(): DBALConnection
+    private static ?\PDO $instance = null;
+
+    public static function get(): \PDO
     {
         if (self::$instance !== null) {
             return self::$instance;
         }
-        self::$instance = DriverManager::getConnection([
-            'driver'   => 'pdo_pgsql',
-            'host'     => $_ENV['DB_HOST']     ?? 'localhost',
-            'port'     => (int) ($_ENV['DB_PORT'] ?? 5432),
-            'dbname'   => $_ENV['DB_NAME']     ?? '',
-            'user'     => $_ENV['DB_USER']     ?? '',
-            'password' => $_ENV['DB_PASSWORD'] ?? '',
-            'charset'  => 'UTF8',
+
+        $host   = $_ENV['DB_HOST']     ?? 'localhost';
+        $port   = $_ENV['DB_PORT']     ?? '5432';
+        $dbname = $_ENV['DB_NAME']     ?? '';
+        $user   = $_ENV['DB_USER']     ?? '';
+        $pass   = $_ENV['DB_PASSWORD'] ?? '';
+
+        $dsn = "pgsql:host={$host};port={$port};dbname={$dbname};options='--client_encoding=UTF8'";
+
+        self::$instance = new \PDO($dsn, $user, $pass, [
+            \PDO::ATTR_ERRMODE            => \PDO::ERRMODE_EXCEPTION,
+            \PDO::ATTR_DEFAULT_FETCH_MODE => \PDO::FETCH_ASSOC,
+            \PDO::ATTR_EMULATE_PREPARES   => false,
         ]);
+
         return self::$instance;
     }
 
-    # Previne instanciação direta — uso exclusivo via Connection::get()
     private function __construct() {}
 }

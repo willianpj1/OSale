@@ -1,3 +1,6 @@
+import '../css/app.css'
+import './components/theme.js'
+
 // 1. jQuery global — DEVE ser o primeiro import.
 import './jquery-global.js'
 
@@ -5,7 +8,6 @@ import './jquery-global.js'
 import 'bootstrap'
 
 // DataTables core + extensões com tema Bootstrap 5
-// Estes pacotes registram $.fn.DataTable, $.fn.dataTable etc. ao serem carregados
 import 'datatables.net-bs5'
 import 'datatables.net-responsive-bs5'
 import 'datatables.net-staterestore-bs5'
@@ -26,8 +28,12 @@ window.Swal = Swal
 import Inputmask from 'inputmask';
 window.Inputmask = Inputmask.default ?? Inputmask;
 
-// 4. Biblioteca de calandário 
+// 5. Biblioteca de calendário
 import flatpickr from 'flatpickr'
 import { Portuguese } from 'flatpickr/dist/l10n/pt.js'
 flatpickr.localize(Portuguese)
 window.flatpickr = flatpickr
+
+// .6 importa o scripts do echarts
+import * as echarts from  'echarts'
+window.echarts = echarts

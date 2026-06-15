@@ -1,0 +1,228 @@
+{% extends 'layouts/main.html' %}
+
+{% block breadcrumbs %}
+<ol class="breadcrumb float-sm-end">
+    <li class="breadcrumb-item"><a href="/">Início</a></li>
+    <li class="breadcrumb-item"><a href="/fornecedor/lista">Lista de fornecedores</a></li>
+    <li class="breadcrumb-item active" aria-current="page">Detalhes do fornecedor</li>
+</ol>
+{{ vite('resources/css/pages/supplier.css') }}
+{% endblock %}
+
+{% block main %}
+<form id="form">
+    <input type="hidden" id="action" name="action" value="{{ action }}">
+    <input type="hidden" id="id" name="id" value="{{ id }}">
+    <div class="row g-3">
+
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header d-flex align-items-center gap-2">
+                    <a href="/fornecedor/lista" class="btn btn-warning">
+                        <i class="bi bi-chevron-left"></i> Voltar
+                    </a>
+                    <span class="fw-semibold">Dados do fornecedor</span>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-lg-8 col-md-6">
+                            <div class="form-floating mb-3">
+                                <input autofocus type="text" class="form-control" id="nome" name="nome"
+                                    placeholder="Razão Social / Nome" value="{{ supplier.nome }}" required>
+                                <label for="nome">Razão Social / Nome</label>
+                            </div>
+                        </div>
+                        <div class="col-lg-4 col-md-6">
+                            <div class="form-floating mb-3">
+                                <input type="text" class="form-control" id="cnpj" name="cnpj"
+                                    placeholder="CNPJ" value="{{ supplier.cnpj }}">
+                                <label for="cnpj">CNPJ</label>
+                            </div>
+                        </div>
+                        <div class="col-12">
+                            <div class="form-floating mb-3">
+                                <textarea class="form-control" id="observacoes" name="observacoes"
+                                    placeholder="Observações" style="height:80px">{{ supplier.observacoes }}</textarea>
+                                <label for="observacoes">Observações</label>
+                            </div>
+                        </div>
+                        <div class="col-12">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="ativo" name="ativo"
+                                    value="true" {{ supplier.ativo ? 'checked' : '' }}>
+                                <label class="form-check-label" for="ativo">Ativo</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header fw-semibold">Endereço</div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-lg-3 col-md-4">
+                            <div class="form-floating mb-3">
+                                <input type="text" class="form-control" id="cep" name="cep"
+                                    placeholder="CEP" value="{{ supplier.cep }}">
+                                <label for="cep">CEP</label>
+                            </div>
+                        </div>
+                        <div class="col-lg-7 col-md-8">
+                            <div class="form-floating mb-3">
+                                <input type="text" class="form-control" id="logradouro" name="logradouro"
+                                    placeholder="Logradouro" value="{{ supplier.logradouro }}">
+                                <label for="logradouro">Logradouro</label>
+                            </div>
+                        </div>
+                        <div class="col-lg-2 col-md-4">
+                            <div class="form-floating mb-3">
+                                <input type="text" class="form-control" id="numero" name="numero"
+                                    placeholder="Número" value="{{ supplier.numero }}">
+                                <label for="numero">Número</label>
+                            </div>
+                        </div>
+                        <div class="col-lg-4 col-md-4">
+                            <div class="form-floating mb-3">
+                                <input type="text" class="form-control" id="complemento" name="complemento"
+                                    placeholder="Complemento" value="{{ supplier.complemento }}">
+                                <label for="complemento">Complemento</label>
+                            </div>
+                        </div>
+                        <div class="col-lg-3 col-md-4">
+                            <div class="form-floating mb-3">
+                                <input type="text" class="form-control" id="bairro" name="bairro"
+                                    placeholder="Bairro" value="{{ supplier.bairro }}">
+                                <label for="bairro">Bairro</label>
+                            </div>
+                        </div>
+                        <div class="col-lg-3 col-md-4">
+                            <div class="form-floating mb-3">
+                                <input type="text" class="form-control" id="cidade" name="cidade"
+                                    placeholder="Cidade" value="{{ supplier.cidade }}">
+                                <label for="cidade">Cidade</label>
+                            </div>
+                        </div>
+                        <div class="col-lg-2 col-md-4">
+                            <div class="form-floating mb-3">
+                                <input type="text" class="form-control" id="estado" name="estado"
+                                    placeholder="UF" maxlength="2" value="{{ supplier.estado }}">
+                                <label for="estado">UF</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {% if id %}
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header d-flex align-items-center justify-content-between">
+                    <span class="fw-semibold">Contatos</span>
+                    <button type="button" class="btn btn-success btn-sm" id="btn-add-contact">
+                        <i class="bi bi-plus-lg"></i> Adicionar
+                    </button>
+                </div>
+                <div class="card-body p-0">
+                    <table class="table table-bordered table-hover mb-0" id="table-contacts">
+                        <thead>
+                            <tr>
+                                <th>Tipo</th>
+                                <th>Label</th>
+                                <th>Contato</th>
+                                <th>Principal</th>
+                                <th>Ação</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for c in contacts %}
+                            <tr>
+                                <td>{{ c.tipo }}</td>
+                                <td>{{ c.nome }}</td>
+                                <td>{{ c.contato }}</td>
+                                <td>{{ c.principal ? 'Sim' : 'Não' }}</td>
+                                <td>
+                                    <button type="button" class="btn btn-sm btn-danger"
+                                        onclick="deleteContact({{ c.id }})">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <div class="col-12">
+            <div class="card">
+                <div class="card-footer">
+                    <button id="insert" type="button" class="btn btn-success">
+                        <i class="bi bi-floppy"></i> Salvar
+                    </button>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</form>
+
+<div class="modal fade" id="modal-contact" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Adicionar contato</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <div class="form-floating">
+                            <select class="form-select" id="c-tipo">
+                                <option value="telefone">Telefone</option>
+                                <option value="whatsapp">WhatsApp</option>
+                                <option value="email">E-mail</option>
+                                <option value="outro">Outro</option>
+                            </select>
+                            <label for="c-tipo">Tipo</label>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-floating">
+                            <input type="text" class="form-control" id="c-nome" placeholder="Label">
+                            <label for="c-nome">Label</label>
+                        </div>
+                    </div>
+                    <div class="col-12">
+                        <div class="form-floating">
+                            <input type="text" class="form-control" id="c-contato" placeholder="Contato">
+                            <label for="c-contato">Número / E-mail</label>
+                        </div>
+                    </div>
+                    <div class="col-12">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="c-principal">
+                            <label class="form-check-label" for="c-principal">Principal</label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-success" id="btn-save-contact">
+                    <i class="bi bi-floppy"></i> Salvar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block script %}
+{{ vite('resources/js/pages/supplier.js') }}
+{% endblock %}
