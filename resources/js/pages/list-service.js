@@ -4,6 +4,19 @@ import Requests from '../components/requests.js';
 const Id    = document.getElementById('id');
 const table = DataTables.SetId('table-service').setRequestVariables([]).post('/servico/listingdata');
 
+// ── Modal de descrição ────────────────────────────────────────────────────────
+
+window.ShowDescricao = function (descricao) {
+    Swal.fire({
+        title: 'Descrição',
+        text: descricao || '(sem descrição)',
+        icon: 'info',
+        confirmButtonText: 'Fechar',
+    });
+};
+
+// ── Excluir ───────────────────────────────────────────────────────────────────
+
 async function deleteService() {
     const requests = new Requests();
     try {

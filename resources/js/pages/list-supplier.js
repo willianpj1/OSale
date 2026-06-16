@@ -1,13 +1,13 @@
 import DataTables from '../components/data-tables.js';
 import Requests from '../components/requests.js';
 
-const Id = document.getElementById('id');
+const Id    = document.getElementById('id');
 const table = DataTables.SetId('table-supplier').setRequestVariables([]).post('/fornecedor/listingdata');
 
 async function deleteSupplier() {
     const requests = new Requests();
     try {
-        const response = await requests.setForm('form').post('/fornecedor/delete');
+        const response = await requests.setForm('form').post('/fornecedor/excluir');
         return response;
     } catch (error) {
         Swal.fire({
@@ -23,30 +23,30 @@ async function deleteSupplier() {
 async function ShowModal(id) {
     Id.value = id;
     Swal.fire({
-        title: "Atenção!",
-        text: "Deseja realmente excluir este registro?",
-        icon: "warning",
+        title: 'Atenção!',
+        text: 'Deseja realmente excluir este registro?',
+        icon: 'warning',
         showCancelButton: true,
-        confirmButtonColor: "#d33",
-        cancelButtonColor: "#3085d6",
-        confirmButtonText: "Excluir"
+        confirmButtonColor: '#d33',
+        cancelButtonColor: '#3085d6',
+        confirmButtonText: 'Excluir'
     }).then(async (result) => {
         if (result.isConfirmed) {
             const response = await deleteSupplier();
             if (!response.status) {
                 Swal.fire({
-                    title: "Erro!",
+                    title: 'Erro!',
                     text: response.msg,
-                    icon: "error",
+                    icon: 'error',
                     timer: 3000,
                     timerProgressBar: true
                 });
                 return;
             }
             Swal.fire({
-                title: "Removido!",
-                text: "Registro excluído com sucesso.",
-                icon: "success",
+                title: 'Removido!',
+                text: 'Registro excluído com sucesso.',
+                icon: 'success',
                 timer: 2000,
                 timerProgressBar: true
             }).then(async () => {

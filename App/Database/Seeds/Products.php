@@ -14,6 +14,7 @@ class Products extends AbstractSeed
         $batchSize = 100;
         $total = 1000;
 
+
         // Busca fornecedores existentes
         $suppliers = $this->fetchAll('SELECT id FROM suppliers');
         $supplierIds = array_column($suppliers, 'id');

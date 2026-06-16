@@ -180,6 +180,10 @@ final class Service extends Base
 
             $rows = [];
             foreach ($services as $key => $value) {
+                $descricaoBtn = $value['descricao']
+                    ? "<button type='button' class='btn btn-sm btn-secondary' onclick='ShowDescricao(" . json_encode($value['descricao'], JSON_HEX_APOS | JSON_HEX_QUOT) . ")'><i class='bi bi-card-text'></i> Ver</button>"
+                    : '—';
+
                 $rows[$key] = [
                     $value['id'],
                     $value['nome'],
@@ -187,6 +191,7 @@ final class Service extends Base
                     $value['tempo_estimado'] ?? '—',
                     $value['ativo'] ? 'Ativo' : 'Inativo',
                     (new DateTime($value['criado_em']))->format('d/m/Y H:i:s'),
+                    $descricaoBtn,
                     "<td>
                         <a class='btn btn-sm btn-warning' href='/servico/detalhes/{$value['id']}'><i class='bi bi-pencil-square'></i> Editar</a>
                         <button type='button' class='btn btn-sm btn-danger' onclick='ShowModal({$value['id']});'><i class='bi bi-trash'></i> Excluir</button>

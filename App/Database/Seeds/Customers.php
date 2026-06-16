@@ -14,6 +14,7 @@ class Customers extends AbstractSeed
         $table = $this->table('customers');
         $this->execute('DELETE FROM customers');
 
+
         $batchSize = 100;
         $total = 1000;
 

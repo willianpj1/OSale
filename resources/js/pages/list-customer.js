@@ -1,12 +1,13 @@
 import DataTables from '../components/data-tables.js';
 import Requests from '../components/requests.js';
-const Id = document.getElementById('id');
+
+const Id    = document.getElementById('id');
 const table = DataTables.SetId('table-customer').setRequestVariables([]).post('/cliente/listingdata');
 
-async function deletecustomer() {
+async function deleteCustomer() {
     const requests = new Requests();
     try {
-        const response = await requests.setForm('form').post('/cliente/delete');
+        const response = await requests.setForm('form').post('/cliente/excluir');
         return response;
     } catch (error) {
         Swal.fire({
@@ -22,30 +23,30 @@ async function deletecustomer() {
 async function ShowModal(id) {
     Id.value = id;
     Swal.fire({
-        title: "Atenção!",
-        text: "Deseja realmente excluir este registro?",
-        icon: "warning",
+        title: 'Atenção!',
+        text: 'Deseja realmente excluir este registro?',
+        icon: 'warning',
         showCancelButton: true,
-        confirmButtonColor: "#d33",
-        cancelButtonColor: "#3085d6",
-        confirmButtonText: "Excluir"
+        confirmButtonColor: '#d33',
+        cancelButtonColor: '#3085d6',
+        confirmButtonText: 'Excluir'
     }).then(async (result) => {
         if (result.isConfirmed) {
-            const response = await deletecustomer();
+            const response = await deleteCustomer();
             if (!response.status) {
                 Swal.fire({
-                    title: "Erro!",
-                    text: response.mesg,
-                    icon: "error",
+                    title: 'Erro!',
+                    text: response.msg,
+                    icon: 'error',
                     timer: 3000,
                     timerProgressBar: true
                 });
                 return;
             }
             Swal.fire({
-                title: "Removido!",
-                text: "Registro excluído com sucesso.",
-                icon: "success",
+                title: 'Removido!',
+                text: 'Registro excluído com sucesso.',
+                icon: 'success',
                 timer: 2000,
                 timerProgressBar: true
             }).then(async () => {

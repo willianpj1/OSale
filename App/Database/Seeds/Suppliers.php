@@ -13,6 +13,7 @@ class Suppliers extends AbstractSeed
 
         $table = $this->table('suppliers');
 
+
         $batchSize = 100;
         $total = 1000;
 

@@ -1,11 +1,17 @@
 import Requests from "../components/requests.js";
 import Validate from "../components/validate.js";
+import { SellingPriceCalculator } from "../components/selling-price-calculator.js";
 
-const Action = document.getElementById('action');
-const Id = document.getElementById('id');
-const Insert = document.getElementById('insert');
+const Action       = document.getElementById('action');
+const Id           = document.getElementById('id');
+const Insert       = document.getElementById('insert');
+const PrecoCompra  = document.getElementById('preco_compra');
+const MargemLucro  = document.getElementById('margem_lucro');
+const PrecoVenda   = document.getElementById('preco_venda');
 
-Inputmask("currency", {
+// ── Máscaras ──────────────────────────────────────────────────────────────────
+
+const inputmaskConfig = {
     radixPoint: ",",
     inputtype: "text",
     prefix: "R$ ",
@@ -15,97 +21,125 @@ Inputmask("currency", {
     onBeforeMask: function (value) {
         return String(value).replace(".", ",");
     },
-}).mask("#preco_venda, #preco_compra");
+};
 
-function limparInputsParaEnvio() {
-    ["#preco_venda", "#preco_compra"].forEach(seletor => {
-        const campo = document.querySelector(seletor);
+if (PrecoCompra) Inputmask("currency", inputmaskConfig).mask(PrecoCompra);
+if (PrecoVenda)  Inputmask("currency", inputmaskConfig).mask(PrecoVenda);
+
+if (MargemLucro) {
+    Inputmask({
+        alias: 'decimal',
+        radixPoint: ',',
+        digits: 2,
+        min: 0,
+        max: 99.99,
+        rightAlign: false,
+        placeholder: '',
+        suffix: ' %',
+    }).mask(MargemLucro);
+}
+
+// ── Calculadora de Preço de Venda ─────────────────────────────────────────────
+
+function calcularPrecoVenda() {
+    if (!PrecoCompra || !MargemLucro || !PrecoVenda) return;
+
+    const compraRaw = PrecoCompra.inputmask
+        ? PrecoCompra.inputmask.unmaskedvalue().replace(',', '.')
+        : PrecoCompra.value.replace(',', '.');
+
+    const margemRaw = MargemLucro.inputmask
+        ? MargemLucro.inputmask.unmaskedvalue().replace(',', '.')
+        : MargemLucro.value.replace(',', '.');
+
+    const compra = parseFloat(compraRaw);
+    const margem = parseFloat(margemRaw);
+
+    if (!compra || compra <= 0 || isNaN(margem) || margem < 0) return;
+
+    try {
+        const resultado = SellingPriceCalculator.create()
+            .addPurchasePrice(compra)
+            .addProfitMargin(margem)
+            .getData();
+
+        // Injeta o valor sugerido no campo preço de venda
+        if (PrecoVenda.inputmask) {
+            PrecoVenda.inputmask.remove();
+        }
+        PrecoVenda.value = resultado.valor_venda_sugerido.toFixed(2).replace('.', ',');
+        Inputmask("currency", inputmaskConfig).mask(PrecoVenda);
+
+    } catch (e) {
+        // Margem inválida (>= 100%) — silencioso
+    }
+}
+
+if (PrecoCompra) PrecoCompra.addEventListener('input', calcularPrecoVenda);
+if (MargemLucro) MargemLucro.addEventListener('input', calcularPrecoVenda);
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+function limparInputsParaEnvio(requests) {
+    ['preco_venda', 'preco_compra'].forEach(id => {
+        const campo = document.getElementById(id);
         if (campo && campo.inputmask) {
-            let valorPuro = campo.inputmask.unmaskedvalue();
-            valorPuro = valorPuro.replace(",", ".");
-
-            campo.inputmask.remove();
-            campo.value = valorPuro;
+            const valorPuro = campo.inputmask.unmaskedvalue().replace(',', '.');
+            requests.body.set(id, valorPuro);
         }
     });
+
+    if (MargemLucro && MargemLucro.inputmask) {
+        const valorMargem = MargemLucro.inputmask.unmaskedvalue().replace(',', '.');
+        requests.body.set('margem_lucro', valorMargem);
+    }
 }
 
-function restaurarMascaras() {
-    Inputmask("currency", inputmaskConfig).mask("#preco_venda, #preco_compra");
-}
+// ── Salvar Produto ────────────────────────────────────────────────────────────
+
 async function applyChanges() {
-    $('button').prop('disabled', true);
+    const requests = new Requests();
+    requests.setForm('form');
+
+    $('button, input, select, textarea').prop('disabled', true);
+
+    limparInputsParaEnvio(requests);
+
     const IsValid = Validate.SetForm('form').Validate();
     if (!IsValid) {
-        Swal.fire({
-            icon: 'error',
-            title: 'Erro',
-            text: `Por favor, corrija os erros no formulário antes de salvar.`,
-            timer: 3000,
-            timerProgressBar: true,
-        });
+        Swal.fire({ icon: 'error', title: 'Erro', text: 'Por favor, corrija os erros no formulário antes de salvar.', timer: 3000, timerProgressBar: true });
+        $('button, input, select, textarea').prop('disabled', false);
         return;
     }
 
-
-    const requests = new Requests();
     try {
-        limparInputsParaEnvio();
-        const response = (Action.value !== 'e')
-            ? await requests.setForm('form').post('/produto/insert')
-            : await requests.setForm('form').post('/produto/update');
+        const response = Action.value !== 'e'
+            ? await requests.post('/produto/inserir')
+            : await requests.post('/produto/atualizar');
 
-        
         if (!response.status) {
-            Swal.fire({
-                icon: 'error',
-                title: 'Erro',
-                text: response.msg || 'Ocorreu um erro ao salvar os dados da produto.',
-                timer: 3000,
-                timerProgressBar: true,
-            });
-            restaurarMascaras();
-            return;
-        }
-        const baseUrl = window.location.origin;
-        const redirectUrl = `${baseUrl}/produto/detalhes/${response.id}`;
-        if (Action.value === 'e') {
-            Swal.fire({
-                icon: 'success',
-                title: 'Sucesso',
-                text: response.msg || 'Dados da produto alterados com sucesso.',
-                timer: 3000,
-                timerProgressBar: true,
-            }).then(() => {
-                window.location.href = '/produto/lista';
-            });
+            Swal.fire({ icon: 'error', title: 'Erro', text: response.msg || 'Erro ao salvar.', timer: 3000, timerProgressBar: true });
             return;
         }
 
-        Action.value = 'e';
-        Id.value = response.id;
-        window.history.pushState({}, '', redirectUrl);
-        Swal.fire({
-            icon: 'success',
-            title: 'Sucesso',
-            text: response.msg || 'produto salva com sucesso!',
-            timer: 3000,
-            timerProgressBar: true,
-        });
+        const redirectUrl = `${window.location.origin}/produto/detalhes/${response.id}`;
+
+        if (Action.value === 'e') {
+            Swal.fire({ icon: 'success', title: 'Sucesso', text: response.msg, timer: 3000, timerProgressBar: true })
+                .then(() => { window.location.href = '/produto/lista'; });
+            return;
+        }
+
+        Swal.fire({ icon: 'success', title: 'Sucesso', text: response.msg, timer: 3000, timerProgressBar: true })
+            .then(() => { window.location.href = redirectUrl; });
+
     } catch (error) {
-        restaurarMascaras();
-        Swal.fire({
-            icon: 'error',
-            title: 'Erro',
-            text: `Restrição: ${error.message}`,
-            timer: 3000,
-            timerProgressBar: true,
-        });
+        Swal.fire({ icon: 'error', title: 'Erro', text: error.message, timer: 3000, timerProgressBar: true });
     } finally {
-        $('button, input, checkbox').prop('disabled', false);
+        $('button, input, select, textarea').prop('disabled', false);
     }
 }
 
-Insert.addEventListener('click', async () => {
-    await applyChanges();
-});
+if (Insert) {
+    Insert.addEventListener('click', applyChanges);
+}
