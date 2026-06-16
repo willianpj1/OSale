@@ -6,9 +6,26 @@ import fs from 'node:fs';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const HOT_FILE = resolve(__dirname, 'public/hot');
 
+function buildPageEntries() {
+    //Capatura o caminho completo do diretório de páginas
+    const pagesDir = resolve(__dirname, 'resources/js/pages')
+    //Percorre recursivamente o diretório, filtrando apenas arquivos .js 
+    // e criando um objeto de entradas
+    return Object.fromEntries(
+        fs.readdirSync(pagesDir, { recursive: true })
+            .filter(file => String(file).endsWith('.js'))
+            .map(file => {
+                const normalized = String(file).replace(/\\/g, '/') // Windows path fix
+                return [
+                    `pages/${normalized.replace(/\.js$/, '')}`,
+                    resolve(pagesDir, normalized)
+                ]
+            })
+    )
+}
 function writeHotFilePlugin() {
     return {
-        name: 'jaiminho-write-hot-file',
+        name: 'OSale-write-hot-file',
         apply: 'serve',
         configureServer(server) {
             server.httpServer?.once('listening', () => {
@@ -36,7 +53,6 @@ function writeHotFilePlugin() {
 
 export default defineConfig(({ command }) => ({
     base: command === 'build' ? '/assets/' : '/',
-
     build: {
         manifest: 'manifest.json',
         outDir: 'public/assets',
@@ -45,31 +61,12 @@ export default defineConfig(({ command }) => ({
         cssCodeSplit: true,
         rolldownOptions: {
             input: {
+                // CSS como entry INDEPENDENTE — não acoplado ao JS
+                style: resolve(__dirname, 'resources/css/app.css'),
+                // JS principal — sem nenhum import de CSS dentro dele
                 app: resolve(__dirname, 'resources/js/app.js'),
-                'home-css': resolve(__dirname, 'resources/css/home.css'),
-                'css/customer':       resolve(__dirname, 'resources/css/pages/customer.css'),
-                'css/sale':           resolve(__dirname, 'resources/css/pages/sale.css'),
-                'css/supplier':       resolve(__dirname, 'resources/css/pages/supplier.css'),
-                'css/product':        resolve(__dirname, 'resources/css/pages/product.css'),
-                'css/service':        resolve(__dirname, 'resources/css/pages/service.css'),
-                'css/service-order':  resolve(__dirname, 'resources/css/pages/service-order.css'),
-                'pages/customer':           resolve(__dirname, 'resources/js/pages/customer.js'),
-                'pages/enterprise':         resolve(__dirname, 'resources/js/pages/supplier.js'),
-                'pages/list-customer':      resolve(__dirname, 'resources/js/pages/list-customer.js'),
-                'pages/list-product':       resolve(__dirname, 'resources/js/pages/list-product.js'),
-                'pages/list-sale':          resolve(__dirname, 'resources/js/pages/list-sale.js'),
-                'pages/list-service':       resolve(__dirname, 'resources/js/pages/list-service.js'),
-                'pages/list-service-order': resolve(__dirname, 'resources/js/pages/list-service-order.js'),
-                'pages/list-supplier':      resolve(__dirname, 'resources/js/pages/list-supplier.js'),
-                'pages/list-users':         resolve(__dirname, 'resources/js/pages/list-users.js'),
-                'pages/login':              resolve(__dirname, 'resources/js/pages/login.js'),
-                'pages/product':            resolve(__dirname, 'resources/js/pages/product.js'),
-                'pages/register':           resolve(__dirname, 'resources/js/pages/register.js'),
-                'pages/sale':               resolve(__dirname, 'resources/js/pages/sale.js'),
-                'pages/service':            resolve(__dirname, 'resources/js/pages/service.js'),
-                'pages/service-order':      resolve(__dirname, 'resources/js/pages/service-order.js'),
-                'pages/supplier':           resolve(__dirname, 'resources/js/pages/supplier.js'),
-                'pages/users':              resolve(__dirname, 'resources/js/pages/users.js'),
+                // Entries de página
+                ...buildPageEntries()  // Descobre e injeta todas as páginas automaticamente
             },
             output: {
                 entryFileNames: '[name]-[hash].js',

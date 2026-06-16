@@ -11,6 +11,7 @@ use App\Controller\Supplier;
 use App\Controller\Service;
 use App\Controller\ServiceOrder;
 use App\Controller\Sale;
+use App\Controller\Report;
 use App\Middleware\Middleware;
 
 // ── Rotas públicas ────────────────────────────────────────────────────────────
@@ -30,6 +31,9 @@ $app->get('/logout', Login::class . ':logout');
 
 $app->get('/',     Home::class . ':home');
 $app->get('/home', Home::class . ':home');
+$app->get('/relatorio', Report::class . ':report');
+$app->get('/relatorio/curva-abc', Report::class . ':curvaAbc');
+$app->get('/relatorio/resumo',    Report::class . ':resumo');
 
 // ── Clientes ──────────────────────────────────────────────────────────────────
 
