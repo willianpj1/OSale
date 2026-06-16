@@ -64,7 +64,7 @@ RUN mkdir -p /tmp/opcache && chmod 1777 /tmp/opcache
 COPY docker/php/php.ini /usr/local/etc/php/conf.d/custom.ini
 
 # Copia o binário do Composer da imagem oficial sem instalar manualmente
-COPY --from=composer:2.10 /usr/bin/composer /usr/bin/composer
+COPY --from=composer:2.9 /usr/bin/composer /usr/bin/composer
 
 # Define padrões globais do Composer para builds rápidos
 RUN composer config --global process-timeout 1800 \
