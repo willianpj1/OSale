@@ -1,5 +1,7 @@
 <?php
+
 declare(strict_types=1);
+
 use Phinx\Migration\AbstractMigration;
 
 final class Suppliers extends AbstractMigration
@@ -11,13 +13,6 @@ final class Suppliers extends AbstractMigration
         $table
             ->addColumn('nome',          'string',    ['limit' => 200, 'null' => false])
             ->addColumn('cnpj',          'string',    ['limit' => 18,  'null' => true,  'default' => null])
-            ->addColumn('cep',           'string',    ['limit' => 9,   'null' => true,  'default' => null])
-            ->addColumn('logradouro',    'string',    ['limit' => 255, 'null' => true,  'default' => null])
-            ->addColumn('numero',        'string',    ['limit' => 10,  'null' => true,  'default' => null])
-            ->addColumn('complemento',   'string',    ['limit' => 100, 'null' => true,  'default' => null])
-            ->addColumn('bairro',        'string',    ['limit' => 100, 'null' => true,  'default' => null])
-            ->addColumn('cidade',        'string',    ['limit' => 100, 'null' => true,  'default' => null])
-            ->addColumn('estado',        'string',    ['limit' => 2,   'null' => true,  'default' => null])
             ->addColumn('observacoes',   'text',      ['null' => true,  'default' => null])
             ->addColumn('ativo',         'boolean',   ['null' => false, 'default' => true])
             ->addColumn('excluido',      'boolean',   ['null' => false, 'default' => false])

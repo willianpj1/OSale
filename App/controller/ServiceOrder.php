@@ -79,7 +79,7 @@ final class ServiceOrder extends Base
     {
         $form        = $request->getParsedBody();
         $customerId  = $form['customer_id'] ?? null;
-        $criadoPor   = $_SESSION['user']['id'] ?? null;
+        $criadoPor = $_SESSION['user']['id'] ?? 1;
 
         if (!$customerId) {
             return $this->json($response, ['status' => false, 'msg' => 'Selecione um cliente', 'id' => 0], 400);

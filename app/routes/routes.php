@@ -62,6 +62,9 @@ $app->group('/fornecedor', function ($group) {
     // Contatos
     $group->post('/{id}/contato',         Supplier::class . ':contactInsert');
     $group->post('/contato/{contactId}',  Supplier::class . ':contactDelete');
+    // Endereços
+    $group->post('/{id}/endereco',        Supplier::class . ':addressInsert');
+    $group->post('/endereco/{addressId}', Supplier::class . ':addressDelete');
 });
 
 // ── Produtos ──────────────────────────────────────────────────────────────────

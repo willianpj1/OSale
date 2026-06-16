@@ -238,7 +238,7 @@ final class Login extends Base
             session_start();
         }
 
-        session_regenerate_id(true);
+       //session_regenerate_id(true);
 
         $_SESSION['user'] = [
             'logado' => true,

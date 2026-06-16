@@ -36,7 +36,6 @@ final class Products extends AbstractMigration
             ])
 
             ->addIndex(['codigo_barra'], ['unique' => true, 'name' => 'products_codigo_barra_unique'])
-            ->addIndex(['sku'],          ['unique' => true, 'name' => 'products_sku_unique'])
             ->addIndex(['nome'],         ['name' => 'products_nome_idx'])
             ->addIndex(['supplier_id'],  ['name' => 'products_supplier_id_idx'])
             ->addIndex(['excluido'],     ['name' => 'products_excluido_idx'])
