@@ -11,8 +11,9 @@ class Products extends AbstractSeed
     {
         $faker = Factory::create('pt_BR');
 
-        $batchSize = 1000;
-        $total = 10000;
+        $batchSize = 100;
+        $total = 1000;
+
 
         // Busca fornecedores existentes
         $suppliers = $this->fetchAll('SELECT id FROM suppliers');
