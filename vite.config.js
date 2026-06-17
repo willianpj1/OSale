@@ -9,7 +9,7 @@ const HOT_FILE = resolve(__dirname, 'public/hot');
 function buildPageEntries() {
     //Capatura o caminho completo do diretório de páginas
     const pagesDir = resolve(__dirname, 'resources/js/pages')
-    //Percorre recursivamente o diretório, filtrando apenas arquivos .js 
+    //Percorre recursivamente o diretório, filtrando apenas arquivos .js
     // e criando um objeto de entradas
     return Object.fromEntries(
         fs.readdirSync(pagesDir, { recursive: true })
