@@ -11,8 +11,8 @@ class Products extends AbstractSeed
     {
         $faker = Factory::create('pt_BR');
 
-        $batchSize = 100;
-        $total = 1000;
+        $batchSize = 5;
+        $total = 5;
 
 
         // Busca fornecedores existentes

@@ -11,12 +11,11 @@ class Customers extends AbstractSeed
     {
         $faker = Factory::create('pt_BR');
 
-        $table = $this->table('customers');
-        $this->execute('DELETE FROM customers');
+        $table = $this->table('customers');       
 
 
-        $batchSize = 100;
-        $total = 1000;
+        $batchSize = 5;
+        $total = 5;
 
         for ($i = 0; $i < $total; $i += $batchSize) {
 

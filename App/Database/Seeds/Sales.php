@@ -41,8 +41,8 @@ class Sales extends AbstractSeed
 
         $table = $this->table('sales');
 
-        $batchSize = 1000;
-        $total = 10000;
+        $batchSize = 5;
+        $total = 5;
         $contadorVenda = 1;
 
         for ($i = 0; $i < $total; $i += $batchSize) {
