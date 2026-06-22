@@ -26,7 +26,8 @@ O **OSale** nasceu da necessidade real de organizar o fluxo de trabalho de uma a
 | Slim Framework | ^4.15 | Roteamento e estrutura da aplicação |
 | Slim PSR-7 | ^1.8 | Abstração de requisições/respostas HTTP |
 | Slim Twig View | ^3.4 | Renderização de templates no servidor |
-| Phinx | ^3.9 | Versionamento e migração do schema |
+| Doctrine DBAL | ^4.4 | Camada de abstração do banco de dados |
+| Doctrine Migrations | ^3.9 | Versionamento e migração do schema |
 | PHP DotEnv | ^5.6 | Gerenciamento de variáveis de ambiente |
 | Firebase PHP-JWT | ^7.0 | Autenticação via JSON Web Tokens |
 | League OAuth2 Client | ^2.9 | Autenticação OAuth2 |

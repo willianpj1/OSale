@@ -1,8 +1,9 @@
+const $ = window.jQuery
 import Requests from "../components/requests.js";
 import Validate from "../components/validate.js";
 
-const Action  = document.getElementById('action');
-const Id      = document.getElementById('id');
+const Action = document.getElementById('action');
+const Id = document.getElementById('id');
 const BtnSave = document.getElementById('insert');
 
 // ── Salvar OS ─────────────────────────────────────────────────────────────────
@@ -18,7 +19,7 @@ async function applyChanges() {
             text: 'Por favor, corrija os erros no formulário antes de salvar.',
             timer: 3000,
             timerProgressBar: true,
-        });
+        }); F
         $('button').prop('disabled', false);
         return;
     }
@@ -41,10 +42,9 @@ async function applyChanges() {
         }
 
         if (Action.value !== 'e') {
-            // Criação: atualiza URL sem recarregar, depois recarrega para exibir itens
             const redirectUrl = `${window.location.origin}/os/detalhes/${response.id}`;
             Action.value = 'e';
-            Id.value     = response.id;
+            Id.value = response.id;
             window.history.pushState({}, '', redirectUrl);
             Swal.fire({
                 icon: 'success',
@@ -77,73 +77,176 @@ async function applyChanges() {
     }
 }
 
-BtnSave.addEventListener('click', async () => {
-    await applyChanges();
-});
+if (BtnSave) {
+    BtnSave.addEventListener('click', async () => {
+        await applyChanges();
+    });
+}
+
+// ── Concluir OS ───────────────────────────────────────────────────────────────
+
+const BtnFinalizar = document.getElementById('btn-finalizar');
+
+if (BtnFinalizar) {
+    BtnFinalizar.addEventListener('click', async () => {
+        const confirm = await Swal.fire({
+            icon: 'warning',
+            title: 'Concluir OS?',
+            text: 'A OS será marcada como concluída e não poderá mais ser editada. Deseja continuar?',
+            showCancelButton: true,
+            confirmButtonText: 'Sim, concluir',
+            cancelButtonText: 'Cancelar',
+            confirmButtonColor: '#0d6efd',
+        });
+
+        if (!confirm.isConfirmed) return;
+
+        $('button').prop('disabled', true);
+        const requests = new Requests();
+        try {
+            const response = await requests.setForm('form').post('/os/concluir');
+
+            if (!response.status) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Erro',
+                    text: response.msg || 'Erro ao concluir OS.',
+                    timer: 3000,
+                    timerProgressBar: true,
+                });
+                return;
+            }
+
+            Swal.fire({
+                icon: 'success',
+                title: 'Concluída!',
+                text: response.msg || 'OS concluída com sucesso!',
+                timer: 2500,
+                timerProgressBar: true,
+            }).then(() => {
+                window.location.reload();
+            });
+
+        } catch (error) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Erro',
+                text: `Restrição: ${error.message}`,
+                timer: 3000,
+                timerProgressBar: true,
+            });
+        } finally {
+            $('button').prop('disabled', false);
+        }
+    });
+}
 
 // ── Itens ─────────────────────────────────────────────────────────────────────
 
 const BtnAddItem = document.getElementById('btn-add-item');
-let   Select2Item = null;
 
 if (BtnAddItem) {
 
+    // ── Select2 — inicializado sempre APÓS shown.bs.modal ────────────────────
     function initSelect2(tipo) {
         const label = document.getElementById('item-search-label');
         label.textContent = tipo === 'servico' ? 'Serviço' : 'Produto';
 
-        if (Select2Item) $('#item-search').select2('destroy');
+        // Destroi instância anterior sem deixar estado sujo
+        if ($.fn.select2 && $('#item-search').data('select2')) {
+            $('#item-search').select2('destroy');
+        }
+        $('#item-search').html('');
 
         const url = tipo === 'servico' ? '/os/buscar/servicos' : '/os/buscar/produtos';
 
-        Select2Item = $('#item-search').select2({
+        $('#item-search').select2({
             dropdownParent: $('#modal-item'),
-            placeholder:    'Digite para buscar...',
+            placeholder: 'Digite para buscar...',
             minimumInputLength: 1,
+            language: {
+                inputTooShort: () => 'Digite para buscar...',
+                searching: () => 'Buscando...',
+                noResults: () => 'Nenhum resultado encontrado.',
+                errorLoading: () => 'Erro ao carregar resultados.',
+            },
             ajax: {
                 url,
                 dataType: 'json',
-                delay:    300,
-                data:     params => ({ q: params.term }),
-                processResults: data => ({
-                    results: data.results.map(r => ({
-                        id:    r.id,
-                        text:  r.nome,
-                        preco: r.preco ?? r.preco_venda ?? 0,
-                    })),
-                }),
+                delay: 400,
+                cache: true,
+                data: params => ({ q: params.term }),
+                processResults: (data) => {
+                    // Se o Select2 ainda não terminou de montar, retorna vazio
+                    if (!$('#item-search').data('select2')?.$container) {
+                        return { results: [] };
+                    }
+                    const raw = Array.isArray(data?.results) ? data.results : [];
+                    return {
+                        results: raw
+                            .filter(r => r != null && r.id != null && r.nome != null)
+                            .map(r => ({
+                                id: String(r.id),
+                                text: String(r.nome),
+                                preco: parseFloat(r.preco ?? r.preco_venda ?? 0) || 0,
+                            })),
+                    };
+                },
+                // Requests canceladas pelo debounce não travam o "Buscando..."
+                transport: (params, success, failure) => {
+                    const $req = $.ajax(params);
+                    $req.then(success);
+                    $req.fail((xhr) => {
+                        if (xhr.statusText === 'abort') return;
+                        failure(xhr);
+                    });
+                    return $req;
+                },
             },
         });
 
+        // Listener de seleção — reattacha após cada destroy/reinit
         $('#item-search').off('select2:select').on('select2:select', function (e) {
-            const data = e.params.data;
-            document.getElementById('item-descricao').value = data.text;
-            document.getElementById('item-preco').value     = parseFloat(data.preco).toFixed(2);
+            const d = e.params.data;
+            document.getElementById('item-descricao').value = d.text;
+            document.getElementById('item-preco').value = d.preco.toFixed(2);
         });
     }
 
+    // ── Abrir modal — Select2 só inicia após shown.bs.modal ──────────────────
     BtnAddItem.addEventListener('click', () => {
-        document.getElementById('item-descricao').value  = '';
-        document.getElementById('item-preco').value      = '0';
+        document.getElementById('item-descricao').value = '';
+        document.getElementById('item-preco').value = '0';
         document.getElementById('item-quantidade').value = '1';
 
-        initSelect2(document.getElementById('item-tipo').value);
-        new bootstrap.Modal(document.getElementById('modal-item')).show();
+        const modalEl = document.getElementById('modal-item');
+        const modal = new bootstrap.Modal(modalEl);
+
+        // shown.bs.modal garante que o modal está visível e montado no DOM
+        // antes do Select2 calcular o dropdownParent
+        modalEl.addEventListener('shown.bs.modal', function handler() {
+            initSelect2(document.getElementById('item-tipo').value);
+            modalEl.removeEventListener('shown.bs.modal', handler);
+        });
+
+        modal.show();
     });
 
+    // ── Troca de tipo dentro do modal ─────────────────────────────────────────
     document.getElementById('item-tipo').addEventListener('change', function () {
         initSelect2(this.value);
         document.getElementById('item-descricao').value = '';
-        document.getElementById('item-preco').value     = '0';
+        document.getElementById('item-preco').value = '0';
     });
 
+    // ── Salvar item ───────────────────────────────────────────────────────────
     document.getElementById('btn-save-item').addEventListener('click', async () => {
-        const tipo       = document.getElementById('item-tipo').value;
-        const descricao  = document.getElementById('item-descricao').value.trim();
+        const tipo = document.getElementById('item-tipo').value;
+        const descricao = document.getElementById('item-descricao').value.trim();
         const quantidade = parseFloat(document.getElementById('item-quantidade').value) || 1;
-        const preco      = parseFloat(document.getElementById('item-preco').value)      || 0;
-        const selected   = $('#item-search').select2('data')[0];
-        const refId      = selected?.id ?? null;
+        const preco = parseFloat(document.getElementById('item-preco').value) || 0;
+        const selected = $('#item-search').select2('data')[0];
+        const refId = selected?.id ?? null;
 
         if (!descricao) {
             Swal.fire({
@@ -167,7 +270,7 @@ if (BtnAddItem) {
                 preco_unitario: preco,
             };
             if (tipo === 'servico' && refId) payload.service_id = refId;
-            if (tipo === 'produto'  && refId) payload.product_id = refId;
+            if (tipo === 'produto' && refId) payload.product_id = refId;
 
             const response = await requests.post(`/os/${orderId}/item`, payload);
 
@@ -203,12 +306,12 @@ if (BtnAddItem) {
 
 window.deleteItem = async function (itemId) {
     const confirm = await Swal.fire({
-        icon:              'warning',
-        title:             'Excluir item?',
-        text:              'Esta ação não pode ser desfeita.',
-        showCancelButton:  true,
+        icon: 'warning',
+        title: 'Excluir item?',
+        text: 'Esta ação não pode ser desfeita.',
+        showCancelButton: true,
         confirmButtonText: 'Sim, excluir',
-        cancelButtonText:  'Cancelar',
+        cancelButtonText: 'Cancelar',
         confirmButtonColor: '#dc3545',
     });
 
@@ -217,7 +320,7 @@ window.deleteItem = async function (itemId) {
     $('button').prop('disabled', true);
     const requests = new Requests();
     try {
-        const orderId  = Id.value;
+        const orderId = Id.value;
         const response = await requests.post(`/os/${orderId}/item/${itemId}`, { _method: 'DELETE' });
 
         if (!response.status) {

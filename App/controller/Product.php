@@ -169,10 +169,9 @@ final class Product extends Base
         $columns = [
             0 => 'p.id',
             1 => 'p.nome',
-            2 => 'p.codigo_barra',
-            3 => 'p.unidade',
-            4 => 'p.preco_venda',
-            5 => 'p.estoque_atual',
+            2 => 'p.preco_venda',
+            3 => 'p.estoque_atual',
+            4 => 'p.codigo_barra',
             6 => 'p.ativo',
             7 => 'p.criado_em',
         ];

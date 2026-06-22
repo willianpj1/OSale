@@ -1,39 +1,45 @@
 import '../css/app.css'
 import './components/theme.js'
 
-// 1. jQuery global — DEVE ser o primeiro import.
-import './jquery-global.js'
+// 1. jQuery — importa explicitamente, expõe global ANTES de tudo
+import $ from 'jquery'
+window.$ = $
+window.jQuery = $
 
-// 2. Bootstrap 5 — JS bundle inclui Popper internamente
-import 'bootstrap'
+// 2. Bootstrap 5
+import * as bootstrap from 'bootstrap'
+window.bootstrap = bootstrap
 
-// DataTables core + extensões com tema Bootstrap 5
+// 3. DataTables — depende de $.fn, precisa vir depois do jQuery global
 import 'datatables.net-bs5'
 import 'datatables.net-responsive-bs5'
 import 'datatables.net-staterestore-bs5'
 
-// Select2 — registra $.fn.select2
-import 'select2'
+// 4. Select2 — registra $.fn.select2 na instância global
+//    Passa window.jQuery explicitamente para garantir que o plugin
+//    fica registrado no mesmo $ que os page bundles vão usar
+import select2 from 'select2'
+select2(window.jQuery)
 
-// jQuery Validate — registra $.fn.validate
+// 5. jQuery Validate
 import 'jquery-validation'
 import 'jquery-validation/dist/localization/messages_pt_BR.js'
 import 'jquery-validation/dist/localization/methods_pt.js'
 
-// 3. SweetAlert2 — usado como Swal.fire(...) nos arquivos de página
+// 6. SweetAlert2
 import Swal from 'sweetalert2'
 window.Swal = Swal
 
-// 4. Biblioteca de mascaras
-import Inputmask from 'inputmask';
-window.Inputmask = Inputmask.default ?? Inputmask;
+// 7. Inputmask
+import Inputmask from 'inputmask'
+window.Inputmask = Inputmask.default ?? Inputmask
 
-// 5. Biblioteca de calendário
+// 8. Flatpickr
 import flatpickr from 'flatpickr'
 import { Portuguese } from 'flatpickr/dist/l10n/pt.js'
 flatpickr.localize(Portuguese)
 window.flatpickr = flatpickr
 
-// .6 importa o scripts do echarts
-import * as echarts from  'echarts'
+// 9. ECharts
+import * as echarts from 'echarts'
 window.echarts = echarts

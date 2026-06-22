@@ -1,8 +1,6 @@
-//Inicializador global do jQuery.
-
-import jQuery from 'jquery'
-
-window.jQuery = jQuery
-window.$ = jQuery
-
-export default jQuery
+import $ from 'jquery'
+window.$ = $
+window.jQuery = $
+// ...
+import select2 from 'select2'
+select2($)

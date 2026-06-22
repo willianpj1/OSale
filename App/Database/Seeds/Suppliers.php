@@ -14,8 +14,8 @@ class Suppliers extends AbstractSeed
         $table = $this->table('suppliers');
 
 
-        $batchSize = 5;
-        $total = 5;
+        $batchSize = 100;
+        $total = 1000;
 
         for ($i = 0; $i < $total; $i += $batchSize) {
 

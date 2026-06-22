@@ -12,6 +12,7 @@ use App\Controller\Service;
 use App\Controller\ServiceOrder;
 use App\Controller\Sale;
 use App\Controller\Report;
+use App\Controller\Users;
 use App\Middleware\Middleware;
 
 // ── Rotas públicas ────────────────────────────────────────────────────────────
@@ -34,6 +35,24 @@ $app->get('/home', Home::class . ':home');
 $app->get('/relatorio', Report::class . ':report');
 $app->get('/relatorio/curva-abc', Report::class . ':curvaAbc');
 $app->get('/relatorio/resumo',    Report::class . ':resumo');
+
+// ── Usuários ──────────────────────────────────────────────────────────────────
+
+$app->group('/usuarios', function ($group) {
+    $group->get('/lista',                 Users::class . ':list');
+    $group->get('/detalhes',              Users::class . ':details');
+    $group->get('/detalhes/{id}',         Users::class . ':details');
+    $group->post('/listingdata',          Users::class . ':listingdata');
+    $group->post('/inserir',              Users::class . ':insert');
+    $group->post('/atualizar',            Users::class . ':update');
+    $group->post('/excluir',              Users::class . ':delete');
+    // Contatos
+    $group->post('/{id}/contato',         Users::class . ':contactInsert');
+    $group->post('/contato/{contactId}',  Users::class . ':contactDelete');
+    // Endereços
+    $group->post('/{id}/endereco',        Users::class . ':addressInsert');
+    $group->post('/endereco/{addressId}', Users::class . ':addressDelete');
+});
 
 // ── Clientes ──────────────────────────────────────────────────────────────────
 
@@ -104,11 +123,10 @@ $app->group('/os', function ($group) {
     $group->post('/listingdata',          ServiceOrder::class . ':listingdata');
     $group->post('/inserir',              ServiceOrder::class . ':insert');
     $group->post('/atualizar',            ServiceOrder::class . ':update');
+    $group->post('/concluir',             ServiceOrder::class . ':finalize');
     $group->post('/excluir',              ServiceOrder::class . ':delete');
-    // Itens
     $group->post('/{id}/item',            ServiceOrder::class . ':itemInsert');
     $group->post('/{id}/item/{itemId}',   ServiceOrder::class . ':itemDelete');
-    // Busca
     $group->get('/buscar/produtos',       ServiceOrder::class . ':searchProducts');
     $group->get('/buscar/servicos',       ServiceOrder::class . ':searchServices');
 });
@@ -131,3 +149,4 @@ $app->group('/venda', function ($group) {
     $group->get('/buscar/produtos',       Sale::class . ':searchProducts');
     $group->get('/buscar/servicos',       Sale::class . ':searchServices');
 });
+

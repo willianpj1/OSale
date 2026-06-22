@@ -76,8 +76,8 @@ class ServicesOrders extends AbstractSeed
 
         $table = $this->table('service_orders');
 
-        $batchSize = 5;
-        $total = 5;
+        $batchSize = 1000;
+        $total = 10000;
 
         $contadorOs = 1;
 

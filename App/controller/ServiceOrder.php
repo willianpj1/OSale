@@ -22,10 +22,10 @@ final class ServiceOrder extends Base
 
     public function details($request, $response, $args)
     {
-        $id           = $args['id'] ?? null;
-        $action       = ($id === null) ? 'c' : 'e';
-        $order        = [];
-        $items        = [];
+        $id     = $args['id'] ?? null;
+        $action = ($id === null) ? 'c' : 'e';
+        $order  = [];
+        $items  = [];
 
         if ($id !== null) {
             $order = DB::queryOne(
@@ -77,9 +77,9 @@ final class ServiceOrder extends Base
 
     public function insert($request, $response)
     {
-        $form        = $request->getParsedBody();
-        $customerId  = $form['customer_id'] ?? null;
-        $criadoPor = $_SESSION['user']['id'] ?? 1;
+        $form       = $request->getParsedBody();
+        $customerId = $form['customer_id'] ?? null;
+        $criadoPor  = $_SESSION['users']['id'] ?? null;
 
         if (!$customerId) {
             return $this->json($response, ['status' => false, 'msg' => 'Selecione um cliente', 'id' => 0], 400);
@@ -105,30 +105,50 @@ final class ServiceOrder extends Base
                      :defeito_relatado, :defeito_constatado, :observacoes,
                      0.00, false, :aberto_em, :criado_em, :atualizado_em)',
                 [
-                    'customer_id'       => (int) $customerId,
-                    'user_id'           => $form['user_id']           ? (int) $form['user_id'] : null,
-                    'criado_por'        => (int) $criadoPor,
-                    'numero'            => $numero,
-                    'status'            => $form['status']            ?? 'aberta',
-                    'prioridade'        => $form['prioridade']        ?? 'normal',
-                    'equipamento'       => $form['equipamento']       ?? null,
-                    'marca'             => $form['marca']             ?? null,
-                    'modelo'            => $form['modelo']            ?? null,
-                    'numero_serie'      => $form['numero_serie']      ?? null,
-                    'defeito_relatado'  => $form['defeito_relatado']  ?? null,
-                    'defeito_constatado'=> $form['defeito_constatado'] ?? null,
-                    'observacoes'       => $form['observacoes']       ?? null,
-                    'aberto_em'         => $now,
-                    'criado_em'         => $now,
-                    'atualizado_em'     => $now,
+                    'customer_id'        => (int) $customerId,
+                    'user_id'            => !empty($form['user_id']) ? (int) $form['user_id'] : null,
+                    'criado_por'         => (int) $criadoPor,
+                    'numero'             => $numero,
+                    'status'             => $form['status']             ?? 'aberta',
+                    'prioridade'         => $form['prioridade']         ?? 'normal',
+                    'equipamento'        => $form['equipamento']        ?? null,
+                    'marca'              => $form['marca']              ?? null,
+                    'modelo'             => $form['modelo']             ?? null,
+                    'numero_serie'       => $form['numero_serie']       ?? null,
+                    'defeito_relatado'   => $form['defeito_relatado']   ?? null,
+                    'defeito_constatado' => $form['defeito_constatado'] ?? null,
+                    'observacoes'        => $form['observacoes']        ?? null,
+                    'aberto_em'          => $now,
+                    'criado_em'          => $now,
+                    'atualizado_em'      => $now,
                 ]
             );
 
-            $id = (int) DB::lastInsertId('service_orders_id_seq');
+            // Busca o ID recém-inserido — compatível com PostgreSQL e MySQL
+            $id = (int) DB::lastInsertId();
 
-            return $this->json($response, ['status' => true, 'msg' => 'OS aberta com sucesso!', 'id' => $id, 'numero' => $numero], 201);
+            // Fallback: se lastInsertId() retornar 0, busca pelo número único
+            if ($id === 0) {
+                $row = DB::queryOne(
+                    'SELECT id FROM service_orders WHERE numero = :numero',
+                    ['numero' => $numero]
+                );
+                $id = (int) ($row['id'] ?? 0);
+            }
+
+            return $this->json($response, [
+                'status' => true,
+                'msg'    => 'OS aberta com sucesso!',
+                'id'     => $id,
+                'numero' => $numero,
+            ], 201);
         } catch (Exception $e) {
-            return $this->json($response, ['status' => false, 'msg' => 'Erro ao inserir: ' . $e->getMessage(), 'id' => 0], 500);
+            error_log('[ServiceOrder::insert] ' . $e->getMessage() . "\n" . $e->getTraceAsString());
+            return $this->json($response, [
+                'status' => false,
+                'msg'    => 'Erro ao inserir: ' . $e->getMessage(),
+                'id'     => 0,
+            ], 500);
         }
     }
 
@@ -151,7 +171,7 @@ final class ServiceOrder extends Base
                     atualizado_em = :atualizado_em
                  WHERE id = :id AND excluido = false',
                 [
-                    'user_id'            => $form['user_id']            ? (int) $form['user_id'] : null,
+                    'user_id'            => !empty($form['user_id']) ? (int) $form['user_id'] : null,
                     'status'             => $form['status']             ?? 'aberta',
                     'prioridade'         => $form['prioridade']         ?? 'normal',
                     'equipamento'        => $form['equipamento']        ?? null,
@@ -168,6 +188,7 @@ final class ServiceOrder extends Base
 
             return $this->json($response, ['status' => true, 'msg' => 'OS atualizada com sucesso!', 'id' => (int) $id], 200);
         } catch (Exception $e) {
+            error_log('[ServiceOrder::update] ' . $e->getMessage());
             return $this->json($response, ['status' => false, 'msg' => 'Erro ao atualizar: ' . $e->getMessage(), 'id' => 0], 500);
         }
     }
@@ -189,6 +210,7 @@ final class ServiceOrder extends Base
 
             return $this->json($response, ['status' => true, 'msg' => 'OS removida com sucesso!', 'id' => (int) $id]);
         } catch (Exception $e) {
+            error_log('[ServiceOrder::delete] ' . $e->getMessage());
             return $this->json($response, ['status' => false, 'msg' => 'Erro ao excluir: ' . $e->getMessage(), 'id' => 0], 500);
         }
     }
@@ -220,8 +242,8 @@ final class ServiceOrder extends Base
             $params = [];
 
             if (!empty($term)) {
-                $where          .= ' AND (so.numero ILIKE :term OR c.nome ILIKE :term OR so.equipamento ILIKE :term OR so.status ILIKE :term)';
-                $params['term']  = '%' . $term . '%';
+                $where         .= ' AND (so.numero ILIKE :term OR c.nome ILIKE :term OR so.equipamento ILIKE :term OR so.status ILIKE :term)';
+                $params['term'] = '%' . $term . '%';
             }
 
             $totalRecords    = (int) DB::queryOne('SELECT COUNT(*) as total FROM service_orders so WHERE so.excluido = false')['total'];
@@ -245,11 +267,11 @@ final class ServiceOrder extends Base
             );
 
             $statusLabels = [
-                'aberta'           => '<span class="badge bg-primary">Aberta</span>',
-                'em_andamento'     => '<span class="badge bg-warning text-dark">Em andamento</span>',
-                'aguardando_peca'  => '<span class="badge bg-secondary">Aguardando peça</span>',
-                'concluida'        => '<span class="badge bg-success">Concluída</span>',
-                'cancelada'        => '<span class="badge bg-danger">Cancelada</span>',
+                'aberta'          => '<span class="badge bg-primary">Aberta</span>',
+                'em_andamento'    => '<span class="badge bg-warning text-dark">Em andamento</span>',
+                'aguardando_peca' => '<span class="badge bg-secondary">Aguardando peça</span>',
+                'concluida'       => '<span class="badge bg-success">Concluída</span>',
+                'cancelada'       => '<span class="badge bg-danger">Cancelada</span>',
             ];
 
             $prioridadeLabels = [
@@ -270,8 +292,8 @@ final class ServiceOrder extends Base
                     $value['numero'],
                     $value['customer_nome'],
                     $value['equipamento'] ?? '—',
-                    $statusLabels[$value['status']]       ?? $value['status'],
-                    $prioridadeLabels[$value['prioridade']] ?? $value['prioridade'],
+                    $statusLabels[$value['status']]          ?? $value['status'],
+                    $prioridadeLabels[$value['prioridade']]  ?? $value['prioridade'],
                     $tecnico,
                     'R$ ' . number_format((float) $value['valor_total'], 2, ',', '.'),
                     (new DateTime($value['aberto_em']))->format('d/m/Y H:i:s'),
@@ -288,6 +310,7 @@ final class ServiceOrder extends Base
                 'data'            => $rows,
             ], 200);
         } catch (Exception $e) {
+            error_log('[ServiceOrder::listingdata] ' . $e->getMessage());
             return $this->json($response, ['status' => false, 'msg' => $e->getMessage()], 500);
         }
     }
@@ -336,9 +359,8 @@ final class ServiceOrder extends Base
                 ]
             );
 
-            $itemId = (int) DB::lastInsertId('service_order_items_id_seq');
+            $itemId = (int) DB::lastInsertId();
 
-            // Recalcula e atualiza o valor_total da OS
             $this->recalcularTotal((int) $orderId);
 
             return $this->json($response, [
@@ -348,6 +370,7 @@ final class ServiceOrder extends Base
                 'subtotal' => $subtotal,
             ], 201);
         } catch (Exception $e) {
+            error_log('[ServiceOrder::itemInsert] ' . $e->getMessage());
             return $this->json($response, ['status' => false, 'msg' => 'Erro: ' . $e->getMessage(), 'id' => 0], 500);
         }
     }
@@ -367,28 +390,37 @@ final class ServiceOrder extends Base
                 ['id' => $itemId, 'order_id' => $orderId]
             );
 
-            // Recalcula e atualiza o valor_total da OS
             $this->recalcularTotal((int) $orderId);
 
             return $this->json($response, ['status' => true, 'msg' => 'Item removido!', 'id' => (int) $itemId]);
         } catch (Exception $e) {
+            error_log('[ServiceOrder::itemDelete] ' . $e->getMessage());
             return $this->json($response, ['status' => false, 'msg' => 'Erro: ' . $e->getMessage(), 'id' => 0], 500);
         }
     }
 
-    // ── Search (para select2 no formulário) ───────────────────────────────────
+    // ── Search ────────────────────────────────────────────────────────────────
 
     public function searchProducts($request, $response)
     {
         $term = $request->getQueryParams()['q'] ?? '';
 
-        $products = DB::query(
-            'SELECT id, nome, preco_venda as preco, unidade
+        if ($term === '') {
+            $products = DB::query(
+                'SELECT id, nome, preco_venda as preco, unidade
+             FROM products
+             WHERE excluido = false AND ativo = true
+             ORDER BY nome ASC LIMIT 20'
+            );
+        } else {
+            $products = DB::query(
+                'SELECT id, nome, preco_venda as preco, unidade
              FROM products
              WHERE excluido = false AND ativo = true AND nome ILIKE :term
              ORDER BY nome ASC LIMIT 20',
-            ['term' => '%' . $term . '%']
-        );
+                ['term' => '%' . $term . '%']
+            );
+        }
 
         return $this->json($response, ['results' => $products], 200);
     }
@@ -397,17 +429,25 @@ final class ServiceOrder extends Base
     {
         $term = $request->getQueryParams()['q'] ?? '';
 
-        $services = DB::query(
-            'SELECT id, nome, preco
+        if ($term === '') {
+            $services = DB::query(
+                'SELECT id, nome, preco
+             FROM services
+             WHERE excluido = false AND ativo = true
+             ORDER BY nome ASC LIMIT 20'
+            );
+        } else {
+            $services = DB::query(
+                'SELECT id, nome, preco
              FROM services
              WHERE excluido = false AND ativo = true AND nome ILIKE :term
              ORDER BY nome ASC LIMIT 20',
-            ['term' => '%' . $term . '%']
-        );
+                ['term' => '%' . $term . '%']
+            );
+        }
 
         return $this->json($response, ['results' => $services], 200);
     }
-
     // ── Helpers ───────────────────────────────────────────────────────────────
 
     private function recalcularTotal(int $orderId): void
@@ -429,12 +469,58 @@ final class ServiceOrder extends Base
 
     private function gerarNumeroOS(): string
     {
-        $ano     = (new DateTime())->format('Y');
-        $result  = DB::queryOne(
+        $ano = (new DateTime())->format('Y');
+
+        // Usa MAX para evitar colisão em caso de deleção de registros
+        $result = DB::queryOne(
             "SELECT COUNT(*) as total FROM service_orders WHERE numero LIKE :pattern",
             ['pattern' => "OS-{$ano}-%"]
         );
-        $sequencia = str_pad((string) ((int) $result['total'] + 1), 5, '0', STR_PAD_LEFT);
-        return "OS-{$ano}-{$sequencia}";
+
+        $total     = (int) ($result['total'] ?? 0);
+        $sequencia = str_pad((string) ($total + 1), 5, '0', STR_PAD_LEFT);
+        $numero    = "OS-{$ano}-{$sequencia}";
+
+        // Garante unicidade em caso de race condition
+        $existe = DB::queryOne(
+            'SELECT id FROM service_orders WHERE numero = :numero',
+            ['numero' => $numero]
+        );
+
+        if ($existe) {
+            $sequencia = str_pad((string) ($total + 2), 5, '0', STR_PAD_LEFT);
+            $numero    = "OS-{$ano}-{$sequencia}";
+        }
+
+        return $numero;
+    }
+    public function finalize($request, $response)
+    {
+        $form = $request->getParsedBody();
+        $id   = $form['id'] ?? null;
+
+        if (!$id) {
+            return $this->json($response, ['status' => false, 'msg' => 'ID não informado', 'id' => 0], 403);
+        }
+
+        try {
+            $order = DB::queryOne(
+                'SELECT * FROM service_orders WHERE id = :id AND excluido = false',
+                ['id' => $id]
+            );
+
+            if (!$order || $order['status'] === 'concluida' || $order['status'] === 'cancelada') {
+                return $this->json($response, ['status' => false, 'msg' => 'OS não pode ser concluída', 'id' => 0], 422);
+            }
+
+            DB::execute(
+                'UPDATE service_orders SET status = :status, atualizado_em = :now WHERE id = :id',
+                ['status' => 'concluida', 'now' => (new DateTime())->format('Y-m-d H:i:s'), 'id' => $id]
+            );
+
+            return $this->json($response, ['status' => true, 'msg' => 'OS concluída com sucesso!', 'id' => (int) $id], 200);
+        } catch (Exception $e) {
+            return $this->json($response, ['status' => false, 'msg' => 'Erro: ' . $e->getMessage(), 'id' => 0], 500);
+        }
     }
 }

@@ -2,12 +2,12 @@ import DataTables from '../components/data-tables.js';
 import Requests from '../components/requests.js';
 
 const Id = document.getElementById('id');
-const table = DataTables.SetId('table-users').setRequestVariables([]).post('/usuario/listingdata');
+const table = DataTables.SetId('table-users').setRequestVariables([]).post('/usuarios/listingdata');
 
 async function deleteUser() {
     const requests = new Requests();
     try {
-        const response = await requests.setForm('form').post('/usuario/delete');
+        const response = await requests.setForm('form').post('/usuarios/delete');
         return response;
     } catch (error) {
         Swal.fire({

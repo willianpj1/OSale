@@ -1,0 +1,227 @@
+{% extends 'layouts/main.html' %}
+
+{% block breadcrumbs %}
+<ol class="breadcrumb float-sm-end">
+    <li class="breadcrumb-item"><a href="/">Início</a></li>
+    <li class="breadcrumb-item"><a href="/usuarios/lista">Lista de usuários</a></li>
+    <li class="breadcrumb-item active" aria-current="page">Detalhes do usuário</li>
+</ol>
+{{ vite('resources/css/pages/customer.css') }}
+{% endblock %}
+
+{% block main %}
+<form id="form">
+    <input type="hidden" id="action" name="action" value="{{ action }}">
+    <input type="hidden" id="id" name="id" value="{{ id }}">
+    <div class="row g-3">
+
+        {# Dados principais #}
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header d-flex align-items-center gap-2">
+                    <a href="/usuarios/lista" class="btn btn-warning">
+                        <i class="bi bi-chevron-left"></i> Voltar
+                    </a>
+                    <span class="fw-semibold">Dados do usuário</span>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-lg-4 col-md-6">
+                            <div class="form-floating mb-3">
+                                <select class="form-select" id="tipo" name="tipo">
+                                    <option value="fisica" {{ users.tipo == 'fisica' ? 'selected' : '' }}>Pessoa Física</option>
+                                    <option value="juridica" {{ users.tipo == 'juridica' ? 'selected' : '' }}>Pessoa Jurídica</option>
+                                </select>
+                                <label for="tipo">Tipo</label>
+                            </div>
+                        </div>
+                        <div class="col-lg-4 col-md-6">
+                            <div class="form-floating mb-3">
+                                <input autofocus type="text" class="form-control" id="cpf_cnpj" name="cpf_cnpj"
+                                    placeholder="CPF / CNPJ" value="{{ users.cpf_cnpj }}">
+                                <label for="cpf_cnpj">CPF / CNPJ</label>
+                            </div>
+                        </div>
+                        <div class="col-lg-4 col-md-6">
+                            <div class="form-floating mb-3">
+                                <input type="text" class="form-control" id="rg_ie" name="rg_ie"
+                                    placeholder="RG / IE" value="{{ users.rg_ie }}">
+                                <label for="rg_ie">RG / Inscrição Estadual</label>
+                            </div>
+                        </div>
+                        <div class="col-lg-8 col-md-6">
+                            <div class="form-floating mb-3">
+                                <input type="text" class="form-control" id="nome" name="nome"
+                                    placeholder="Nome / Razão Social" value="{{ users.nome }}" required>
+                                <label for="nome">Nome / Razão Social</label>
+                            </div>
+                        </div>
+                        <div class="col-12">
+                            <div class="form-floating mb-3">
+                                <textarea class="form-control" id="observacoes" name="observacoes"
+                                    placeholder="Observações" style="height:80px">{{ users.observacoes }}</textarea>
+                                <label for="observacoes">Observações</label>
+                            </div>
+                        </div>
+                        <div class="col-12">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="ativo" name="ativo"
+                                    value="true" {{ users.ativo ? 'checked' : '' }}>
+                                <label class="form-check-label" for="ativo">Ativo</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {# Endereços — lista em memória, só vira INSERT no salvar final #}
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header d-flex align-items-center justify-content-between">
+                    <span class="fw-semibold">Endereços</span>
+                    <button type="button" class="btn btn-success btn-sm" id="btn-add-address">
+                        <i class="bi bi-plus-lg"></i> Adicionar
+                    </button>
+                </div>
+                <div class="card-body p-0">
+                    <table class="table table-bordered table-hover mb-0" id="table-addresses">
+                        <thead>
+                            <tr>
+                                <th>Rótulo</th>
+                                <th>Logradouro</th>
+                                <th>Número</th>
+                                <th>Bairro</th>
+                                <th>Cidade / UF</th>
+                                <th>Ação</th>
+                            </tr>
+                        </thead>
+                        <tbody id="table-addresses-body">
+                            {# preenchido via JS, tanto com endereços já salvos (edição) quanto novos (em memória) #}
+                        </tbody>
+                    </table>
+                    <div class="p-3 text-center text-muted small" id="addresses-empty" style="display:none;">
+                        Nenhum endereço adicionado ainda.
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {# Contato — fixo, telefone + email #}
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <span class="fw-semibold">Contato</span>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-floating mb-3">
+                                <input type="text" class="form-control" id="cont_telefone" name="cont_telefone"
+                                    placeholder="Telefone / WhatsApp" value="{{ contato_telefone.contato }}">
+                                <label for="cont_telefone">Telefone / WhatsApp</label>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-floating mb-3">
+                                <input type="email" class="form-control" id="cont_email" name="cont_email"
+                                    placeholder="E-mail" value="{{ contato_email.contato }}">
+                                <label for="cont_email">E-mail</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer">
+                    <button id="insert" type="button" class="btn btn-success">
+                        <i class="bi bi-floppy"></i> Salvar
+                    </button>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</form>
+
+{# Modal endereço — só adiciona na lista em memória, não salva direto no banco #}
+<div class="modal fade" id="modal-address" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Adicionar endereço</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row g-3">
+                    <div class="col-12">
+                        <div class="form-floating">
+                            <select class="form-select" id="a-nome">
+                                <option value="Casa">Casa</option>
+                                <option value="Trabalho">Trabalho</option>
+                                <option value="Casa dos pais">Casa dos pais</option>
+                                <option value="Outro">Outro</option>
+                            </select>
+                            <label for="a-nome">Rótulo</label>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="form-floating">
+                            <input type="text" class="form-control" id="a-cep" placeholder="CEP">
+                            <label for="a-cep">CEP</label>
+                        </div>
+                    </div>
+                    <div class="col-md-7">
+                        <div class="form-floating">
+                            <input type="text" class="form-control" id="a-logradouro" placeholder="Logradouro">
+                            <label for="a-logradouro">Logradouro</label>
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="form-floating">
+                            <input type="text" class="form-control" id="a-numero" placeholder="Número">
+                            <label for="a-numero">Número</label>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-floating">
+                            <input type="text" class="form-control" id="a-complemento" placeholder="Complemento">
+                            <label for="a-complemento">Complemento</label>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="form-floating">
+                            <input type="text" class="form-control" id="a-bairro" placeholder="Bairro">
+                            <label for="a-bairro">Bairro</label>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="form-floating">
+                            <input type="text" class="form-control" id="a-cidade" placeholder="Cidade">
+                            <label for="a-cidade">Cidade</label>
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="form-floating">
+                            <input type="text" class="form-control" id="a-estado" placeholder="UF" maxlength="2">
+                            <label for="a-estado">UF</label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-success" id="btn-save-address">
+                    <i class="bi bi-plus-lg"></i> Adicionar à lista
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block script %}
+<script>
+    // injeta os endereços já existentes (edição) pro JS montar a lista inicial
+    window.enderecosExistentes = {{ enderecos|json_encode|raw }};
+</script>
+{{ vite('resources/js/pages/users.js') }}
+{% endblock %}

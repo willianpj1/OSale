@@ -111,36 +111,43 @@ final class Login extends Base
                 ->withStatus($httpCode);
         };
 
-        $form  = $request->getParsedBody();
-        $login = trim($form['login'] ?? '');
-        $senha = $form['senha'] ?? '';
+        try {
+            $form  = $request->getParsedBody();
+            $login = trim($form['login'] ?? '');
+            $senha = $form['senha'] ?? '';
 
-        if ($login === '' || $senha === '') {
-            return $json(false, 'Preencha todos os campos.', 400);
+            if ($login === '' || $senha === '') {
+                return $json(false, 'Preencha todos os campos.', 400);
+            }
+
+            $conn = \App\Database\DB::connection();
+
+            $user = \App\Database\DB::select('*')
+                ->from('users')
+                ->where(
+                    'email = ' . $conn->quote($login) .
+                        ' OR cpf = ' . $conn->quote($login)
+                )
+                ->fetchAssociative();
+
+            if (!$user || !password_verify($senha, $user['senha'])) {
+                return $json(false, 'Login ou senha incorretos.', 401);
+            }
+
+            if (!(bool) $user['ativo']) {
+                return $json(false, 'Usuário inativo. Contate o administrador.', 403);
+            }
+
+            // Erros comuns costumam acontecer nos dois métodos abaixo:
+            $this->buildCookie($user);
+            $this->buildSession($user);
+
+            return $json(true, 'Autenticado com sucesso.', 200);
+
+        } catch (\Throwable $e) {
+            // Captura o erro exato e devolve no JSON estruturado para o SweetAlert mostrar
+            return $json(false, 'Erro Interno: ' . $e->getMessage() . ' em ' . $e->getFile() . ':' . $e->getLine(), 500);
         }
-
-        $conn = \App\Database\DB::connection();
-
-        $user = \App\Database\DB::select('*')
-            ->from('users')
-            ->where(
-                'email = ' . $conn->quote($login) .
-                    ' OR cpf = ' . $conn->quote($login)
-            )
-            ->fetchAssociative();
-
-        if (!$user || !password_verify($senha, $user['senha'])) {
-            return $json(false, 'Login ou senha incorretos.', 401);
-        }
-
-        if (!(bool) $user['ativo']) {
-            return $json(false, 'Usuário inativo. Contate o administrador.', 403);
-        }
-
-        $this->buildCookie($user);
-        $this->buildSession($user);
-
-        return $json(true, 'Autenticado com sucesso.', 200);
     }
     public function logout($request, $response)
     {

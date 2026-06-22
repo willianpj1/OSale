@@ -10,10 +10,14 @@ class Users extends AbstractSeed
     public function run(): void
     {
         $faker = Factory::create('pt_BR');
+
         $table = $this->table('users');
 
-        $batchSize = 5;
-        $total = 5;
+        // Limpa a tabela
+         $this->execute('DELETE FROM customers');
+
+        $batchSize = 100;
+        $total = 100;
 
         for ($i = 0; $i < $total; $i += $batchSize) {
 
