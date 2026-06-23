@@ -1,4 +1,4 @@
-import Requests from "../components/requests.js";
+import Requests from "./requests.js";
 
 export default class FindCompany {
     constructor({ cnpjField = '', cnaeValue = '', cnaeSearch = 'codigoAtividadeEconomica' } = {}) {
@@ -72,7 +72,6 @@ export default class FindCompany {
     }
     // Preenche os dados da empresa com base no CNPJ
     #FillCompanyData(companyData = {}) {
-        // 1. Validação defensiva
         if (!companyData || typeof companyData !== 'object' || Object.keys(companyData).length === 0) {
             Swal?.fire({
                 icon: 'error',
@@ -84,22 +83,18 @@ export default class FindCompany {
             return;
         }
 
-        // 2. Resolve o formulário explicitamente
-        const form = document.querySelector('form'); // ajuste se houver mais de um
+        const form = document.querySelector('form');
         if (!form) {
             console.warn('Formulário não encontrado no DOM.');
             return;
         }
 
-        // 3. Normalização de datas
         const normalizeDateBR = (value) => {
             if (!value) return '';
-
             const [year, month, day] = value.split('T')[0].split('-');
             return `${day}/${month}/${year}`;
         };
 
-        // 4. Mapeamento campo → regra de negócio
         const fieldMap = {
             numeroDocumento: data =>
                 data.estabelecimento?.cnpj ?? '',
@@ -114,7 +109,7 @@ export default class FindCompany {
             dataRegistro: data =>
                 normalizeDateBR(data.estabelecimento?.data_inicio_atividade),
             regimeTributario: data => {
-                if (!data.simples) return '3'; // Regime Normal
+                if (!data.simples) return '3';
                 return data.simples?.excesso_sublimite ? '2' : '1';
             },
             codigoAtividadeEconomica: data =>
@@ -124,7 +119,7 @@ export default class FindCompany {
             cnae: data =>
                 data.estabelecimento?.atividade_principal?.classe.replace(/\D/g, '') ?? '',
         };
-        // 5. Loop único e seguro de preenchimento
+
         Object.entries(fieldMap).forEach(([fieldId, resolver]) => {
             const field = form.querySelector(`#${fieldId}`);
             if (!field) return;
@@ -137,13 +132,11 @@ export default class FindCompany {
                     break;
 
                 default:
-                    //Caso o campo já esteja preenchido, não sobrescreve
                     if (field.value.trim() !== '') break;
                     field.value = value ?? '';
                     break;
             }
 
-            // Garante que listeners e plugins sejam notificados
             field.dispatchEvent(new Event('change', { bubbles: true }));
         });
     }
@@ -151,7 +144,6 @@ export default class FindCompany {
         return (cpfOrCnpj.length === 11) ? this.#isValidCPF(cpfOrCnpj) : this.#isValidCNPJ(cpfOrCnpj);
     }
     #CreateCompanyListCnae(cnaeData = {}) {
-        // 1. Validação defensiva
         if (!cnaeData || typeof cnaeData !== 'object' || Object.keys(cnaeData).length === 0) {
             Swal?.fire({
                 icon: 'error',
