@@ -1,0 +1,315 @@
+{% extends 'layouts/main.html' %}
+
+{% block breadcrumbs %}
+<ol class="breadcrumb float-sm-end">
+    <li class="breadcrumb-item"><a href="/">Início</a></li>
+    <li class="breadcrumb-item"><a href="/os/lista">Lista de OS</a></li>
+    <li class="breadcrumb-item active" aria-current="page">Detalhes da OS</li>
+</ol>
+{{ vite('resources/css/pages/service-order.css') }}
+{% endblock %}
+
+{% block main %}
+<form id="form">
+    <input type="hidden" id="action" name="action" value="{{ action }}">
+    <input type="hidden" id="id" name="id" value="{{ id }}">
+    <div class="row g-3">
+
+        {# Cabeçalho da OS #}
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header d-flex align-items-center gap-2">
+                    <a href="/os/lista" class="btn btn-warning">
+                        <i class="bi bi-chevron-left"></i> Voltar
+                    </a>
+                    <span class="fw-semibold">
+                        {% if id %}OS {{ order.numero }}{% else %}Nova Ordem de Serviço{% endif %}
+                    </span>
+                    {% if id %}
+                    <span class="ms-auto badge
+                        {% if order.status == 'aberta' %}bg-primary
+                        {% elseif order.status == 'em_andamento' %}bg-warning text-dark
+                        {% elseif order.status == 'aguardando_peca' %}bg-secondary
+                        {% elseif order.status == 'concluida' %}bg-success
+                        {% else %}bg-danger{% endif %}">
+                        {{ order.status | replace({'_': ' '}) | capitalize }}
+                    </span>
+                    {% endif %}
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-lg-6 col-md-6">
+                            <div class="form-floating mb-3">
+                                <select class="form-select" id="customer_id" name="customer_id" required {% if id and
+                                    (order.status=='concluida' or order.status=='cancelada' ) %}disabled{% endif %}>
+                                    <option value="">— Selecione —</option>
+                                    {% for c in customers %}
+                                    <option value="{{ c.id }}" {{ order.customer_id==c.id ? 'selected' : '' }}>
+                                        {{ c.nome }} {% if c.cpf_cnpj %}— {{ c.cpf_cnpj }}{% endif %}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                                <label for="customer_id">Cliente *</label>
+                            </div>
+                        </div>
+                        <div class="col-lg-3 col-md-3">
+                            <div class="form-floating mb-3">
+                                <select class="form-select" id="user_id" name="user_id" {% if id and
+                                    (order.status=='concluida' or order.status=='cancelada' ) %}disabled{% endif %}>
+                                    <option value="">— A definir —</option>
+                                    {% for t in technicians %}
+                                    <option value="{{ t.id }}" {{ order.user_id==t.id ? 'selected' : '' }}>
+                                        {{ t.nome }} {{ t.sobrenome }}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                                <label for="user_id">Técnico responsável</label>
+                            </div>
+                        </div>
+                        <div class="col-lg-3 col-md-3">
+                            <div class="form-floating mb-3">
+                                <select class="form-select" id="prioridade" name="prioridade" {% if id and
+                                    (order.status=='concluida' or order.status=='cancelada' ) %}disabled{% endif %}>
+                                    <option value="baixa" {{ order.prioridade=='baixa' ? 'selected' : '' }}>Baixa
+                                    </option>
+                                    <option value="normal" {{ order.prioridade=='normal' ? 'selected' : '' }}>Normal
+                                    </option>
+                                    <option value="alta" {{ order.prioridade=='alta' ? 'selected' : '' }}>Alta</option>
+                                    <option value="urgente" {{ order.prioridade=='urgente' ? 'selected' : '' }}>Urgente
+                                    </option>
+                                </select>
+                                <label for="prioridade">Prioridade</label>
+                            </div>
+                        </div>
+                        {% if id %}
+                        <div class="col-lg-3 col-md-3">
+                            <div class="form-floating mb-3">
+                                <select class="form-select" id="status" name="status" {% if order.status=='concluida' or
+                                    order.status=='cancelada' %}disabled{% endif %}>
+                                    <option value="aberta" {{ order.status=='aberta' ? 'selected' : '' }}>Aberta
+                                    </option>
+                                    <option value="em_andamento" {{ order.status=='em_andamento' ? 'selected' : '' }}>Em
+                                        andamento</option>
+                                    <option value="aguardando_peca" {{ order.status=='aguardando_peca' ? 'selected' : ''
+                                        }}>Aguardando peça</option>
+                                    <option value="concluida" {{ order.status=='concluida' ? 'selected' : '' }}>
+                                        Concluída</option>
+                                    <option value="cancelada" {{ order.status=='cancelada' ? 'selected' : '' }}>
+                                        Cancelada</option>
+                                </select>
+                                <label for="status">Status</label>
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {# Equipamento #}
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header fw-semibold">Equipamento</div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-lg-4 col-md-6">
+                            <div class="form-floating mb-3">
+                                <input type="text" class="form-control" id="equipamento" name="equipamento"
+                                    placeholder="Equipamento" value="{{ order.equipamento }}" {% if id and
+                                    (order.status=='concluida' or order.status=='cancelada' ) %}readonly{% endif %}>
+                                <label for="equipamento">Equipamento</label>
+                            </div>
+                        </div>
+                        <div class="col-lg-4 col-md-6">
+                            <div class="form-floating mb-3">
+                                <input type="text" class="form-control" id="marca" name="marca" placeholder="Marca"
+                                    value="{{ order.marca }}" {% if id and (order.status=='concluida' or
+                                    order.status=='cancelada' ) %}readonly{% endif %}>
+                                <label for="marca">Marca</label>
+                            </div>
+                        </div>
+                        <div class="col-lg-4 col-md-6">
+                            <div class="form-floating mb-3">
+                                <input type="text" class="form-control" id="modelo" name="modelo" placeholder="Modelo"
+                                    value="{{ order.modelo }}" {% if id and (order.status=='concluida' or
+                                    order.status=='cancelada' ) %}readonly{% endif %}>
+                                <label for="modelo">Modelo</label>
+                            </div>
+                        </div>
+                        <div class="col-lg-4 col-md-6">
+                            <div class="form-floating mb-3">
+                                <input type="text" class="form-control" id="numero_serie" name="numero_serie"
+                                    placeholder="Número de série" value="{{ order.numero_serie }}" {% if id and
+                                    (order.status=='concluida' or order.status=='cancelada' ) %}readonly{% endif %}>
+                                <label for="numero_serie">Número de série</label>
+                            </div>
+                        </div>
+                        <div class="col-lg-4 col-md-6">
+                            <div class="form-floating mb-3">
+                                <textarea class="form-control" id="defeito_relatado" name="defeito_relatado"
+                                    placeholder="Defeito relatado" style="height:80px" {% if id and
+                                    (order.status=='concluida' or order.status=='cancelada' ) %}readonly{% endif
+                                    %}>{{ order.defeito_relatado }}</textarea>
+                                <label for="defeito_relatado">Defeito relatado</label>
+                            </div>
+                        </div>
+                        <div class="col-lg-4 col-md-6">
+                            <div class="form-floating mb-3">
+                                <textarea class="form-control" id="defeito_constatado" name="defeito_constatado"
+                                    placeholder="Defeito constatado" style="height:80px" {% if id and
+                                    (order.status=='concluida' or order.status=='cancelada' ) %}readonly{% endif
+                                    %}>{{ order.defeito_constatado }}</textarea>
+                                <label for="defeito_constatado">Defeito constatado</label>
+                            </div>
+                        </div>
+                        <div class="col-12">
+                            <div class="form-floating mb-3">
+                                <textarea class="form-control" id="observacoes" name="observacoes"
+                                    placeholder="Observações" style="height:80px" {% if id and
+                                    (order.status=='concluida' or order.status=='cancelada' ) %}readonly{% endif
+                                    %}>{{ order.observacoes }}</textarea>
+                                <label for="observacoes">Observações</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer d-flex gap-2">
+                    {% if not id or (order.status != 'concluida' and order.status != 'cancelada') %}
+                    <button id="insert" type="button" class="btn btn-success">
+                        <i class="bi bi-floppy"></i> Salvar
+                    </button>
+                    {% endif %}
+                    {% if id and order.status != 'concluida' and order.status != 'cancelada' %}
+                    <button id="btn-finalizar" type="button" class="btn btn-primary">
+                        <i class="bi bi-check-circle"></i> Concluir OS
+                    </button>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        {# Itens — só exibe após criar a OS #}
+        {% if id %}
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header d-flex align-items-center justify-content-between">
+                    <span class="fw-semibold">Itens da OS</span>
+                    {% if order.status != 'concluida' and order.status != 'cancelada' %}
+                    <button type="button" class="btn btn-success btn-sm" id="btn-add-item">
+                        <i class="bi bi-plus-lg"></i> Adicionar item
+                    </button>
+                    {% endif %}
+                </div>
+                <div class="card-body p-0">
+                    <table class="table table-bordered table-hover mb-0" id="table-items">
+                        <thead>
+                            <tr>
+                                <th>Tipo</th>
+                                <th>Descrição</th>
+                                <th>Qtd</th>
+                                <th>Preço unit.</th>
+                                <th>Subtotal</th>
+                                {% if order.status != 'concluida' and order.status != 'cancelada' %}
+                                <th>Ação</th>
+                                {% endif %}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in items %}
+                            <tr id="item-row-{{ item.id }}">
+                                <td>{{ item.tipo == 'servico' ? 'Serviço' : 'Produto' }}</td>
+                                <td>{{ item.descricao }}</td>
+                                <td>{{ item.quantidade }}</td>
+                                <td>R$ {{ item.preco_unitario | number_format(2, ',', '.') }}</td>
+                                <td>R$ {{ item.subtotal | number_format(2, ',', '.') }}</td>
+                                {% if order.status != 'concluida' and order.status != 'cancelada' %}
+                                <td>
+                                    <button type="button" class="btn btn-sm btn-danger"
+                                        onclick="deleteItem({{ item.id }})">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </td>
+                                {% endif %}
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                        <tfoot>
+                            <tr>
+                                <td colspan="{{ (order.status != 'concluida' and order.status != 'cancelada') ? 4 : 3 }}"
+                                    class="text-end fw-semibold">Total:</td>
+                                <td id="os-total" colspan="2" class="fw-semibold">
+                                    R$ {{ order.valor_total | number_format(2, ',', '.') }}
+                                </td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+    </div>
+
+</form>
+
+{# Modal item — só exibe se OS ainda está ativa #}
+{% if id and order.status != 'concluida' and order.status != 'cancelada' %}
+<div class="modal fade" id="modal-item" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Adicionar item</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row g-3">
+                    <div class="col-12">
+                        <div class="form-floating">
+                            <select class="form-select" id="item-tipo">
+                                <option value="servico">Serviço</option>
+                                <option value="produto">Produto</option>
+                            </select>
+                            <label for="item-tipo">Tipo</label>
+                        </div>
+                    </div>
+                    <div class="col-12" id="item-search-wrap">
+                        <label class="form-label" id="item-search-label">Serviço</label>
+                        <select id="item-search" name="item-search" style="width:100%"></select>
+                    </div>
+                    <div class="col-12">
+                        <div class="form-floating">
+                            <input type="text" class="form-control" id="item-descricao" placeholder="Descrição">
+                            <label for="item-descricao">Descrição (snapshot)</label>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-floating">
+                            <input type="number" step="0.001" class="form-control" id="item-quantidade" value="1"
+                                placeholder="Qtd">
+                            <label for="item-quantidade">Quantidade</label>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-floating">
+                            <input type="text" class="form-control" id="item-preco" placeholder="Preço unit.">
+                            <label for="item-preco">Preço unitário</label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-success" id="btn-save-item">
+                    <i class="bi bi-floppy"></i> Adicionar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endif %}
+{% endblock %}
+
+{% block script %}
+{{ vite('resources/js/pages/service-order.js') }}
+{% endblock %}

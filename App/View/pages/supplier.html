@@ -1,0 +1,287 @@
+{% extends 'layouts/main.html' %}
+
+{% block breadcrumbs %}
+<ol class="breadcrumb float-sm-end">
+    <li class="breadcrumb-item"><a href="/">Início</a></li>
+    <li class="breadcrumb-item"><a href="/fornecedor/lista">Lista de fornecedores</a></li>
+    <li class="breadcrumb-item active" aria-current="page">Detalhes do fornecedor</li>
+</ol>
+{{ vite('resources/css/pages/supplier.css') }}
+{% endblock %}
+
+{% block main %}
+<form id="form">
+    <input type="hidden" id="action" name="action" value="{{ action }}">
+    <input type="hidden" id="id" name="id" value="{{ id }}">
+    <div class="row g-3">
+
+        {# Dados principais #}
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header d-flex align-items-center gap-2">
+                    <a href="/fornecedor/lista" class="btn btn-warning">
+                        <i class="bi bi-chevron-left"></i> Voltar
+                    </a>
+                    <span class="fw-semibold">Dados do fornecedor</span>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-lg-8 col-md-6">
+                            <div class="form-floating mb-3">
+                                <input autofocus type="text" class="form-control" id="nome" name="nome"
+                                    placeholder="Razão Social / Nome" value="{{ supplier.nome }}" required>
+                                <label for="nome">Razão Social / Nome</label>
+                            </div>
+                        </div>
+                        <div class="col-lg-4 col-md-6">
+                            <div class="form-floating mb-3">
+                                <input type="text" class="form-control" id="cnpj" name="cnpj"
+                                    placeholder="CNPJ" value="{{ supplier.cnpj }}">
+                                <label for="cnpj">CNPJ</label>
+                            </div>
+                        </div>
+                        <div class="col-12">
+                            <div class="form-floating mb-3">
+                                <textarea class="form-control" id="observacoes" name="observacoes"
+                                    placeholder="Observações" style="height:80px">{{ supplier.observacoes }}</textarea>
+                                <label for="observacoes">Observações</label>
+                            </div>
+                        </div>
+                        <div class="col-12">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="ativo" name="ativo"
+                                    value="true" {{ supplier.ativo ? 'checked' : '' }}>
+                                <label class="form-check-label" for="ativo">Ativo</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer">
+                    <button id="insert" type="button" class="btn btn-success">
+                        <i class="bi bi-floppy"></i> Salvar
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        {# Endereços e Contatos — só exibe se já tiver ID (edição) #}
+        {% if id %}
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header d-flex align-items-center justify-content-between">
+                    <span class="fw-semibold">Endereços</span>
+                    <button type="button" class="btn btn-success btn-sm" id="btn-add-address">
+                        <i class="bi bi-plus-lg"></i> Adicionar
+                    </button>
+                </div>
+                <div class="card-body p-0">
+                    <table class="table table-bordered table-hover mb-0" id="table-addresses">
+                        <thead>
+                            <tr>
+                                <th>Label</th>
+                                <th>Logradouro</th>
+                                <th>Número</th>
+                                <th>Bairro</th>
+                                <th>Cidade / UF</th>
+                                <th>Principal</th>
+                                <th>Ação</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for a in addresses %}
+                            <tr>
+                                <td>{{ a.nome }}</td>
+                                <td>{{ a.logradouro }}</td>
+                                <td>{{ a.numero }}</td>
+                                <td>{{ a.bairro }}</td>
+                                <td>{{ a.cidade }}{% if a.estado %} / {{ a.estado }}{% endif %}</td>
+                                <td>{{ a.principal ? 'Sim' : 'Não' }}</td>
+                                <td>
+                                    <button type="button" class="btn btn-sm btn-danger"
+                                        onclick="deleteAddress({{ a.id }})">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header d-flex align-items-center justify-content-between">
+                    <span class="fw-semibold">Contatos</span>
+                    <button type="button" class="btn btn-success btn-sm" id="btn-add-contact">
+                        <i class="bi bi-plus-lg"></i> Adicionar
+                    </button>
+                </div>
+                <div class="card-body p-0">
+                    <table class="table table-bordered table-hover mb-0" id="table-contacts">
+                        <thead>
+                            <tr>
+                                <th>Tipo</th>
+                                <th>Label</th>
+                                <th>Contato</th>
+                                <th>Principal</th>
+                                <th>Ação</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for c in contacts %}
+                            <tr>
+                                <td>{{ c.tipo }}</td>
+                                <td>{{ c.nome }}</td>
+                                <td>{{ c.contato }}</td>
+                                <td>{{ c.principal ? 'Sim' : 'Não' }}</td>
+                                <td>
+                                    <button type="button" class="btn btn-sm btn-danger"
+                                        onclick="deleteContact({{ c.id }})">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+    </div>
+</form>
+
+{# Modal endereço #}
+<div class="modal fade" id="modal-address" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Adicionar endereço</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row g-3">
+                    <div class="col-12">
+                        <div class="form-floating">
+                            <input type="text" class="form-control" id="a-nome" placeholder="Label">
+                            <label for="a-nome">Label (ex: Sede, Filial centro)</label>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="form-floating">
+                            <input type="text" class="form-control" id="a-cep" placeholder="CEP">
+                            <label for="a-cep">CEP</label>
+                        </div>
+                    </div>
+                    <div class="col-md-7">
+                        <div class="form-floating">
+                            <input type="text" class="form-control" id="a-logradouro" placeholder="Logradouro">
+                            <label for="a-logradouro">Logradouro</label>
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="form-floating">
+                            <input type="text" class="form-control" id="a-numero" placeholder="Número">
+                            <label for="a-numero">Número</label>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-floating">
+                            <input type="text" class="form-control" id="a-complemento" placeholder="Complemento">
+                            <label for="a-complemento">Complemento</label>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="form-floating">
+                            <input type="text" class="form-control" id="a-bairro" placeholder="Bairro">
+                            <label for="a-bairro">Bairro</label>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="form-floating">
+                            <input type="text" class="form-control" id="a-cidade" placeholder="Cidade">
+                            <label for="a-cidade">Cidade</label>
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="form-floating">
+                            <input type="text" class="form-control" id="a-estado" placeholder="UF" maxlength="2">
+                            <label for="a-estado">UF</label>
+                        </div>
+                    </div>
+                    <div class="col-12">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="a-principal">
+                            <label class="form-check-label" for="a-principal">Principal</label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-success" id="btn-save-address">
+                    <i class="bi bi-floppy"></i> Salvar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{# Modal contato #}
+<div class="modal fade" id="modal-contact" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Adicionar contato</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <div class="form-floating">
+                            <select class="form-select" id="c-tipo">
+                                <option value="telefone">Telefone</option>
+                                <option value="whatsapp">WhatsApp</option>
+                                <option value="email">E-mail</option>
+                                <option value="outro">Outro</option>
+                            </select>
+                            <label for="c-tipo">Tipo</label>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-floating">
+                            <input type="text" class="form-control" id="c-nome" placeholder="Label">
+                            <label for="c-nome">Label (ex: Celular comercial)</label>
+                        </div>
+                    </div>
+                    <div class="col-12">
+                        <div class="form-floating">
+                            <input type="text" class="form-control" id="c-contato" placeholder="Contato">
+                            <label for="c-contato">Número / E-mail</label>
+                        </div>
+                    </div>
+                    <div class="col-12">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="c-principal">
+                            <label class="form-check-label" for="c-principal">Principal</label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-success" id="btn-save-contact">
+                    <i class="bi bi-floppy"></i> Salvar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block script %}
+{{ vite('resources/js/pages/supplier.js') }}
+{% endblock %}
