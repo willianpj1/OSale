@@ -11,11 +11,11 @@ const BtnAddItem = document.getElementById('btn-add-item');
 
 const url = (ItemTipo && ItemTipo.value === 'servico') ? '/os/buscar/servicos' : '/os/buscar/produtos';
 
-const ItemSearch = new Select2('#item-search');
+/*const ItemSearch = new Select2('#item-search');
 ItemSearch.init(url, {
     dropdownParent: '#modal-item',
     placeholder: 'Selecione a categoria',
-});
+});*/
 
 // ── Salvar OS ─────────────────────────────────────────────────────────────────
 
@@ -30,7 +30,7 @@ async function applyChanges() {
             text: 'Por favor, corrija os erros no formulário antes de salvar.',
             timer: 3000,
             timerProgressBar: true,
-        }); F
+        });
         $('button').prop('disabled', false);
         return;
     }

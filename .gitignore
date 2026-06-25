@@ -139,8 +139,8 @@ vite.config.ts.timestamp-*
 /docker/postgres/storage
 /vendor
 *.lock
-*.rdb
-public/hot
+*.
 /docker/traefik/certs
 /docker/traefik/certs
 *.pem
+docker/redis/dump.rdb

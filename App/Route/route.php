@@ -13,6 +13,9 @@ use App\Controller\ServiceOrder;
 use App\Controller\Sale;
 use App\Controller\Report;
 use App\Controller\Users;
+use App\Controller\Installment;
+use App\Controller\PaymentTerms;
+use App\Controller\Purchase;
 use App\Middleware\Middleware;
 
 // ── Rotas públicas ────────────────────────────────────────────────────────────
@@ -149,4 +152,22 @@ $app->group('/venda', function ($group) {
     // Busca
     $group->get('/buscar/produtos',       Sale::class . ':searchProducts');
     $group->get('/buscar/servicos',       Sale::class . ':searchServices');
+});
+
+//  Formas de Pagamento
+// ══════════════════════════════════════════════
+$app->group('/payment', function (\Slim\Routing\RouteCollectorProxy $group) {
+    // ── Páginas HTML ──────────────────────────
+    $group->get('/lista',         PaymentTerms::class . ':list')->add(Middleware::web());
+    $group->get('/detalhes/{id}', PaymentTerms::class . ':details')->add(Middleware::web());
+    $group->get('/detalhes',      PaymentTerms::class . ':details')->add(Middleware::web());
+    // ── CRUD PaymentTerms ─────────────────────
+    $group->post('/insert',       PaymentTerms::class . ':insert')->add(Middleware::api());
+    $group->post('/update',       PaymentTerms::class . ':update')->add(Middleware::api());
+    $group->post('/delete',       PaymentTerms::class . ':delete')->add(Middleware::api());
+    $group->post('/listingdata',  PaymentTerms::class . ':listingdata')->add(Middleware::api());
+    // ── CRUD Parcelas (Installment) ───────────
+    $group->post('/installment/insert', Installment::class . ':insert')->add(Middleware::api());
+    $group->post('/installment/list',   Installment::class . ':list')->add(Middleware::api());
+    $group->post('/installment/delete', Installment::class . ':delete')->add(Middleware::api());
 });

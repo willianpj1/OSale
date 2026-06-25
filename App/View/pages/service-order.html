@@ -175,7 +175,7 @@
                 </div>
                 <div class="card-footer d-flex gap-2">
                     {% if not id or (order.status != 'concluida' and order.status != 'cancelada') %}
-                    <button id="insert" type="button" class="btn btn-success">
+                    <button id="insert" name="insert" type="button" class="btn btn-success">
                         <i class="bi bi-floppy"></i> Salvar
                     </button>
                     {% endif %}
