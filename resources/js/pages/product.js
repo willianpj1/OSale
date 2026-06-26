@@ -2,13 +2,13 @@ import Requests from "../components/requests.js";
 import Validate from "../components/validate.js";
 import { SellingPriceCalculator } from "../components/selling-price-calculator.js";
 
-const Action       = document.getElementById('action');
-const Id           = document.getElementById('id');
-const Insert       = document.getElementById('insert');
-const PrecoCompra  = document.getElementById('preco_compra');
-const MargemLucro  = document.getElementById('margem_lucro');
-const PrecoVenda   = document.getElementById('preco_venda');
-
+const Action = document.getElementById('action');
+const Id = document.getElementById('id');
+const Insert = document.getElementById('insert');
+const PrecoCompra = document.getElementById('preco_compra');
+const MargemLucro = document.getElementById('margem_lucro');
+const PrecoVenda = document.getElementById('preco_venda');
+const TotalImposto = document.getElementById('total_imposto');
 // ── Máscaras ──────────────────────────────────────────────────────────────────
 
 const inputmaskConfig = {
@@ -24,8 +24,19 @@ const inputmaskConfig = {
 };
 
 if (PrecoCompra) Inputmask("currency", inputmaskConfig).mask(PrecoCompra);
-if (PrecoVenda)  Inputmask("currency", inputmaskConfig).mask(PrecoVenda);
-
+if (PrecoVenda) Inputmask("currency", inputmaskConfig).mask(PrecoVenda);
+if (TotalImposto) {
+    Inputmask({
+        alias: 'decimal',
+        radixPoint: ',',
+        digits: 2,
+        min: 0,
+        max: 99.99,
+        rightAlign: false,
+        placeholder: '',
+        suffix: ' %',
+    }).mask(TotalImposto);
+}
 if (MargemLucro) {
     Inputmask({
         alias: 'decimal',
@@ -52,18 +63,23 @@ function calcularPrecoVenda() {
         ? MargemLucro.inputmask.unmaskedvalue().replace(',', '.')
         : MargemLucro.value.replace(',', '.');
 
-    const compra = parseFloat(compraRaw);
-    const margem = parseFloat(margemRaw);
+    const impostoRaw = TotalImposto?.inputmask
+        ? TotalImposto.inputmask.unmaskedvalue().replace(',', '.')
+        : (TotalImposto?.value ?? '0').replace(',', '.');
 
-    if (!compra || compra <= 0 || isNaN(margem) || margem < 0) return;
+    const compra = parseFloat(compraRaw) || 0;
+    const margem = parseFloat(margemRaw) || 0;
+    const imposto = parseFloat(impostoRaw) || 0;
+
+    if (compra <= 0) return; // só precisa do preço de compra
 
     try {
         const resultado = SellingPriceCalculator.create()
             .addPurchasePrice(compra)
+            .addTotalTax(imposto)
             .addProfitMargin(margem)
             .getData();
 
-        // Injeta o valor sugerido no campo preço de venda
         if (PrecoVenda.inputmask) {
             PrecoVenda.inputmask.remove();
         }
@@ -71,12 +87,12 @@ function calcularPrecoVenda() {
         Inputmask("currency", inputmaskConfig).mask(PrecoVenda);
 
     } catch (e) {
-        // Margem inválida (>= 100%) — silencioso
+        // percentuais inválidos — silencioso
     }
 }
-
 if (PrecoCompra) PrecoCompra.addEventListener('input', calcularPrecoVenda);
 if (MargemLucro) MargemLucro.addEventListener('input', calcularPrecoVenda);
+if (TotalImposto) TotalImposto.addEventListener('input', calcularPrecoVenda);  // ← novo
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -93,8 +109,12 @@ function limparInputsParaEnvio(requests) {
         const valorMargem = MargemLucro.inputmask.unmaskedvalue().replace(',', '.');
         requests.body.set('margem_lucro', valorMargem);
     }
-}
 
+    if (TotalImposto && TotalImposto.inputmask) {  // ← novo
+        const valorImposto = TotalImposto.inputmask.unmaskedvalue().replace(',', '.');
+        requests.body.set('total_imposto', valorImposto);
+    }
+}
 // ── Salvar Produto ────────────────────────────────────────────────────────────
 
 async function applyChanges() {

@@ -43,7 +43,7 @@
                                 <select class="form-select" id="customer_id" name="customer_id" required>
                                     <option value="">— Selecione —</option>
                                     {% for c in customers %}
-                                    <option value="{{ c.id }}" {{ order.customer_id == c.id ? 'selected' : '' }}>
+                                    <option value="{{ c.id }}" {{ order.customer_id==c.id ? 'selected' : '' }}>
                                         {{ c.nome }} {% if c.cpf_cnpj %}— {{ c.cpf_cnpj }}{% endif %}
                                     </option>
                                     {% endfor %}
@@ -56,7 +56,7 @@
                                 <select class="form-select" id="user_id" name="user_id">
                                     <option value="">— A definir —</option>
                                     {% for t in technicians %}
-                                    <option value="{{ t.id }}" {{ order.user_id == t.id ? 'selected' : '' }}>
+                                    <option value="{{ t.id }}" {{ order.user_id==t.id ? 'selected' : '' }}>
                                         {{ t.nome }} {{ t.sobrenome }}
                                     </option>
                                     {% endfor %}
@@ -67,10 +67,13 @@
                         <div class="col-lg-3 col-md-3">
                             <div class="form-floating mb-3">
                                 <select class="form-select" id="prioridade" name="prioridade">
-                                    <option value="baixa"   {{ order.prioridade == 'baixa'   ? 'selected' : '' }}>Baixa</option>
-                                    <option value="normal"  {{ order.prioridade == 'normal'  ? 'selected' : '' }}>Normal</option>
-                                    <option value="alta"    {{ order.prioridade == 'alta'    ? 'selected' : '' }}>Alta</option>
-                                    <option value="urgente" {{ order.prioridade == 'urgente' ? 'selected' : '' }}>Urgente</option>
+                                    <option value="baixa" {{ order.prioridade=='baixa' ? 'selected' : '' }}>Baixa
+                                    </option>
+                                    <option value="normal" {{ order.prioridade=='normal' ? 'selected' : '' }}>Normal
+                                    </option>
+                                    <option value="alta" {{ order.prioridade=='alta' ? 'selected' : '' }}>Alta</option>
+                                    <option value="urgente" {{ order.prioridade=='urgente' ? 'selected' : '' }}>Urgente
+                                    </option>
                                 </select>
                                 <label for="prioridade">Prioridade</label>
                             </div>
@@ -79,11 +82,16 @@
                         <div class="col-lg-3 col-md-3">
                             <div class="form-floating mb-3">
                                 <select class="form-select" id="status" name="status">
-                                    <option value="aberta"          {{ order.status == 'aberta'          ? 'selected' : '' }}>Aberta</option>
-                                    <option value="em_andamento"    {{ order.status == 'em_andamento'    ? 'selected' : '' }}>Em andamento</option>
-                                    <option value="aguardando_peca" {{ order.status == 'aguardando_peca' ? 'selected' : '' }}>Aguardando peça</option>
-                                    <option value="concluida"       {{ order.status == 'concluida'       ? 'selected' : '' }}>Concluída</option>
-                                    <option value="cancelada"       {{ order.status == 'cancelada'       ? 'selected' : '' }}>Cancelada</option>
+                                    <option value="aberta" {{ order.status=='aberta' ? 'selected' : '' }}>Aberta
+                                    </option>
+                                    <option value="em_andamento" {{ order.status=='em_andamento' ? 'selected' : '' }}>Em
+                                        andamento</option>
+                                    <option value="aguardando_peca" {{ order.status=='aguardando_peca' ? 'selected' : ''
+                                        }}>Aguardando peça</option>
+                                    <option value="concluida" {{ order.status=='concluida' ? 'selected' : '' }}>
+                                        Concluída</option>
+                                    <option value="cancelada" {{ order.status=='cancelada' ? 'selected' : '' }}>
+                                        Cancelada</option>
                                 </select>
                                 <label for="status">Status</label>
                             </div>
@@ -109,15 +117,15 @@
                         </div>
                         <div class="col-lg-4 col-md-6">
                             <div class="form-floating mb-3">
-                                <input type="text" class="form-control" id="marca" name="marca"
-                                    placeholder="Marca" value="{{ order.marca }}">
+                                <input type="text" class="form-control" id="marca" name="marca" placeholder="Marca"
+                                    value="{{ order.marca }}">
                                 <label for="marca">Marca</label>
                             </div>
                         </div>
                         <div class="col-lg-4 col-md-6">
                             <div class="form-floating mb-3">
-                                <input type="text" class="form-control" id="modelo" name="modelo"
-                                    placeholder="Modelo" value="{{ order.modelo }}">
+                                <input type="text" class="form-control" id="modelo" name="modelo" placeholder="Modelo"
+                                    value="{{ order.modelo }}">
                                 <label for="modelo">Modelo</label>
                             </div>
                         </div>
@@ -131,14 +139,16 @@
                         <div class="col-lg-4 col-md-6">
                             <div class="form-floating mb-3">
                                 <textarea class="form-control" id="defeito_relatado" name="defeito_relatado"
-                                    placeholder="Defeito relatado" style="height:80px">{{ order.defeito_relatado }}</textarea>
+                                    placeholder="Defeito relatado"
+                                    style="height:80px">{{ order.defeito_relatado }}</textarea>
                                 <label for="defeito_relatado">Defeito relatado</label>
                             </div>
                         </div>
                         <div class="col-lg-4 col-md-6">
                             <div class="form-floating mb-3">
                                 <textarea class="form-control" id="defeito_constatado" name="defeito_constatado"
-                                    placeholder="Defeito constatado" style="height:80px">{{ order.defeito_constatado }}</textarea>
+                                    placeholder="Defeito constatado"
+                                    style="height:80px">{{ order.defeito_constatado }}</textarea>
                                 <label for="defeito_constatado">Defeito constatado</label>
                             </div>
                         </div>
@@ -217,7 +227,7 @@
 
 {# Modal item #}
 <div class="modal fade" id="modal-item" tabindex="-1">
-    <div class="modal-dialog">
+    <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title">Adicionar item</h5>
@@ -225,6 +235,8 @@
             </div>
             <div class="modal-body">
                 <div class="row g-3">
+
+                    {# Step 1: tipo #}
                     <div class="col-12">
                         <div class="form-floating">
                             <select class="form-select" id="item-tipo">
@@ -234,33 +246,57 @@
                             <label for="item-tipo">Tipo</label>
                         </div>
                     </div>
-                    <div class="col-12" id="item-search-wrap">
-                        <label class="form-label" id="item-search-label">Serviço</label>
-                        <select class="form-select" id="item-search" style="width:100%"></select>
-                    </div>
+
+                    {# Step 2: DataTable de busca #}
                     <div class="col-12">
-                        <div class="form-floating">
-                            <input type="text" class="form-control" id="item-descricao" placeholder="Descrição">
-                            <label for="item-descricao">Descrição (snapshot)</label>
+                        <table class="table table-bordered table-hover table-sm" id="table-search-items">
+                            <thead>
+                                <tr>
+                                    <th>Nome</th>
+                                    <th>Preço</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+
+                    {# Step 3: form — aparece após selecionar #}
+                    <div class="col-12 d-none" id="item-form-wrap">
+                        <hr>
+                        <div class="row g-2">
+                            <div class="col-12">
+                                <div class="form-floating">
+                                    <input type="text" class="form-control" id="item-descricao" placeholder="Descrição"
+                                        readonly>
+                                    <label for="item-descricao">Item selecionado</label>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-floating">
+                                    <input type="number" step="0.001" min="0.001" class="form-control"
+                                        id="item-quantidade" value="1" placeholder="Qtd">
+                                    <label for="item-quantidade">Quantidade</label>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-floating">
+                                    <input type="text" class="form-control" id="item-preco" placeholder="Preço unit.">
+                                    <label for="item-preco">Preço unitário</label>
+                                </div>
+                            </div>
+                            <div class="col-12">
+                                <div class="p-2 bg-light rounded text-end fw-semibold">
+                                    Subtotal: <span id="item-subtotal">R$ 0,00</span>
+                                </div>
+                            </div>
                         </div>
                     </div>
-                    <div class="col-md-6">
-                        <div class="form-floating">
-                            <input type="number" step="0.001" class="form-control" id="item-quantidade" value="1" placeholder="Qtd">
-                            <label for="item-quantidade">Quantidade</label>
-                        </div>
-                    </div>
-                    <div class="col-md-6">
-                        <div class="form-floating">
-                            <input type="text" class="form-control" id="item-preco" placeholder="Preço unit.">
-                            <label for="item-preco">Preço unitário</label>
-                        </div>
-                    </div>
+
                 </div>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                <button type="button" class="btn btn-success" id="btn-save-item">
+                <button type="button" class="btn btn-success d-none" id="btn-save-item">
                     <i class="bi bi-floppy"></i> Adicionar
                 </button>
             </div>

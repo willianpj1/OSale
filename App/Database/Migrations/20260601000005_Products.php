@@ -19,7 +19,8 @@ final class Products extends AbstractMigration
             ->addColumn('descricao',      'text',      ['null' => true,  'default' => null])
             ->addColumn('preco_compra',   'decimal',   ['precision' => 10, 'scale' => 2, 'null' => false, 'default' => '0.00'])
             ->addColumn('margem_lucro',   'decimal',   ['precision' => 5,  'scale' => 2, 'null' => false, 'default' => '0.00'])
-            // percentual: ex 30.00 = 30%
+            ->addColumn('total_imposto',  'decimal',   ['precision' => 5,  'scale' => 2, 'null' => false, 'default' => '0.00'])
+            // percentual: ex 15.00 = 15%
             ->addColumn('preco_venda',    'decimal',   ['precision' => 10, 'scale' => 2, 'null' => false, 'default' => '0.00'])
             // DESNORMALIZAÇÃO INTENCIONAL — atualizado via stock_movements (fase final)
             ->addColumn('estoque_atual',  'decimal',   ['precision' => 10, 'scale' => 3, 'null' => false, 'default' => '0.000'])

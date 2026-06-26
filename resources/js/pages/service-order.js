@@ -1,5 +1,6 @@
 import Requests from "../components/requests.js";
 import Validate from "../components/validate.js";
+import * as bootstrap from 'bootstrap';
 
 const Action  = document.getElementById('action');
 const Id      = document.getElementById('id');
@@ -12,13 +13,7 @@ async function applyChanges() {
 
     const IsValid = Validate.SetForm('form').Validate();
     if (!IsValid) {
-        Swal.fire({
-            icon: 'error',
-            title: 'Erro',
-            text: 'Por favor, corrija os erros no formulário antes de salvar.',
-            timer: 3000,
-            timerProgressBar: true,
-        });
+        Swal.fire({ icon: 'error', title: 'Erro', text: 'Por favor, corrija os erros no formulário antes de salvar.', timer: 3000, timerProgressBar: true });
         $('button').prop('disabled', false);
         return;
     }
@@ -30,48 +25,22 @@ async function applyChanges() {
             : await requests.setForm('form').post('/os/atualizar');
 
         if (!response.status) {
-            Swal.fire({
-                icon: 'error',
-                title: 'Erro',
-                text: response.msg || 'Ocorreu um erro ao salvar a OS.',
-                timer: 3000,
-                timerProgressBar: true,
-            });
+            Swal.fire({ icon: 'error', title: 'Erro', text: response.msg || 'Ocorreu um erro ao salvar a OS.', timer: 3000, timerProgressBar: true });
             return;
         }
 
         if (Action.value !== 'e') {
-            // Criação: atualiza URL sem recarregar, depois recarrega para exibir itens
             const redirectUrl = `${window.location.origin}/os/detalhes/${response.id}`;
             Action.value = 'e';
             Id.value     = response.id;
             window.history.pushState({}, '', redirectUrl);
-            Swal.fire({
-                icon: 'success',
-                title: 'Sucesso',
-                text: response.msg || 'OS aberta com sucesso!',
-                timer: 3000,
-                timerProgressBar: true,
-            }).then(() => {
-                window.location.reload();
-            });
+            Swal.fire({ icon: 'success', title: 'Sucesso', text: response.msg || 'OS aberta com sucesso!', timer: 3000, timerProgressBar: true })
+                .then(() => { window.location.reload(); });
         } else {
-            Swal.fire({
-                icon: 'success',
-                title: 'Sucesso',
-                text: response.msg || 'OS atualizada com sucesso!',
-                timer: 3000,
-                timerProgressBar: true,
-            });
+            Swal.fire({ icon: 'success', title: 'Sucesso', text: response.msg || 'OS atualizada com sucesso!', timer: 3000, timerProgressBar: true });
         }
     } catch (error) {
-        Swal.fire({
-            icon: 'error',
-            title: 'Erro',
-            text: `Restrição: ${error.message}`,
-            timer: 3000,
-            timerProgressBar: true,
-        });
+        Swal.fire({ icon: 'error', title: 'Erro', text: `Restrição: ${error.message}`, timer: 3000, timerProgressBar: true });
     } finally {
         $('button').prop('disabled', false);
     }
@@ -84,101 +53,136 @@ BtnSave.addEventListener('click', async () => {
 // ── Itens ─────────────────────────────────────────────────────────────────────
 
 const BtnAddItem = document.getElementById('btn-add-item');
-let   Select2Item = null;
 
 if (BtnAddItem) {
 
-    function initSelect2(tipo) {
-        const label = document.getElementById('item-search-label');
-        label.textContent = tipo === 'servico' ? 'Serviço' : 'Produto';
+    let dtSearchItems = null;
+    let selectedItem  = null;
 
-        if (Select2Item) $('#item-search').select2('destroy');
+    // ── Subtotal ──────────────────────────────────────────────────────────────
 
+    function calcularSubtotal() {
+        const quantidade = parseFloat(document.getElementById('item-quantidade').value) || 0;
+        const preco      = parseFloat(document.getElementById('item-preco').value)      || 0;
+        const subtotal   = (quantidade * preco).toFixed(2).replace('.', ',');
+        document.getElementById('item-subtotal').textContent = `R$ ${subtotal}`;
+    }
+
+    document.getElementById('item-quantidade').addEventListener('input', calcularSubtotal);
+    document.getElementById('item-preco').addEventListener('input', calcularSubtotal);
+
+    // ── DataTable de busca ────────────────────────────────────────────────────
+
+    function initDtSearch(tipo) {
         const url = tipo === 'servico' ? '/os/buscar/servicos' : '/os/buscar/produtos';
 
-        Select2Item = $('#item-search').select2({
-            dropdownParent: $('#modal-item'),
-            placeholder:    'Digite para buscar...',
-            minimumInputLength: 1,
+        selectedItem = null;
+        document.getElementById('item-form-wrap').classList.add('d-none');
+        document.getElementById('btn-save-item').classList.add('d-none');
+        document.getElementById('item-descricao').value      = '';
+        document.getElementById('item-quantidade').value     = '1';
+        document.getElementById('item-preco').value          = '';
+        document.getElementById('item-subtotal').textContent = 'R$ 0,00';
+
+        if (dtSearchItems) {
+            dtSearchItems.destroy();
+            $('#table-search-items tbody').empty();
+        }
+
+        dtSearchItems = $('#table-search-items').DataTable({
+            processing: true,
+            serverSide: false,
             ajax: {
                 url,
-                dataType: 'json',
-                delay:    300,
-                data:     params => ({ q: params.term }),
-                processResults: data => ({
-                    results: data.results.map(r => ({
-                        id:    r.id,
-                        text:  r.nome,
-                        preco: r.preco ?? r.preco_venda ?? 0,
-                    })),
-                }),
+                data:    params => ({ q: params.search?.value ?? '' }),
+                dataSrc: 'results',
             },
+            columns: [
+                { data: 'nome', title: 'Nome' },
+                {
+                    data: 'preco',
+                    title: 'Preço',
+                    render: val => 'R$ ' + parseFloat(val).toFixed(2).replace('.', ','),
+                },
+            ],
+            language:     { url: '//cdn.datatables.net/plug-ins/1.13.6/i18n/pt-BR.json' },
+            pageLength:   5,
+            lengthChange: false,
         });
 
-        $('#item-search').off('select2:select').on('select2:select', function (e) {
-            const data = e.params.data;
-            document.getElementById('item-descricao').value = data.text;
-            document.getElementById('item-preco').value     = parseFloat(data.preco).toFixed(2);
+        $('#table-search-items tbody').off('click', 'tr').on('click', 'tr', function () {
+            const data = dtSearchItems.row(this).data();
+            if (!data) return;
+
+            $('#table-search-items tbody tr').removeClass('table-primary');
+            $(this).addClass('table-primary');
+
+            selectedItem = { id: data.id, nome: data.nome, preco: data.preco, tipo };
+            document.getElementById('item-descricao').value  = data.nome;
+            document.getElementById('item-preco').value      = parseFloat(data.preco).toFixed(2);
+            document.getElementById('item-quantidade').value = '1';
+            calcularSubtotal();
+
+            document.getElementById('item-form-wrap').classList.remove('d-none');
+            document.getElementById('btn-save-item').classList.remove('d-none');
         });
     }
 
-    BtnAddItem.addEventListener('click', () => {
-        document.getElementById('item-descricao').value  = '';
-        document.getElementById('item-preco').value      = '0';
-        document.getElementById('item-quantidade').value = '1';
+    // ── Abre modal ────────────────────────────────────────────────────────────
 
-        initSelect2(document.getElementById('item-tipo').value);
-        new bootstrap.Modal(document.getElementById('modal-item')).show();
+    BtnAddItem.addEventListener('click', () => {
+        const modalEl = document.getElementById('modal-item');
+        const modal   = new bootstrap.Modal(modalEl);
+
+        modalEl.addEventListener('shown.bs.modal', function handler() {
+            const tipo = document.getElementById('item-tipo').value;
+            initDtSearch(tipo);
+            this.removeEventListener('shown.bs.modal', handler);
+        });
+
+        modal.show();
     });
 
     document.getElementById('item-tipo').addEventListener('change', function () {
-        initSelect2(this.value);
-        document.getElementById('item-descricao').value = '';
-        document.getElementById('item-preco').value     = '0';
+        initDtSearch(this.value);
     });
 
+    // ── Salvar item ───────────────────────────────────────────────────────────
+
     document.getElementById('btn-save-item').addEventListener('click', async () => {
-        const tipo       = document.getElementById('item-tipo').value;
+        if (!selectedItem) return;
+
         const descricao  = document.getElementById('item-descricao').value.trim();
         const quantidade = parseFloat(document.getElementById('item-quantidade').value) || 1;
         const preco      = parseFloat(document.getElementById('item-preco').value)      || 0;
-        const selected   = $('#item-search').select2('data')[0];
-        const refId      = selected?.id ?? null;
 
         if (!descricao) {
-            Swal.fire({
-                icon: 'warning',
-                title: 'Atenção',
-                text: 'O campo descrição é obrigatório.',
-                timer: 2500,
-                timerProgressBar: true,
-            });
+            Swal.fire({ icon: 'warning', title: 'Atenção', text: 'Selecione um item.', timer: 2500, timerProgressBar: true });
             return;
         }
 
         $('button').prop('disabled', true);
         const requests = new Requests();
+
         try {
             const orderId = Id.value;
             const payload = {
-                tipo,
+                tipo:           document.getElementById('item-tipo').value,
                 descricao,
                 quantidade,
                 preco_unitario: preco,
             };
-            if (tipo === 'servico' && refId) payload.service_id = refId;
-            if (tipo === 'produto'  && refId) payload.product_id = refId;
+
+            if (payload.tipo === 'servico') payload.service_id = selectedItem.id;
+            if (payload.tipo === 'produto')  payload.product_id = selectedItem.id;
+
+            console.log('tipo:', payload.tipo);
+            console.log('payload completo:', JSON.stringify(payload));
 
             const response = await requests.post(`/os/${orderId}/item`, payload);
 
             if (!response.status) {
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Erro',
-                    text: response.msg || 'Erro ao adicionar item.',
-                    timer: 3000,
-                    timerProgressBar: true,
-                });
+                Swal.fire({ icon: 'error', title: 'Erro', text: response.msg || 'Erro ao adicionar item.', timer: 3000, timerProgressBar: true });
                 return;
             }
 
@@ -186,13 +190,7 @@ if (BtnAddItem) {
             window.location.reload();
 
         } catch (error) {
-            Swal.fire({
-                icon: 'error',
-                title: 'Erro',
-                text: `Restrição: ${error.message}`,
-                timer: 3000,
-                timerProgressBar: true,
-            });
+            Swal.fire({ icon: 'error', title: 'Erro', text: `Restrição: ${error.message}`, timer: 3000, timerProgressBar: true });
         } finally {
             $('button').prop('disabled', false);
         }
@@ -203,12 +201,12 @@ if (BtnAddItem) {
 
 window.deleteItem = async function (itemId) {
     const confirm = await Swal.fire({
-        icon:              'warning',
-        title:             'Excluir item?',
-        text:              'Esta ação não pode ser desfeita.',
-        showCancelButton:  true,
-        confirmButtonText: 'Sim, excluir',
-        cancelButtonText:  'Cancelar',
+        icon:               'warning',
+        title:              'Excluir item?',
+        text:               'Esta ação não pode ser desfeita.',
+        showCancelButton:   true,
+        confirmButtonText:  'Sim, excluir',
+        cancelButtonText:   'Cancelar',
         confirmButtonColor: '#dc3545',
     });
 
@@ -221,25 +219,13 @@ window.deleteItem = async function (itemId) {
         const response = await requests.post(`/os/${orderId}/item/${itemId}`, { _method: 'DELETE' });
 
         if (!response.status) {
-            Swal.fire({
-                icon: 'error',
-                title: 'Erro',
-                text: response.msg || 'Erro ao excluir item.',
-                timer: 3000,
-                timerProgressBar: true,
-            });
+            Swal.fire({ icon: 'error', title: 'Erro', text: response.msg || 'Erro ao excluir item.', timer: 3000, timerProgressBar: true });
             return;
         }
 
         window.location.reload();
     } catch (error) {
-        Swal.fire({
-            icon: 'error',
-            title: 'Erro',
-            text: `Restrição: ${error.message}`,
-            timer: 3000,
-            timerProgressBar: true,
-        });
+        Swal.fire({ icon: 'error', title: 'Erro', text: `Restrição: ${error.message}`, timer: 3000, timerProgressBar: true });
     } finally {
         $('button').prop('disabled', false);
     }

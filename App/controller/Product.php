@@ -66,9 +66,9 @@ final class Product extends Base
 
             DB::execute(
                 'INSERT INTO products
-                    (supplier_id, nome, codigo_barra, unidade, descricao, preco_compra, margem_lucro, preco_venda, estoque_atual, estoque_minimo, ativo, excluido, criado_em, atualizado_em)
+                    (supplier_id, nome, codigo_barra, unidade, descricao, preco_compra, margem_lucro, total_imposto, preco_venda, estoque_atual, estoque_minimo, ativo, excluido, criado_em, atualizado_em)
                  VALUES
-                    (:supplier_id, :nome, :codigo_barra, :unidade, :descricao, :preco_compra, :margem_lucro, :preco_venda, :estoque_atual, :estoque_minimo, :ativo, false, :criado_em, :atualizado_em)',
+                    (:supplier_id, :nome, :codigo_barra, :unidade, :descricao, :preco_compra, :margem_lucro, :total_imposto, :preco_venda, :estoque_atual, :estoque_minimo, :ativo, false, :criado_em, :atualizado_em)',
                 [
                     'supplier_id'    => !empty($form['supplier_id']) ? (int) $form['supplier_id'] : null,
                     'nome'           => $nome,
@@ -77,6 +77,7 @@ final class Product extends Base
                     'descricao'      => $form['descricao']     ?? null,
                     'preco_compra'   => (float) ($form['preco_compra']   ?? 0),
                     'margem_lucro'   => (float) ($form['margem_lucro']   ?? 0),
+                    'total_imposto'  => (float) ($form['total_imposto']  ?? 0),
                     'preco_venda'    => (float) ($form['preco_venda']    ?? 0),
                     'estoque_atual'  => (float) ($form['estoque_atual']  ?? 0),
                     'estoque_minimo' => (float) ($form['estoque_minimo'] ?? 0),
@@ -113,7 +114,7 @@ final class Product extends Base
                 'UPDATE products SET
                     supplier_id = :supplier_id, nome = :nome, codigo_barra = :codigo_barra,
                     unidade = :unidade, descricao = :descricao, preco_compra = :preco_compra,
-                    margem_lucro = :margem_lucro, preco_venda = :preco_venda,
+                    margem_lucro = :margem_lucro, total_imposto = :total_imposto, preco_venda = :preco_venda,
                     estoque_minimo = :estoque_minimo, ativo = :ativo, atualizado_em = :atualizado_em
                  WHERE id = :id AND excluido = false',
                 [
@@ -124,6 +125,7 @@ final class Product extends Base
                     'descricao'      => $form['descricao']    ?? null,
                     'preco_compra'   => (float) ($form['preco_compra']   ?? 0),
                     'margem_lucro'   => (float) ($form['margem_lucro']   ?? 0),
+                    'total_imposto'  => (float) ($form['total_imposto']  ?? 0),
                     'preco_venda'    => (float) ($form['preco_venda']    ?? 0),
                     'estoque_minimo' => (float) ($form['estoque_minimo'] ?? 0),
                     'ativo'          => isset($form['ativo']) ? filter_var($form['ativo'], FILTER_VALIDATE_BOOLEAN) : true,
