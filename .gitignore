@@ -144,3 +144,4 @@ vite.config.ts.timestamp-*
 /docker/traefik/certs
 *.pem
 docker/redis/dump.rdb
+public/hot
