@@ -15,7 +15,6 @@ final class Register extends Base
             ->withHeader('Content-Type', 'text/html')
             ->withStatus(200);
     }
-
     public function store($request, $response)
     {
         $form      = $request->getParsedBody();

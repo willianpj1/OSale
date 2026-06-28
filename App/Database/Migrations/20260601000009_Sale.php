@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 use Phinx\Migration\AbstractMigration;
 
-final class Sales extends AbstractMigration
+final class Sale extends AbstractMigration
 {
     public function change(): void
     {
-        $table = $this->table('sales');
+        $table = $this->table('sale');
 
         $table
             ->addColumn('customer_id',      'integer',   ['null' => true,  'default' => null])

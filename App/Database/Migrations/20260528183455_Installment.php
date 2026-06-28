@@ -2,37 +2,21 @@
 
 declare(strict_types=1);
 
-namespace App\Database\Migration;
+use Phinx\Migration\AbstractMigration;
 
-use Doctrine\DBAL\Schema\Schema;
-use Doctrine\Migrations\AbstractMigration;
-
-final class Version20260528183455 extends AbstractMigration
+final class Installment extends AbstractMigration
 {
-    public function getDescription(): string
+    public function change(): void
     {
-        return 'Installment';
-    }
-
-    public function up(Schema $schema): void
-    {
-        $this->addSql(<<<'SQL'
-            CREATE TABLE installment (
-                id                       BIGSERIAL  PRIMARY KEY,
-                id_pagamento             BIGINT     NOT NULL REFERENCES payment_terms(id) ON DELETE CASCADE,
-                parcela                  INTEGER    NULL,
-                intervalo                INTEGER    NULL,
-                alterar_vencimento_conta INTEGER    NULL DEFAULT 0,
-                criado_em                TIMESTAMP  NOT NULL DEFAULT CURRENT_TIMESTAMP,
-                atualizado_em            TIMESTAMP  NOT NULL DEFAULT CURRENT_TIMESTAMP
-            )
-        SQL);
-
-        $this->addSql('CREATE INDEX idx_installment_id_pagamento ON installment (id_pagamento)');
-    }
-
-    public function down(Schema $schema): void
-    {
-        $this->addSql('DROP TABLE IF EXISTS installment');
+        $table = $this->table('installment', ['id' => false, 'primary_key' => ['id']]);
+        $table->addColumn('id', 'biginteger', ['identity' => true, 'null' => false])
+            ->addColumn('id_pagamento', 'biginteger', ['null' => true])
+            ->addColumn('parcela', 'integer', ['null' => true])
+            ->addColumn('intervalor', 'integer', ['null' => true])
+            ->addColumn('alterar_vencimento_conta', 'integer', ['null' => true])
+            ->addColumn('data_cadastro', 'datetime', ['null' => true, 'default' => 'CURRENT_TIMESTAMP'])
+            ->addColumn('data_atualizacao', 'datetime', ['null' => true, 'default' => 'CURRENT_TIMESTAMP'])
+            ->addForeignKey('id_pagamento', 'payment_terms', 'id', ['delete' => 'CASCADE', 'update' => 'NO ACTION'])
+            ->create();
     }
 }

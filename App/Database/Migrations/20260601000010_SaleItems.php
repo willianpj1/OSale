@@ -25,7 +25,7 @@ final class SaleItems extends AbstractMigration
             ->addColumn('subtotal',       'decimal',   ['precision' => 10, 'scale' => 2, 'null' => false, 'default' => '0.00'])
             ->addColumn('criado_em',      'timestamp', ['null' => false, 'default' => 'CURRENT_TIMESTAMP'])
 
-            ->addForeignKey('sale_id', 'sales', 'id', [
+            ->addForeignKey('sale_id', 'sale', 'id', [
                 'delete'     => 'CASCADE',
                 'update'     => 'CASCADE',
                 'constraint' => 'fk_sale_items_sale_id',

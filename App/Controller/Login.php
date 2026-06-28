@@ -4,6 +4,10 @@ declare(strict_types=1);
 
 namespace App\Controller;
 
+use Psr\Http\Message\ResponseInterface;
+use Psr\Http\Message\ServerRequestInterface;
+
+
 use Firebase\JWT\JWT;
 
 final class Login extends Base
@@ -49,55 +53,97 @@ final class Login extends Base
             return $response->withHeader('Location', '/login?erro=falha_google')->withStatus(302);
         }
     }
-    public function preRegister($request, $response)
+    public function preRegister(ServerRequestInterface $request, ResponseInterface $response): ResponseInterface
     {
-        $json = function (bool $status, string $msg, int $httpCode) use ($response) {
-            $response->getBody()->write(json_encode([
-                'status' => $status,
-                'msg'    => $msg,
-            ]));
-            return $response
-                ->withHeader('Content-Type', 'application/json')
-                ->withStatus($httpCode);
-        };
+        # Coleta defensiva: todo input externo é tratado como não confiável
+        $form = (array) $request->getParsedBody();
+        $nome      = trim((string) ($form['nome']      ?? ''));
+        $sobrenome = trim((string) ($form['sobrenome'] ?? ''));
+        $rg        = trim((string) ($form['rg']        ?? ''));
+        $senha     = (string)      ($form['senha']     ?? '');
+        $email     = trim((string) ($form['email']     ?? ''));
+        $telefone  = trim((string) ($form['telefone']  ?? ''));
+        $cpf       = (string)      ($form['cpf']       ?? '');
 
-        $form      = $request->getParsedBody();
-        $nome      = trim($form['nome']      ?? '');
-        $sobrenome = trim($form['sobrenome'] ?? '');
-        $cpf       = trim($form['cpf']       ?? '');
-        $rg        = trim($form['rg']        ?? '');
-        $senha     = $form['senha']          ?? '';
-        $email     = trim($form['email']     ?? '');
-
-        if ($nome === '' || $sobrenome === '' || $cpf === '' || $rg === '' || $senha === '' || $email === '') {
-            return $json(false, 'Preencha todos os campos.', 400);
+        if ($nome === '') {
+            return $this->json($response, ['status' => false, 'msg' => 'Informe o nome.', 'id' => 0], 422);
         }
-
-        $conn = \App\Database\DB::connection();
-
-        $existing = \App\Database\DB::select('id')->from('users')
-            ->where(
-                'email = ' . $conn->quote($email) .
-                    ' OR cpf = ' . $conn->quote($cpf)
-            )
-            ->fetchAssociative();
-
-        if ($existing) {
-            return $json(false, 'E-mail ou CPF já cadastrado.', 409);
+        if (strlen($senha) < 3) {
+            return $this->json($response, ['status' => false, 'msg' => 'A senha deve ter ao menos 3 caracteres.', 'id' => 0], 422);
         }
-
-        $conn->insert('users', [
-            'nome'          => $nome,
-            'sobrenome'     => $sobrenome,
-            'cpf'           => $cpf,
-            'rg'            => $rg,
-            'senha'         => password_hash($senha, PASSWORD_BCRYPT),
-            'email'         => $email,
-            'ativo'         => 1,
-            'administrador' => 0,
-        ]);
-
-        return $json(true, 'Usuário cadastrado com sucesso!', 201);
+        if (filter_var($email, FILTER_VALIDATE_EMAIL) === false) {
+            return $this->json($response, ['status' => false, 'msg' => 'E-mail inválido.', 'id' => 0], 422);
+        }
+        if ($telefone === '') {
+            return $this->json($response, ['status' => false, 'msg' => 'Informe o telefone.', 'id' => 0], 422);
+        }
+        # Hash caro de CPU calculado UMA vez e FORA da transação
+        $senhaHash = password_hash($senha, PASSWORD_DEFAULT);
+        $conn = \app\database\DB::connection();
+        try {
+            # transactional(): commit no sucesso, rollBack automático em qualquer
+            # exceção. O retorno do closure é o id gerado.
+            $idUsuario = $conn->transactional(
+                function (DBALConnection $conn) use (
+                    $nome,
+                    $sobrenome,
+                    $cpf,
+                    $rg,
+                    $senhaHash,
+                    $email,
+                    $telefone
+                ): int {
+                    # Pré-check amigável de duplicidade. A constraint UNIQUE(cpf)
+                    # do banco é a fonte de verdade final (ver catch abaixo).
+                    $duplicado = $conn->fetchOne(
+                        'SELECT 1 FROM users WHERE cpf = ? LIMIT 1',
+                        [$cpf]
+                    );
+                    if ($duplicado !== false) {
+                        throw new \DomainException('CPF já cadastrado.');
+                    }
+                    # INSERT ... RETURNING id: insere o usuário E recupera o ID
+                    # gerado em UMA ÚNICA query. Forma mais rápida e correta no PG.
+                    $idUsuario = (int) $conn->fetchOne(
+                        'INSERT INTO users (nome, sobrenome, cpf, rg, senha)
+                         VALUES (?, ?, ?, ?, ?)
+                         RETURNING id',
+                        [$nome, $sobrenome, $cpf, $rg, $senhaHash]
+                    );
+                    # Os DOIS contatos em UM ÚNICO INSERT em lote (1 round-trip)
+                    $conn->executeStatement(
+                        'INSERT INTO contact (id_usuario, tipo, contato)
+                         VALUES (?, ?, ?), (?, ?, ?)',
+                        [
+                            $idUsuario,
+                            'EMAIL',
+                            $email,
+                            $idUsuario,
+                            'TELEFONE',
+                            $telefone,
+                        ]
+                    );
+                    return $idUsuario;
+                }
+            );
+        } catch (\DomainException $e) {
+            # Regra de negócio violada (CPF duplicado) 409 Conflict
+            return $this->json($response, ['status' => false, 'msg' => $e->getMessage(), 'id' => 0], 409);
+        } catch (UniqueConstraintViolationException $e) {
+            # Rede de segurança contra a race condition entre pré-check e insert
+            error_log('[preRegister][UNIQUE] ' . $e->getMessage());
+            return $this->json($response, ['status' => false, 'msg' => 'Usuário já cadastrado.', 'id' => 0], 409);
+        } catch (\Throwable $e) {
+            # Qualquer outra falha: o rollback já ocorreu. Loga e responde genérico.
+            error_log('[preRegister][GERAL] ' . $e->getMessage());
+            return $this->json($response, ['status' => false, 'msg' => 'Não foi possível concluir o cadastro. Tente novamente.', 'id' => 0], 500);
+        }
+        # Happy path: último bloco, com estado garantido como válido
+        return $this->json($response, [
+            'status' => true,
+            'msg'    => 'Usuário cadastrado com sucesso!',
+            'id'     => $idUsuario,
+        ], 201);
     }
     public function authenticate($request, $response)
     {
