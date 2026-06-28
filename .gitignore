@@ -145,3 +145,4 @@ vite.config.ts.timestamp-*
 *.pem
 docker/redis/dump.rdb
 public/hot
+public/hot
