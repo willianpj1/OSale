@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Controller;
 
 use App\Database\DB;
+use Doctrine\DBAL\ParameterType;
 use DateTime;
 use Exception;
 
@@ -34,7 +35,7 @@ final class ServiceOrder extends Base
                         u.nome as tecnico_nome,
                         u.sobrenome as tecnico_sobrenome
                  FROM service_orders so
-                 LEFT JOIN customers c ON c.id = so.customer_id
+                 LEFT JOIN customer c ON c.id = so.customer_id
                  LEFT JOIN users u ON u.id = so.user_id
                  WHERE so.id = :id AND so.excluido = false',
                 ['id' => $id]
@@ -54,7 +55,7 @@ final class ServiceOrder extends Base
         }
 
         $customers = DB::query(
-            'SELECT id, nome, cpf_cnpj FROM customers WHERE excluido = false AND ativo = true ORDER BY nome ASC'
+            'SELECT id, nome, cpf_cnpj FROM customer WHERE excluido = false AND ativo = true ORDER BY nome ASC'
         );
 
         $technicians = DB::query(
@@ -116,7 +117,7 @@ final class ServiceOrder extends Base
                     'modelo'            => $form['modelo']            ?? null,
                     'numero_serie'      => $form['numero_serie']      ?? null,
                     'defeito_relatado'  => $form['defeito_relatado']  ?? null,
-                    'defeito_constatado'=> $form['defeito_constatado'] ?? null,
+                    'defeito_constatado' => $form['defeito_constatado'] ?? null,
                     'observacoes'       => $form['observacoes']       ?? null,
                     'aberto_em'         => $now,
                     'criado_em'         => $now,
@@ -227,7 +228,7 @@ final class ServiceOrder extends Base
             $totalRecords    = (int) DB::queryOne('SELECT COUNT(*) as total FROM service_orders so WHERE so.excluido = false')['total'];
             $filteredRecords = (int) DB::queryOne(
                 "SELECT COUNT(*) as total FROM service_orders so 
-                 LEFT JOIN customers c ON c.id = so.customer_id {$where}",
+                 LEFT JOIN customer c ON c.id = so.customer_id {$where}",
                 $params
             )['total'];
 
@@ -297,13 +298,18 @@ final class ServiceOrder extends Base
     public function itemInsert($request, $response, $args)
     {
         $orderId = $args['id'] ?? null;
-        $form    = $request->getParsedBody();
+
+        $form = $request->getParsedBody();
+        if (empty($form)) {
+            $form = json_decode((string) $request->getBody(), true) ?? [];
+        }
 
         if (!$orderId) {
             return $this->json($response, ['status' => false, 'msg' => 'ID da OS não informado', 'id' => 0], 403);
         }
 
         $tipo = $form['tipo'] ?? null;
+        
         if (!in_array($tipo, ['servico', 'produto'])) {
             return $this->json($response, ['status' => false, 'msg' => 'Tipo inválido — use servico ou produto', 'id' => 0], 400);
         }
@@ -318,11 +324,9 @@ final class ServiceOrder extends Base
             $precoUnitario = (float) ($form['preco_unitario'] ?? 0);
             $subtotal      = round($quantidade * $precoUnitario, 2);
 
-            DB::execute(
-                'INSERT INTO service_order_items
-                    (service_order_id, tipo, service_id, product_id, descricao, quantidade, preco_unitario, subtotal, criado_em)
-                 VALUES
-                    (:service_order_id, :tipo, :service_id, :product_id, :descricao, :quantidade, :preco_unitario, :subtotal, :criado_em)',
+
+            \App\Database\DB::insert(
+                'service_order_items',
                 [
                     'service_order_id' => (int) $orderId,
                     'tipo'             => $tipo,
@@ -332,11 +336,33 @@ final class ServiceOrder extends Base
                     'quantidade'       => $quantidade,
                     'preco_unitario'   => $precoUnitario,
                     'subtotal'         => $subtotal,
-                    'criado_em'        => (new DateTime())->format('Y-m-d H:i:s'),
+                    'criado_em'        => (new DateTime())->format('Y-m-d H:i:s')
                 ]
             );
 
-            $itemId = (int) DB::lastInsertId('service_order_items_id_seq');
+            /*$this->db->insert('service_order_items', [
+                'service_order_id' => (int) $orderId,
+                'tipo'             => $tipo,
+                'service_id'       => $tipo === 'servico' && !empty($form['service_id']) ? (int) $form['service_id'] : null,
+                'product_id'       => $tipo === 'produto' && !empty($form['product_id']) ? (int) $form['product_id'] : null,
+                'descricao'        => $descricao,
+                'quantidade'       => $quantidade,
+                'preco_unitario'   => $precoUnitario,
+                'subtotal'         => $subtotal,
+                'criado_em'        => (new DateTime())->format('Y-m-d H:i:s'),
+            ], [
+                'service_order_id' => ParameterType::INTEGER,
+                'tipo'             => ParameterType::STRING,
+                'service_id'       => ParameterType::INTEGER,
+                'product_id'       => ParameterType::INTEGER,
+                'descricao'        => ParameterType::STRING,
+                'quantidade'       => ParameterType::STRING,
+                'preco_unitario'   => ParameterType::STRING,
+                'subtotal'         => ParameterType::STRING,
+                'criado_em'        => ParameterType::STRING,
+            ]);*/
+
+            $itemId = (int) \App\Database\DB::lastInsertId('id');
 
             // Recalcula e atualiza o valor_total da OS
             $this->recalcularTotal((int) $orderId);
@@ -356,6 +382,11 @@ final class ServiceOrder extends Base
     {
         $itemId  = $args['itemId'] ?? null;
         $orderId = $args['id']     ?? null;
+
+        $form = $request->getParsedBody();
+        if (empty($form)) {
+            $form = json_decode((string) $request->getBody(), true) ?? [];
+        }
 
         if (!$itemId) {
             return $this->json($response, ['status' => false, 'msg' => 'ID do item não informado', 'id' => 0], 403);

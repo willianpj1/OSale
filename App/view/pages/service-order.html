@@ -12,7 +12,7 @@
 {% block main %}
 <form id="form">
     <input type="hidden" id="action" name="action" value="{{ action }}">
-    <input type="hidden" id="id" name="id" value="{{ id }}">
+    <input type="text" id="id" name="id" value="{{ id }}">
     <div class="row g-3">
 
         {# Cabeçalho da OS #}
@@ -223,86 +223,85 @@
         {% endif %}
 
     </div>
-</form>
-
-{# Modal item #}
-<div class="modal fade" id="modal-item" tabindex="-1">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Adicionar item</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <div class="row g-3">
-
-                    {# Step 1: tipo #}
-                    <div class="col-12">
-                        <div class="form-floating">
-                            <select class="form-select" id="item-tipo">
-                                <option value="servico">Serviço</option>
-                                <option value="produto">Produto</option>
-                            </select>
-                            <label for="item-tipo">Tipo</label>
-                        </div>
-                    </div>
-
-                    {# Step 2: DataTable de busca #}
-                    <div class="col-12">
-                        <table class="table table-bordered table-hover table-sm" id="table-search-items">
-                            <thead>
-                                <tr>
-                                    <th>Nome</th>
-                                    <th>Preço</th>
-                                </tr>
-                            </thead>
-                            <tbody></tbody>
-                        </table>
-                    </div>
-
-                    {# Step 3: form — aparece após selecionar #}
-                    <div class="col-12 d-none" id="item-form-wrap">
-                        <hr>
-                        <div class="row g-2">
-                            <div class="col-12">
-                                <div class="form-floating">
-                                    <input type="text" class="form-control" id="item-descricao" placeholder="Descrição"
-                                        readonly>
-                                    <label for="item-descricao">Item selecionado</label>
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="form-floating">
-                                    <input type="number" step="0.001" min="0.001" class="form-control"
-                                        id="item-quantidade" value="1" placeholder="Qtd">
-                                    <label for="item-quantidade">Quantidade</label>
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="form-floating">
-                                    <input type="text" class="form-control" id="item-preco" placeholder="Preço unit.">
-                                    <label for="item-preco">Preço unitário</label>
-                                </div>
-                            </div>
-                            <div class="col-12">
-                                <div class="p-2 bg-light rounded text-end fw-semibold">
-                                    Subtotal: <span id="item-subtotal">R$ 0,00</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
+    <div class="modal fade" id="modal-item" name="modal-item" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Adicionar item</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                <button type="button" class="btn btn-success d-none" id="btn-save-item">
-                    <i class="bi bi-floppy"></i> Adicionar
-                </button>
+                <div class="modal-body">
+                    <div class="row g-3">
+
+                        {# Step 1: tipo #}
+                        <div class="col-12">
+                            <div class="form-floating">
+                                <select class="form-select" id="item-tipo" name="item-tipo">
+                                    <option value="servico">Serviço</option>
+                                    <option value="produto">Produto</option>
+                                </select>
+                                <label for="item-tipo">Tipo</label>
+                            </div>
+                        </div>
+
+                        {# Step 2: DataTable de busca #}
+                        <div class="col-12">
+                            <table class="table table-bordered table-hover table-sm" id="table-search-items">
+                                <thead>
+                                    <tr>
+                                        <th>Nome</th>
+                                        <th>Preço</th>
+                                    </tr>
+                                </thead>
+                                <tbody></tbody>
+                            </table>
+                        </div>
+
+                        {# Step 3: form — aparece após selecionar #}
+                        <div class="col-12 d-none" id="item-form-wrap">
+                            <hr>
+                            <div class="row g-2">
+                                <div class="col-12">
+                                    <div class="form-floating">
+                                        <input type="text" class="form-control" id="item-descricao" name="item-descricao"
+                                            placeholder="Descrição" readonly>
+                                        <label for="item-descricao">Item selecionado</label>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-floating">
+                                        <input type="number" step="0.001" min="0.001" class="form-control"
+                                            id="item-quantidade" name="item-quantidade" value="1" placeholder="Qtd">
+                                        <label for="item-quantidade">Quantidade</label>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-floating">
+                                        <input type="text" class="form-control" id="item-preco" name="item-preco"
+                                            placeholder="Preço unit.">
+                                        <label for="item-preco">Preço unitário</label>
+                                    </div>
+                                </div>
+                                <div class="col-12">
+                                    <div class="p-2 bg-light rounded text-end fw-semibold">
+                                        Subtotal: <span id="item-subtotal" name="item-subtotal">R$ 0,00</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-success d-none" id="btn-save-item" name="btn-save-item">
+                        <i class="bi bi-floppy"></i> Adicionar
+                    </button>
+                </div>
             </div>
         </div>
     </div>
-</div>
+</form>
 {% endblock %}
 
 {% block script %}
