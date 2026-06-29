@@ -308,16 +308,16 @@ final class ServiceOrder extends Base
             return $this->json($response, ['status' => false, 'msg' => 'ID da OS não informado', 'id' => 0], 403);
         }
 
-        $tipo = $form['tipo'] ?? null;
-        
+        $tipo = $form['item-tipo'] ?? null;
+
         if (!in_array($tipo, ['servico', 'produto'])) {
             return $this->json($response, ['status' => false, 'msg' => 'Tipo inválido — use servico ou produto', 'id' => 0], 400);
         }
 
-        $descricao = trim($form['descricao'] ?? '');
+        /*$descricao = trim($form['descricao'] ?? '');
         if ($descricao === '') {
             return $this->json($response, ['status' => false, 'msg' => 'O campo descrição é obrigatório', 'id' => 0], 400);
-        }
+        }*/
 
         try {
             $quantidade    = (float) ($form['quantidade']     ?? 1);
@@ -332,7 +332,7 @@ final class ServiceOrder extends Base
                     'tipo'             => $tipo,
                     'service_id'       => $tipo === 'servico' && !empty($form['service_id']) ? (int) $form['service_id'] : null,
                     'product_id'       => $tipo === 'produto' && !empty($form['product_id']) ? (int) $form['product_id'] : null,
-                    'descricao'        => $descricao,
+                    //'descricao'        => $descricao,
                     'quantidade'       => $quantidade,
                     'preco_unitario'   => $precoUnitario,
                     'subtotal'         => $subtotal,
