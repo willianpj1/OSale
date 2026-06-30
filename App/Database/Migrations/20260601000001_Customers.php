@@ -6,7 +6,7 @@ final class Customers extends AbstractMigration
 {
     public function change(): void
     {
-        $table = $this->table('customers');
+        $table = $this->table('customer');
 
         $table
             ->addColumn('nome',          'string',    ['limit' => 200, 'null' => false])

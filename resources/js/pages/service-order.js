@@ -2,12 +2,25 @@ import Requests from "../components/requests.js";
 import Validate from "../components/validate.js";
 import * as bootstrap from 'bootstrap';
 
-const Action  = document.getElementById('action');
-const Id      = document.getElementById('id');
+const Action = document.getElementById('action');
+const Id = document.getElementById('id');
 const BtnSave = document.getElementById('insert');
+const BtnAddItem = document.getElementById('btn-add-item');
+const SaveItemButton = document.getElementById('btn-save-item');
+
+if (SaveItemButton) {
+    SaveItemButton.addEventListener('click', async () => {
+        const requests = new Requests();
+
+        try {
+            const response = await requests.setForm('form').post(`/os/${Id.value}/item`);
+        } catch (error) {
+
+        }
+    });
+}
 
 // ── Salvar OS ─────────────────────────────────────────────────────────────────
-
 async function applyChanges() {
     $('button').prop('disabled', true);
 
@@ -32,7 +45,7 @@ async function applyChanges() {
         if (Action.value !== 'e') {
             const redirectUrl = `${window.location.origin}/os/detalhes/${response.id}`;
             Action.value = 'e';
-            Id.value     = response.id;
+            Id.value = response.id;
             window.history.pushState({}, '', redirectUrl);
             Swal.fire({ icon: 'success', title: 'Sucesso', text: response.msg || 'OS aberta com sucesso!', timer: 3000, timerProgressBar: true })
                 .then(() => { window.location.reload(); });
@@ -52,19 +65,18 @@ BtnSave.addEventListener('click', async () => {
 
 // ── Itens ─────────────────────────────────────────────────────────────────────
 
-const BtnAddItem = document.getElementById('btn-add-item');
 
 if (BtnAddItem) {
 
     let dtSearchItems = null;
-    let selectedItem  = null;
+    let selectedItem = null;
 
     // ── Subtotal ──────────────────────────────────────────────────────────────
 
     function calcularSubtotal() {
         const quantidade = parseFloat(document.getElementById('item-quantidade').value) || 0;
-        const preco      = parseFloat(document.getElementById('item-preco').value)      || 0;
-        const subtotal   = (quantidade * preco).toFixed(2).replace('.', ',');
+        const preco = parseFloat(document.getElementById('item-preco').value) || 0;
+        const subtotal = (quantidade * preco).toFixed(2).replace('.', ',');
         document.getElementById('item-subtotal').textContent = `R$ ${subtotal}`;
     }
 
@@ -79,9 +91,9 @@ if (BtnAddItem) {
         selectedItem = null;
         document.getElementById('item-form-wrap').classList.add('d-none');
         document.getElementById('btn-save-item').classList.add('d-none');
-        document.getElementById('item-descricao').value      = '';
-        document.getElementById('item-quantidade').value     = '1';
-        document.getElementById('item-preco').value          = '';
+        document.getElementById('item-descricao').value = '';
+        document.getElementById('item-quantidade').value = '1';
+        document.getElementById('item-preco').value = '';
         document.getElementById('item-subtotal').textContent = 'R$ 0,00';
 
         if (dtSearchItems) {
@@ -94,7 +106,7 @@ if (BtnAddItem) {
             serverSide: false,
             ajax: {
                 url,
-                data:    params => ({ q: params.search?.value ?? '' }),
+                data: params => ({ q: params.search?.value ?? '' }),
                 dataSrc: 'results',
             },
             columns: [
@@ -105,8 +117,8 @@ if (BtnAddItem) {
                     render: val => 'R$ ' + parseFloat(val).toFixed(2).replace('.', ','),
                 },
             ],
-            language:     { url: '//cdn.datatables.net/plug-ins/1.13.6/i18n/pt-BR.json' },
-            pageLength:   5,
+            language: { url: '//cdn.datatables.net/plug-ins/1.13.6/i18n/pt-BR.json' },
+            pageLength: 5,
             lengthChange: false,
         });
 
@@ -118,8 +130,8 @@ if (BtnAddItem) {
             $(this).addClass('table-primary');
 
             selectedItem = { id: data.id, nome: data.nome, preco: data.preco, tipo };
-            document.getElementById('item-descricao').value  = data.nome;
-            document.getElementById('item-preco').value      = parseFloat(data.preco).toFixed(2);
+            document.getElementById('item-descricao').value = data.nome;
+            document.getElementById('item-preco').value = parseFloat(data.preco).toFixed(2);
             document.getElementById('item-quantidade').value = '1';
             calcularSubtotal();
 
@@ -132,7 +144,7 @@ if (BtnAddItem) {
 
     BtnAddItem.addEventListener('click', () => {
         const modalEl = document.getElementById('modal-item');
-        const modal   = new bootstrap.Modal(modalEl);
+        const modal = new bootstrap.Modal(modalEl);
 
         modalEl.addEventListener('shown.bs.modal', function handler() {
             const tipo = document.getElementById('item-tipo').value;
@@ -146,67 +158,18 @@ if (BtnAddItem) {
     document.getElementById('item-tipo').addEventListener('change', function () {
         initDtSearch(this.value);
     });
-
-    // ── Salvar item ───────────────────────────────────────────────────────────
-
-    document.getElementById('btn-save-item').addEventListener('click', async () => {
-        if (!selectedItem) return;
-
-        const descricao  = document.getElementById('item-descricao').value.trim();
-        const quantidade = parseFloat(document.getElementById('item-quantidade').value) || 1;
-        const preco      = parseFloat(document.getElementById('item-preco').value)      || 0;
-
-        if (!descricao) {
-            Swal.fire({ icon: 'warning', title: 'Atenção', text: 'Selecione um item.', timer: 2500, timerProgressBar: true });
-            return;
-        }
-
-        $('button').prop('disabled', true);
-        const requests = new Requests();
-
-        try {
-            const orderId = Id.value;
-            const payload = {
-                tipo:           document.getElementById('item-tipo').value,
-                descricao,
-                quantidade,
-                preco_unitario: preco,
-            };
-
-            if (payload.tipo === 'servico') payload.service_id = selectedItem.id;
-            if (payload.tipo === 'produto')  payload.product_id = selectedItem.id;
-
-            console.log('tipo:', payload.tipo);
-            console.log('payload completo:', JSON.stringify(payload));
-
-            const response = await requests.post(`/os/${orderId}/item`, payload);
-
-            if (!response.status) {
-                Swal.fire({ icon: 'error', title: 'Erro', text: response.msg || 'Erro ao adicionar item.', timer: 3000, timerProgressBar: true });
-                return;
-            }
-
-            bootstrap.Modal.getInstance(document.getElementById('modal-item')).hide();
-            window.location.reload();
-
-        } catch (error) {
-            Swal.fire({ icon: 'error', title: 'Erro', text: `Restrição: ${error.message}`, timer: 3000, timerProgressBar: true });
-        } finally {
-            $('button').prop('disabled', false);
-        }
-    });
 }
 
 // ── Excluir item ──────────────────────────────────────────────────────────────
 
 window.deleteItem = async function (itemId) {
     const confirm = await Swal.fire({
-        icon:               'warning',
-        title:              'Excluir item?',
-        text:               'Esta ação não pode ser desfeita.',
-        showCancelButton:   true,
-        confirmButtonText:  'Sim, excluir',
-        cancelButtonText:   'Cancelar',
+        icon: 'warning',
+        title: 'Excluir item?',
+        text: 'Esta ação não pode ser desfeita.',
+        showCancelButton: true,
+        confirmButtonText: 'Sim, excluir',
+        cancelButtonText: 'Cancelar',
         confirmButtonColor: '#dc3545',
     });
 
@@ -215,7 +178,7 @@ window.deleteItem = async function (itemId) {
     $('button').prop('disabled', true);
     const requests = new Requests();
     try {
-        const orderId  = Id.value;
+        const orderId = Id.value;
         const response = await requests.post(`/os/${orderId}/item/${itemId}`, { _method: 'DELETE' });
 
         if (!response.status) {

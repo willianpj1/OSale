@@ -38,7 +38,7 @@ final class ServiceOrders extends AbstractMigration
             ->addColumn('criado_em',           'timestamp', ['null' => false, 'default' => 'CURRENT_TIMESTAMP'])
             ->addColumn('atualizado_em',       'timestamp', ['null' => false, 'default' => 'CURRENT_TIMESTAMP'])
 
-            ->addForeignKey('customer_id', 'customers', 'id', [
+            ->addForeignKey('customer_id', 'customer', 'id', [
                 'delete'     => 'RESTRICT',
                 'update'     => 'CASCADE',
                 'constraint' => 'fk_service_orders_customer_id',

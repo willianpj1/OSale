@@ -30,7 +30,7 @@ final class Customer extends Base
 
         if ($id !== null) {
             $customer = DB::queryOne(
-                'SELECT * FROM customers WHERE id = :id AND excluido = false',
+                'SELECT * FROM customer WHERE id = :id AND excluido = false',
                 ['id' => $id]
             );
             $contacts = DB::query(
@@ -69,7 +69,7 @@ final class Customer extends Base
             $now = (new DateTime())->format('Y-m-d H:i:s');
 
             DB::execute(
-                'INSERT INTO customers 
+                'INSERT INTO customer 
                     (nome, tipo, cpf_cnpj, rg_ie, observacoes, ativo, excluido, criado_em, atualizado_em)
                  VALUES 
                     (:nome, :tipo, :cpf_cnpj, :rg_ie, :observacoes, :ativo, false, :criado_em, :atualizado_em)',
@@ -85,7 +85,7 @@ final class Customer extends Base
                 ]
             );
 
-            $id = (int) DB::lastInsertId('customers_id_seq');
+            $id = (int) DB::lastInsertId('customer_id_seq');
 
             return $this->json($response, ['status' => true, 'msg' => 'Cliente salvo com sucesso!', 'id' => $id], 201);
         } catch (Exception $e) {
@@ -109,7 +109,7 @@ final class Customer extends Base
 
         try {
             DB::execute(
-                'UPDATE customers SET
+                'UPDATE customer SET
                     nome = :nome, tipo = :tipo, cpf_cnpj = :cpf_cnpj, rg_ie = :rg_ie,
                     observacoes = :observacoes, ativo = :ativo, atualizado_em = :atualizado_em
                  WHERE id = :id AND excluido = false',
@@ -142,7 +142,7 @@ final class Customer extends Base
 
         try {
             DB::execute(
-                'UPDATE customers SET excluido = true, atualizado_em = :now WHERE id = :id',
+                'UPDATE customer SET excluido = true, atualizado_em = :now WHERE id = :id',
                 ['now' => (new DateTime())->format('Y-m-d H:i:s'), 'id' => $id]
             );
 
@@ -181,19 +181,19 @@ final class Customer extends Base
                 $params['term']   = '%' . $term . '%';
             }
 
-            $totalRecords    = (int) DB::queryOne('SELECT COUNT(*) as total FROM customers WHERE excluido = false')['total'];
-            $filteredRecords = (int) DB::queryOne("SELECT COUNT(*) as total FROM customers {$where}", $params)['total'];
+            $totalRecords    = (int) DB::queryOne('SELECT COUNT(*) as total FROM customer WHERE excluido = false')['total'];
+            $filteredRecords = (int) DB::queryOne("SELECT COUNT(*) as total FROM customer {$where}", $params)['total'];
 
             $params['limit']  = $length;
             $params['offset'] = $start;
 
-            $customers = DB::query(
-                "SELECT * FROM customers {$where} ORDER BY {$orderField} {$orderType} LIMIT :limit OFFSET :offset",
+            $customer = DB::query(
+                "SELECT * FROM customer {$where} ORDER BY {$orderField} {$orderType} LIMIT :limit OFFSET :offset",
                 $params
             );
 
             $rows = [];
-            foreach ($customers as $key => $value) {
+            foreach ($customer as $key => $value) {
                 $rows[$key] = [
                     $value['id'],
                     $value['nome'],
