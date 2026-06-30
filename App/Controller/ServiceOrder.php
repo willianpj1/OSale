@@ -273,8 +273,8 @@ final class ServiceOrder extends Base
     {
         $orderId   = $args['id'] ?? null;
         $form      = $request->getParsedBody();
-        $tipo      = $form['tipo'] ?? null;
-        $descricao = trim($form['descricao'] ?? '');
+        $tipo      = $form['item-tipo'] ?? null;
+        #$descricao = trim($form['descricao'] ?? '');
 
         if (!$orderId) {
             return $this->json($response, ['status' => false, 'msg' => 'ID da OS não informado', 'id' => 0], 403);
@@ -282,9 +282,9 @@ final class ServiceOrder extends Base
         if (!in_array($tipo, ['servico', 'produto'])) {
             return $this->json($response, ['status' => false, 'msg' => 'Tipo inválido — use servico ou produto', 'id' => 0], 400);
         }
-        if ($descricao === '') {
+        /*if ($descricao === '') {
             return $this->json($response, ['status' => false, 'msg' => 'O campo descrição é obrigatório', 'id' => 0], 400);
-        }
+        }*/
 
         try {
             $quantidade    = (float) ($form['quantidade']     ?? 1);
@@ -296,7 +296,7 @@ final class ServiceOrder extends Base
                 'tipo'             => $tipo,
                 'service_id'       => $tipo === 'servico' && !empty($form['service_id']) ? (int) $form['service_id'] : null,
                 'product_id'       => $tipo === 'produto' && !empty($form['product_id']) ? (int) $form['product_id'] : null,
-                'descricao'        => $descricao,
+                #'descricao'        => $descricao,
                 'quantidade'       => $quantidade,
                 'preco_unitario'   => $precoUnitario,
                 'subtotal'         => $subtotal,
@@ -334,6 +334,8 @@ final class ServiceOrder extends Base
     }
 
     // ── Search ────────────────────────────────────────────────────────────────
+    // Usados pela DataTable do modal "Adicionar item" (service-order.js),
+    // que espera um array de objetos com as chaves 'id', 'nome' e 'preco'.
 
     public function searchProducts($request, $response)
     {
@@ -345,42 +347,39 @@ final class ServiceOrder extends Base
                 ->setParameter('term', '%' . $term . '%');
         }
 
-        $options = array_map(
-            fn($p) => ['id' => $p['id'], 'text' => $p['nome']],
-            $query->orderBy('nome', 'DESC')->setMaxResults(20)->fetchAllAssociative()
-        );
+        $produtos = $query->orderBy('nome', 'ASC')->setMaxResults(20)->fetchAllAssociative();
 
-        return $this->json($response, ['results' => $options], 200);
+        $results = array_map(fn($p) => [
+            'id'    => $p['id'],
+            'nome'  => $p['nome'],
+            'preco' => (float) $p['preco'],
+        ], $produtos);
+
+        return $this->json($response, ['results' => $results], 200);
     }
 
     public function searchServices($request, $response)
     {
-        $form  = $request->getQueryParams();
-        $term  = $form['q'] ?? '';
+        $form = $request->getQueryParams();
+        $term = $form['q'] ?? '';
 
         $query = DB::select('id, nome, preco')->from('services');
 
-
         if ($term !== '') {
-            $query->andWhere('nome ILIKE :term')->setParameter('term', '%' . $term . '%')
-                ->where('CAST(id AS TEXT) ILIKE :term')
-                ->orWhere('nome ILIKE :term');
+            $query->where('CAST(id AS TEXT) ILIKE :term')
+                ->orWhere('nome ILIKE :term')
+                ->setParameter('term', '%' . $term . '%');
         }
 
-        $products = $query->orderBy('nome', 'ASC')->setFirstResult(0)->setMaxResults(20)->fetchAllAssociative();
+        $servicos = $query->orderBy('nome', 'ASC')->setFirstResult(0)->setMaxResults(20)->fetchAllAssociative();
 
+        $results = array_map(fn($s) => [
+            'id'    => $s['id'],
+            'nome'  => $s['nome'],
+            'preco' => (float) $s['preco'],
+        ], $servicos);
 
-        $data = [];
-
-        foreach ($products as $product) {
-            $data[] = [
-                'id'   => $product['id'],
-                'text' => $product['nome'],
-            ];
-        }
-
-        #$data['pagination'] = ['more' => false];
-        return $this->json($response, ['results' => $data], 200);
+        return $this->json($response, ['results' => $results], 200);
     }
 
     // ── Finalize ──────────────────────────────────────────────────────────────

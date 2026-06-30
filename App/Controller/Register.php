@@ -34,22 +34,29 @@ final class Register extends Base
             ], 400);
         }
 
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            if (ob_get_length()) ob_clean();
+            return $this->json($response, [
+                'status'  => false,
+                'message' => 'E-mail inválido.',
+            ], 400);
+        }
+
         try {
             $conn = \App\Database\DB::connection();
 
-            // Ajustado para funcionar com o nosso novo DB.php em PDO Puro
-            /*$existeEmail = \App\Database\DB::select('id')
+            $existeEmail = \App\Database\DB::select('id')
                 ->from('users')
                 ->where("email = " . $conn->quote($email))
-                ->fetchOne();*/
+                ->fetchOne();
 
-            /*if ($existeEmail) {
+            if ($existeEmail) {
                 if (ob_get_length()) ob_clean();
                 return $this->json($response, [
                     'status'  => false,
                     'message' => 'Este e-mail já está cadastrado.',
                 ], 409);
-            }*/
+            }
 
             // Ajustado para funcionar com o nosso novo DB.php em PDO Puro
             $existeCpf = \App\Database\DB::select('id')
@@ -78,6 +85,7 @@ final class Register extends Base
             $IsInserted = \App\Database\DB::connection()->insert('users', [
                 'nome' => $nome,
                 'sobrenome' => $sobrenome,
+                'email' => $email,
                 'tipo' => 'USER',
                 'cpf_cnpj' => $cpf,
                 'rg_ie' => $rg,

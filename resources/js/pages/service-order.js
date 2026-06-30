@@ -1,21 +1,10 @@
-const $ = window.jQuery
 import Requests from "../components/requests.js";
 import Validate from "../components/validate.js";
-import Select2 from "../components/select2.js";
+import * as bootstrap from 'bootstrap';
 
 const Action = document.getElementById('action');
 const Id = document.getElementById('id');
 const BtnSave = document.getElementById('insert');
-const ItemTipo = document.getElementById('item-tipo');
-const BtnAddItem = document.getElementById('btn-add-item');
-
-const url = (ItemTipo && ItemTipo.value === 'servico') ? '/os/buscar/servicos' : '/os/buscar/produtos';
-
-const ItemSearch = new Select2('#item-search');
-ItemSearch.init(url, {
-    dropdownParent: '#modal-item',
-    placeholder: 'Selecione a categoria',
-});
 
 // ── Salvar OS ─────────────────────────────────────────────────────────────────
 
@@ -24,13 +13,7 @@ async function applyChanges() {
 
     const IsValid = Validate.SetForm('form').Validate();
     if (!IsValid) {
-        Swal.fire({
-            icon: 'error',
-            title: 'Erro',
-            text: 'Por favor, corrija os erros no formulário antes de salvar.',
-            timer: 3000,
-            timerProgressBar: true,
-        }); F
+        Swal.fire({ icon: 'error', title: 'Erro', text: 'Por favor, corrija os erros no formulário antes de salvar.', timer: 3000, timerProgressBar: true });
         $('button').prop('disabled', false);
         return;
     }
@@ -42,13 +25,7 @@ async function applyChanges() {
             : await requests.setForm('form').post('/os/atualizar');
 
         if (!response.status) {
-            Swal.fire({
-                icon: 'error',
-                title: 'Erro',
-                text: response.msg || 'Ocorreu um erro ao salvar a OS.',
-                timer: 3000,
-                timerProgressBar: true,
-            });
+            Swal.fire({ icon: 'error', title: 'Erro', text: response.msg || 'Ocorreu um erro ao salvar a OS.', timer: 3000, timerProgressBar: true });
             return;
         }
 
@@ -57,226 +34,137 @@ async function applyChanges() {
             Action.value = 'e';
             Id.value = response.id;
             window.history.pushState({}, '', redirectUrl);
-            Swal.fire({
-                icon: 'success',
-                title: 'Sucesso',
-                text: response.msg || 'OS aberta com sucesso!',
-                timer: 3000,
-                timerProgressBar: true,
-            }).then(() => {
-                window.location.reload();
-            });
+            Swal.fire({ icon: 'success', title: 'Sucesso', text: response.msg || 'OS aberta com sucesso!', timer: 3000, timerProgressBar: true })
+                .then(() => { window.location.reload(); });
         } else {
-            Swal.fire({
-                icon: 'success',
-                title: 'Sucesso',
-                text: response.msg || 'OS atualizada com sucesso!',
-                timer: 3000,
-                timerProgressBar: true,
-            });
+            Swal.fire({ icon: 'success', title: 'Sucesso', text: response.msg || 'OS atualizada com sucesso!', timer: 3000, timerProgressBar: true });
         }
     } catch (error) {
-        Swal.fire({
-            icon: 'error',
-            title: 'Erro',
-            text: `Restrição: ${error.message}`,
-            timer: 3000,
-            timerProgressBar: true,
-        });
+        Swal.fire({ icon: 'error', title: 'Erro', text: `Restrição: ${error.message}`, timer: 3000, timerProgressBar: true });
     } finally {
         $('button').prop('disabled', false);
     }
 }
 
-if (BtnSave) {
-    BtnSave.addEventListener('click', async () => {
-        await applyChanges();
-    });
-}
-
-// ── Concluir OS ───────────────────────────────────────────────────────────────
-
-const BtnFinalizar = document.getElementById('btn-finalizar');
-
-if (BtnFinalizar) {
-    BtnFinalizar.addEventListener('click', async () => {
-        const confirm = await Swal.fire({
-            icon: 'warning',
-            title: 'Concluir OS?',
-            text: 'A OS será marcada como concluída e não poderá mais ser editada. Deseja continuar?',
-            showCancelButton: true,
-            confirmButtonText: 'Sim, concluir',
-            cancelButtonText: 'Cancelar',
-            confirmButtonColor: '#0d6efd',
-        });
-
-        if (!confirm.isConfirmed) return;
-
-        $('button').prop('disabled', true);
-        const requests = new Requests();
-        try {
-            const response = await requests.setForm('form').post('/os/concluir');
-
-            if (!response.status) {
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Erro',
-                    text: response.msg || 'Erro ao concluir OS.',
-                    timer: 3000,
-                    timerProgressBar: true,
-                });
-                return;
-            }
-
-            Swal.fire({
-                icon: 'success',
-                title: 'Concluída!',
-                text: response.msg || 'OS concluída com sucesso!',
-                timer: 2500,
-                timerProgressBar: true,
-            }).then(() => {
-                window.location.reload();
-            });
-
-        } catch (error) {
-            Swal.fire({
-                icon: 'error',
-                title: 'Erro',
-                text: `Restrição: ${error.message}`,
-                timer: 3000,
-                timerProgressBar: true,
-            });
-        } finally {
-            $('button').prop('disabled', false);
-        }
-    });
-}
+BtnSave.addEventListener('click', async () => {
+    await applyChanges();
+});
 
 // ── Itens ─────────────────────────────────────────────────────────────────────
 
+const BtnAddItem = document.getElementById('btn-add-item');
 
+if (BtnAddItem) {
 
-/*if (BtnAddItem) {
+    let dtSearchItems = null;
+    let selectedItem = null;
 
-    // ── Select2 — inicializado sempre APÓS shown.bs.modal ────────────────────
-    function initSelect2(tipo) {
-        const label = document.getElementById('item-search-label');
-        label.textContent = tipo === 'servico' ? 'Serviço' : 'Produto';
+    // ── Subtotal ──────────────────────────────────────────────────────────────
 
-        // Destroi instância anterior sem deixar estado sujo
-        /* if ($.fn.select2 && $('#item-search').data('select2')) {
-             $('#item-search').select2('destroy');
-         }
+    function calcularSubtotal() {
+        const quantidade = parseFloat(document.getElementById('item-quantidade').value) || 0;
+        const preco = parseFloat(document.getElementById('item-preco').value) || 0;
+        const subtotal = (quantidade * preco).toFixed(2).replace('.', ',');
+        document.getElementById('item-subtotal').textContent = `R$ ${subtotal}`;
+    }
 
+    document.getElementById('item-quantidade').addEventListener('input', calcularSubtotal);
+    document.getElementById('item-preco').addEventListener('input', calcularSubtotal);
+
+    // ── DataTable de busca ────────────────────────────────────────────────────
+
+    function initDtSearch(tipo) {
         const url = tipo === 'servico' ? '/os/buscar/servicos' : '/os/buscar/produtos';
 
-        /*$('#item-search').select2({
-            dropdownParent: $('#modal-item'),
-            placeholder: 'Digite para buscar...',
-            ajax: {
-                method: 'POST',
-                url: url,
-                dataType: 'json',
-                delay: 250
-            }
-        });
-
-        // Listener de seleção — reattacha após cada destroy/reinit
-        /*$('#item-search').off('select2:select').on('select2:select', function (e) {
-            const d = e.params.data;
-            document.getElementById('item-descricao').value = d.text;
-            document.getElementById('item-preco').value = d.preco.toFixed(2);
-        });
-    }*/
-
-// ── Abrir modal — Select2 só inicia após shown.bs.modal ──────────────────
-if (BtnAddItem) {
-    BtnAddItem.addEventListener('click', () => {
+        selectedItem = null;
+        document.getElementById('item-form-wrap').classList.add('d-none');
+        document.getElementById('btn-save-item').classList.add('d-none');
         document.getElementById('item-descricao').value = '';
-        document.getElementById('item-preco').value = '0';
         document.getElementById('item-quantidade').value = '1';
+        document.getElementById('item-preco').value = '';
+        document.getElementById('item-subtotal').textContent = 'R$ 0,00';
 
+        if (dtSearchItems) {
+            dtSearchItems.destroy();
+            $('#table-search-items tbody').empty();
+        }
+
+        dtSearchItems = $('#table-search-items').DataTable({
+            processing: true,
+            serverSide: false,
+            ajax: {
+                url,
+                data: params => ({ q: params.search?.value ?? '' }),
+                dataSrc: 'results',
+            },
+            columns: [
+                { data: 'nome', title: 'Nome' },
+                {
+                    data: 'preco',
+                    title: 'Preço',
+                    render: val => 'R$ ' + parseFloat(val).toFixed(2).replace('.', ','),
+                },
+            ],
+            language: { url: '//cdn.datatables.net/plug-ins/1.13.6/i18n/pt-BR.json' },
+            pageLength: 5,
+            lengthChange: false,
+        });
+
+        $('#table-search-items tbody').off('click', 'tr').on('click', 'tr', function () {
+            const data = dtSearchItems.row(this).data();
+            if (!data) return;
+
+            $('#table-search-items tbody tr').removeClass('table-primary');
+            $(this).addClass('table-primary');
+
+            selectedItem = { id: data.id, nome: data.nome, preco: data.preco, tipo };
+            document.getElementById('item-descricao').value = data.nome;
+            document.getElementById('item-preco').value = parseFloat(data.preco).toFixed(2);
+            document.getElementById('item-quantidade').value = '1';
+            calcularSubtotal();
+
+            document.getElementById('item-form-wrap').classList.remove('d-none');
+            document.getElementById('btn-save-item').classList.remove('d-none');
+        });
+    }
+
+    // ── Abre modal ────────────────────────────────────────────────────────────
+
+    BtnAddItem.addEventListener('click', () => {
         const modalEl = document.getElementById('modal-item');
         const modal = new bootstrap.Modal(modalEl);
 
-        // shown.bs.modal garante que o modal está visível e montado no DOM
-        // antes do Select2 calcular o dropdownParent
         modalEl.addEventListener('shown.bs.modal', function handler() {
-            //initSelect2(document.getElementById('item-tipo').value);
-            modalEl.removeEventListener('shown.bs.modal', handler);
+            const tipo = document.getElementById('item-tipo').value;
+            initDtSearch(tipo);
+            this.removeEventListener('shown.bs.modal', handler);
         });
 
         modal.show();
     });
-}
 
-// ── Troca de tipo dentro do modal ─────────────────────────────────────────
-if (ItemTipo) {
-    ItemTipo.addEventListener('change', function () {
-        //initSelect2(this.value);
-        document.getElementById('item-descricao').value = '';
-        document.getElementById('item-preco').value = '0';
+    document.getElementById('item-tipo').addEventListener('change', function () {
+        initDtSearch(this.value);
     });
-}
 
-// ── Salvar item ───────────────────────────────────────────────────────────
-if (document.getElementById('btn-save-item')) {
+    // ── Salvar item ───────────────────────────────────────────────────────────
+
     document.getElementById('btn-save-item').addEventListener('click', async () => {
-        const tipo = document.getElementById('item-tipo').value;
-        const descricao = document.getElementById('item-descricao').value.trim();
-        const quantidade = parseFloat(document.getElementById('item-quantidade').value) || 1;
-        const preco = parseFloat(document.getElementById('item-preco').value) || 0;
-        //const selected = $('#item-search').select2('data')[0];
-        const refId = selected?.id ?? null;
-
-        if (!descricao) {
-            Swal.fire({
-                icon: 'warning',
-                title: 'Atenção',
-                text: 'O campo descrição é obrigatório.',
-                timer: 2500,
-                timerProgressBar: true,
-            });
-            return;
-        }
 
         $('button').prop('disabled', true);
+        const orderId = Id.value;
+
         const requests = new Requests();
         try {
-            const orderId = Id.value;
-            const payload = {
-                tipo,
-                descricao,
-                quantidade,
-                preco_unitario: preco,
-            };
-            if (tipo === 'servico' && refId) payload.service_id = refId;
-            if (tipo === 'produto' && refId) payload.product_id = refId;
-
-            const response = await requests.post(`/os/${orderId}/item`, payload);
-
+            const response = await requests.setForm('form').post(`/os/${orderId}/item`);
             if (!response.status) {
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Erro',
-                    text: response.msg || 'Erro ao adicionar item.',
-                    timer: 3000,
-                    timerProgressBar: true,
-                });
+                Swal.fire({ icon: 'error', title: 'Erro', text: response.msg || 'Erro ao adicionar item.', timer: 3000, timerProgressBar: true });
                 return;
             }
-
             bootstrap.Modal.getInstance(document.getElementById('modal-item')).hide();
             window.location.reload();
-
         } catch (error) {
-            Swal.fire({
-                icon: 'error',
-                title: 'Erro',
-                text: `Restrição: ${error.message}`,
-                timer: 3000,
-                timerProgressBar: true,
-            });
+            Swal.fire({ icon: 'error', title: 'Erro', text: `Restrição: ${error.message}`, timer: 3000, timerProgressBar: true });
         } finally {
             $('button').prop('disabled', false);
         }
@@ -305,25 +193,13 @@ window.deleteItem = async function (itemId) {
         const response = await requests.post(`/os/${orderId}/item/${itemId}`, { _method: 'DELETE' });
 
         if (!response.status) {
-            Swal.fire({
-                icon: 'error',
-                title: 'Erro',
-                text: response.msg || 'Erro ao excluir item.',
-                timer: 3000,
-                timerProgressBar: true,
-            });
+            Swal.fire({ icon: 'error', title: 'Erro', text: response.msg || 'Erro ao excluir item.', timer: 3000, timerProgressBar: true });
             return;
         }
 
         window.location.reload();
     } catch (error) {
-        Swal.fire({
-            icon: 'error',
-            title: 'Erro',
-            text: `Restrição: ${error.message}`,
-            timer: 3000,
-            timerProgressBar: true,
-        });
+        Swal.fire({ icon: 'error', title: 'Erro', text: `Restrição: ${error.message}`, timer: 3000, timerProgressBar: true });
     } finally {
         $('button').prop('disabled', false);
     }

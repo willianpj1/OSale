@@ -122,11 +122,17 @@ final class Login extends Base
 
             $conn = \App\Database\DB::connection();
 
+            $loginEmail = strtolower($login);
+            $loginCpf   = preg_replace('/\D/', '', $login);
+
+            $where = 'email = ' . $conn->quote($loginEmail);
+            if ($loginCpf !== '') {
+                $where .= ' OR cpf_cnpj = ' . $conn->quote($loginCpf);
+            }
+
             $user = \App\Database\DB::select('*')
                 ->from('users')
-                ->where(
-                    ' cpf_cnpj = ' . $conn->quote($login)
-                )
+                ->where($where)
                 ->fetchAssociative();
 
             if (!$user || !password_verify($senha, $user['senha'])) {
