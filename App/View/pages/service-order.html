@@ -161,11 +161,6 @@
                         </div>
                     </div>
                 </div>
-                <div class="card-footer">
-                    <button id="insert" type="button" class="btn btn-success">
-                        <i class="bi bi-floppy"></i> Salvar
-                    </button>
-                </div>
             </div>
         </div>
 
@@ -217,6 +212,11 @@
                             </tr>
                         </tfoot>
                     </table>
+                    <div class="card-footer">
+                        <button id="insert" type="button" class="btn btn-success">
+                            <i class="bi bi-floppy"></i> Salvar
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -265,20 +265,20 @@
                                 <div class="col-12">
                                     <div class="form-floating">
                                         <input type="text" class="form-control" id="item-descricao"
-                                            placeholder="Descrição" readonly>
+                                            name="item-descricao" placeholder="Descrição" readonly>
                                         <label for="item-descricao">Item selecionado</label>
                                     </div>
                                 </div>
                                 <div class="col-md-6">
                                     <div class="form-floating">
                                         <input type="number" step="0.001" min="0.001" class="form-control"
-                                            id="item-quantidade" value="1" placeholder="Qtd">
+                                            name="item-quantidade" id="item-quantidade" value="1" placeholder="Qtd">
                                         <label for="item-quantidade">Quantidade</label>
                                     </div>
                                 </div>
                                 <div class="col-md-6">
                                     <div class="form-floating">
-                                        <input type="text" class="form-control" id="item-preco"
+                                        <input type="text" class="form-control" id="item-preco" name="item-preco"
                                             placeholder="Preço unit.">
                                         <label for="item-preco">Preço unitário</label>
                                     </div>

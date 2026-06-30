@@ -274,31 +274,37 @@ final class ServiceOrder extends Base
         $orderId   = $args['id'] ?? null;
         $form      = $request->getParsedBody();
         $tipo      = $form['item-tipo'] ?? null;
-        #$descricao = trim($form['descricao'] ?? '');
-
+        $descricao = trim($form['item-descricao'] ?? '');
+        $quantidade = trim($form['item-quantidade'] ?? '');
+        $preco_unit = trim($form['item-preco'] ?? '0');
+        #132.25 -> R$ 132,25
+        #1352.55 -> R$ 1.352,55
         if (!$orderId) {
             return $this->json($response, ['status' => false, 'msg' => 'ID da OS não informado', 'id' => 0], 403);
         }
         if (!in_array($tipo, ['servico', 'produto'])) {
             return $this->json($response, ['status' => false, 'msg' => 'Tipo inválido — use servico ou produto', 'id' => 0], 400);
         }
-        /*if ($descricao === '') {
+        if ($descricao === '') {
             return $this->json($response, ['status' => false, 'msg' => 'O campo descrição é obrigatório', 'id' => 0], 400);
-        }*/
-
+        }
+        if ($quantidade === '') {
+            return $this->json($response, ['status' => false, 'msg' => 'O campo quantidade é obrigatório', 'id' => 0], 400);
+        }
+        if ($preco_unit === '') {
+            return $this->json($response, ['status' => false, 'msg' => 'O campo preço unitário é obrigatório', 'id' => 0], 400);
+        }
+        $subtotal      = round($quantidade * $preco_unit, 2);
         try {
-            $quantidade    = (float) ($form['quantidade']     ?? 1);
-            $precoUnitario = (float) ($form['preco_unitario'] ?? 0);
-            $subtotal      = round($quantidade * $precoUnitario, 2);
 
             DB::connection()->insert('service_order_items', [
                 'service_order_id' => (int) $orderId,
                 'tipo'             => $tipo,
                 'service_id'       => $tipo === 'servico' && !empty($form['service_id']) ? (int) $form['service_id'] : null,
                 'product_id'       => $tipo === 'produto' && !empty($form['product_id']) ? (int) $form['product_id'] : null,
-                #'descricao'        => $descricao,
+                'descricao'        => $descricao,
                 'quantidade'       => $quantidade,
-                'preco_unitario'   => $precoUnitario,
+                'preco_unitario'   => $preco_unit,
                 'subtotal'         => $subtotal,
                 'criado_em'        => $this->now(),
             ]);
