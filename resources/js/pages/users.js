@@ -5,6 +5,8 @@ import Validate from "../components/validate.js";
 const Action = document.getElementById('action');
 const Id = document.getElementById('id');
 const Insert = document.getElementById('insert');
+const Cnpj = document.getElementById('cpf_cnpj');
+
 
 // ── Salvar cliente ────────────────────────────────────────────────────────────
 // ── Máscaras de Entrada do Formulário (Usando Inputmask) ──────────────────────
@@ -36,6 +38,16 @@ document.addEventListener('DOMContentLoaded', () => {
         }).mask(telInput);
     }
 });
+
+Cnpj.addEventListener('blur', async () => {
+    if (Cnpj.value.trim() === '' || Cnpj.value.replace(/\D/g, '').length < 14) {
+        return;
+    }
+    const findCompany = new FindCompany({ cnpjField: 'cpf_cnpj'})
+    await findCompany.FindCompanyData();
+});
+
+
 async function applyChanges() {
     $('button').prop('disabled', true);
 

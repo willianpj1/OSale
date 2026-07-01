@@ -22,22 +22,34 @@ final class Customer extends Base
 
     public function details($request, $response, $args)
     {
-        $id       = $args['id'] ?? null;
-        $action   = ($id === null) ? 'c' : 'e';
-        $customer = [];
+        $id        = $args['id'] ?? null;
+        $action    = ($id === null) ? 'c' : 'e';
+        $customer  = [];
         $contacts  = [];
         $addresses = [];
 
         if ($id !== null) {
-            $customer = DB::queryOne(
+            $connection = \App\Database\DB::connection();
+
+            // 1. Busca os detalhes do cliente (Retorna array associativo ou false)
+            $customer = $connection->fetchAssociative(
                 'SELECT * FROM customers WHERE id = :id AND excluido = false',
                 ['id' => $id]
             );
-            $contacts = DB::query(
+
+            // Se o cliente não existir, você pode tratar aqui (ex: zerar ou redirecionar)
+            if ($customer === false) {
+                $customer = [];
+            }
+
+            // 2. Busca os contatos vinculados
+            $contacts = $connection->fetchAllAssociative(
                 'SELECT * FROM contacts WHERE entidade = :entidade AND entidade_id = :id ORDER BY principal DESC, id ASC',
                 ['entidade' => 'customer', 'id' => $id]
             );
-            $addresses = DB::query(
+
+            // 3. Busca os endereços vinculados
+            $addresses = $connection->fetchAllAssociative(
                 'SELECT * FROM addresses WHERE entidade = :entidade AND entidade_id = :id ORDER BY principal DESC, id ASC',
                 ['entidade' => 'customer', 'id' => $id]
             );
@@ -56,40 +68,28 @@ final class Customer extends Base
             ->withStatus(200);
     }
 
+
     public function insert($request, $response)
     {
         $form = $request->getParsedBody();
-        $nome = trim($form['nome'] ?? '');
-
-        if ($nome === '') {
-            return $this->json($response, ['status' => false, 'msg' => 'O campo nome é obrigatório', 'id' => 0], 400);
-        }
-
+        $FieldsAndValues = [
+            'nome' => $form['nome'],
+            'tipo' => $form['tipo'] ?? 'fisica',
+            'cpf_cnpj' => $form['cpf_cnpj'] ?? '',
+            'rg_ie' => $form['rg_ie'] ?? '',
+            'observacoes' => $form['observacoes'] ?? '',
+            'ativo' => ($form['ativo'] === 'true') ? true : false
+        ];
         try {
-            $now = (new DateTime())->format('Y-m-d H:i:s');
+            $IsInserted = \App\Database\DB::connection()->insert('customers', $FieldsAndValues);
+            if (!$IsInserted) {
+                return $this->json($response, ['status' => false, 'msg' => 'Restrição: ' . $IsInserted, 'id' => 0], 500);
+            }
+            $id = \App\Database\DB::connection()->lastInsertId('id');
 
-            DB::execute(
-                'INSERT INTO customers 
-                    (nome, tipo, cpf_cnpj, rg_ie, observacoes, ativo, excluido, criado_em, atualizado_em)
-                 VALUES 
-                    (:nome, :tipo, :cpf_cnpj, :rg_ie, :observacoes, :ativo, false, :criado_em, :atualizado_em)',
-                [
-                    'nome'          => $nome,
-                    'tipo'          => $form['tipo']        ?? 'fisica',
-                    'cpf_cnpj'      => $form['cpf_cnpj']    ?? null,
-                    'rg_ie'         => $form['rg_ie']       ?? null,
-                    'observacoes'   => $form['observacoes'] ?? null,
-                    'ativo'         => isset($form['ativo']) ? filter_var($form['ativo'], FILTER_VALIDATE_BOOLEAN) : true,
-                    'criado_em'     => $now,
-                    'atualizado_em' => $now,
-                ]
-            );
-
-            $id = (int) DB::lastInsertId('customers_id_seq');
-
-            return $this->json($response, ['status' => true, 'msg' => 'Cliente salvo com sucesso!', 'id' => $id], 201);
-        } catch (Exception $e) {
-            return $this->json($response, ['status' => false, 'msg' => 'Erro ao inserir: ' . $e->getMessage(), 'id' => 0], 500);
+            return $this->json($response, ['status' => true, 'msg' => 'Salvo com sucesso!', 'id' => $id], 201);
+        } catch (\Exception $e) {
+            return $this->json($response, ['status' => false, 'msg' => 'Restrição: ' . $e->getMessage(), 'id' => 0], 500);
         }
     }
 
@@ -108,28 +108,34 @@ final class Customer extends Base
         }
 
         try {
-            DB::execute(
-                'UPDATE customers SET
-                    nome = :nome, tipo = :tipo, cpf_cnpj = :cpf_cnpj, rg_ie = :rg_ie,
-                    observacoes = :observacoes, ativo = :ativo, atualizado_em = :atualizado_em
-                 WHERE id = :id AND excluido = false',
-                [
-                    'nome'          => $nome,
-                    'tipo'          => $form['tipo']        ?? 'fisica',
-                    'cpf_cnpj'      => $form['cpf_cnpj']    ?? null,
-                    'rg_ie'         => $form['rg_ie']       ?? null,
-                    'observacoes'   => $form['observacoes'] ?? null,
-                    'ativo'         => isset($form['ativo']) ? filter_var($form['ativo'], FILTER_VALIDATE_BOOLEAN) : true,
-                    'atualizado_em' => (new DateTime())->format('Y-m-d H:i:s'),
-                    'id'            => $id,
-                ]
-            );
+            $connection = \App\Database\DB::connection();
+
+            // Dados que serão atualizados na tabela
+            $data = [
+                'nome'          => $nome,
+                'tipo'          => $form['tipo']        ?? 'fisica',
+                'cpf_cnpj'      => $form['cpf_cnpj']    ?? null,
+                'rg_ie'         => $form['rg_ie']       ?? null,
+                'observacoes'   => $form['observacoes'] ?? null,
+                'ativo'         => isset($form['ativo']) ? filter_var($form['ativo'], FILTER_VALIDATE_BOOLEAN) : true,
+                'atualizado_em' => (new \DateTime())->format('Y-m-d H:i:s'),
+            ];
+
+            // Condições para a cláusula WHERE
+            $criteria = [
+                'id'       => $id,
+                'excluido' => false, // Garante que não altera registros deletados logicamente
+            ];
+
+            // O Doctrine DBAL executa o UPDATE de forma totalmente segura
+            $connection->update('customers', $data, $criteria);
 
             return $this->json($response, ['status' => true, 'msg' => 'Cliente atualizado com sucesso!', 'id' => (int) $id], 200);
-        } catch (Exception $e) {
+        } catch (\Exception $e) {
             return $this->json($response, ['status' => false, 'msg' => 'Erro ao atualizar: ' . $e->getMessage(), 'id' => 0], 500);
         }
     }
+
 
     public function delete($request, $response)
     {
@@ -301,39 +307,35 @@ final class Customer extends Base
         }
 
         try {
-            if (filter_var($form['principal'] ?? false, FILTER_VALIDATE_BOOLEAN)) {
-                DB::execute(
-                    'UPDATE addresses SET principal = false WHERE entidade = :entidade AND entidade_id = :id',
-                    ['entidade' => 'customer', 'id' => $id]
-                );
-            }
+            $connection = \App\Database\DB::connection();           
 
-            DB::execute(
-                'INSERT INTO addresses (entidade, entidade_id, nome, cep, logradouro, numero, complemento, bairro, cidade, estado, principal, criado_em)
-                 VALUES (:entidade, :entidade_id, :nome, :cep, :logradouro, :numero, :complemento, :bairro, :cidade, :estado, :principal, :criado_em)',
-                [
-                    'entidade'    => 'customer',
-                    'entidade_id' => $id,
-                    'nome'        => $form['nome']        ?? null,
-                    'cep'         => $form['cep']         ?? null,
-                    'logradouro'  => $logradouro,
-                    'numero'      => $form['numero']      ?? null,
-                    'complemento' => $form['complemento'] ?? null,
-                    'bairro'      => $form['bairro']      ?? null,
-                    'cidade'      => $form['cidade']      ?? null,
-                    'estado'      => $form['estado']      ?? null,
-                    'principal'   => filter_var($form['principal'] ?? false, FILTER_VALIDATE_BOOLEAN),
-                    'criado_em'   => (new DateTime())->format('Y-m-d H:i:s'),
-                ]
-            );
+            // 2. Mapeia os dados para a inserção limpa
+            $data = [
+                'entidade'    => 'customer',
+                'entidade_id' => $id,
+                'nome'        => $form['nome']        ?? null,
+                'cep'         => $form['cep']         ?? null,
+                'logradouro'  => $logradouro,
+                'numero'      => $form['numero']      ?? null,
+                'complemento' => $form['complemento'] ?? null,
+                'bairro'      => $form['bairro']      ?? null,
+                'cidade'      => $form['cidade']      ?? null,
+                'estado'      => $form['estado']      ?? null,
+                'principal'   => filter_var($form['principal'] ?? false, FILTER_VALIDATE_BOOLEAN),
+            ];
 
-            $addressId = (int) DB::lastInsertId('addresses_id_seq');
+            // 3. Insere o registro na tabela de forma segura
+            $connection->insert('addresses', $data);
+
+            // 4. Captura o ID gerado diretamente da instância da conexão ativa
+            $addressId = (int) $connection->lastInsertId('addresses_id_seq');
 
             return $this->json($response, ['status' => true, 'msg' => 'Endereço adicionado!', 'id' => $addressId], 201);
-        } catch (Exception $e) {
+        } catch (\Exception $e) {
             return $this->json($response, ['status' => false, 'msg' => 'Erro: ' . $e->getMessage(), 'id' => 0], 500);
         }
     }
+
 
     public function addressDelete($request, $response, $args)
     {

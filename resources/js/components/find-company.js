@@ -201,7 +201,8 @@ export default class FindCompany {
         const requests = new Requests();
         try {
             const response = await requests.get(`https://publica.cnpj.ws/cnpj/${cnpjValue}`);
-            this.#FillCompanyData(response);
+            return response;
+            //return this.#FillCompanyData(response);
         } catch (error) {
             console.error('Erro ao buscar dados da empresa:', error);
         }

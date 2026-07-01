@@ -29,8 +29,10 @@
                         <div class="col-lg-4 col-md-6">
                             <div class="form-floating mb-3">
                                 <select class="form-select" id="tipo" name="tipo">
-                                    <option value="fisica" {{ customer.tipo == 'fisica' ? 'selected' : '' }}>Pessoa Física</option>
-                                    <option value="juridica" {{ customer.tipo == 'juridica' ? 'selected' : '' }}>Pessoa Jurídica</option>
+                                    <option value="fisica" {{ customer.tipo=='fisica' ? 'selected' : '' }}>Pessoa Física
+                                    </option>
+                                    <option value="juridica" {{ customer.tipo=='juridica' ? 'selected' : '' }}>Pessoa
+                                        Jurídica</option>
                                 </select>
                                 <label for="tipo">Tipo</label>
                             </div>
@@ -44,8 +46,8 @@
                         </div>
                         <div class="col-lg-4 col-md-6">
                             <div class="form-floating mb-3">
-                                <input type="text" class="form-control" id="rg_ie" name="rg_ie"
-                                    placeholder="RG / IE" value="{{ customer.rg_ie }}">
+                                <input type="text" class="form-control" id="rg_ie" name="rg_ie" placeholder="RG / IE"
+                                    value="{{ customer.rg_ie }}">
                                 <label for="rg_ie">RG / Inscrição Estadual</label>
                             </div>
                         </div>
@@ -65,8 +67,8 @@
                         </div>
                         <div class="col-12">
                             <div class="form-check">
-                                <input class="form-check-input" type="checkbox" id="ativo" name="ativo"
-                                    value="true" {{ customer.ativo ? 'checked' : '' }}>
+                                <input class="form-check-input" type="checkbox" id="ativo" name="ativo" value="true" {{
+                                    customer.ativo ? 'checked' : '' }}>
                                 <label class="form-check-label" for="ativo">Ativo</label>
                             </div>
                         </div>
@@ -179,70 +181,80 @@
                 <h5 class="modal-title">Adicionar endereço</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
-            <div class="modal-body">
-                <div class="row g-3">
-                    <div class="col-12">
-                        <div class="form-floating">
-                            <input type="text" class="form-control" id="a-nome" placeholder="Label">
-                            <label for="a-nome">Label (ex: Casa, Filial centro)</label>
+            <!-- Início do Formulário -->
+            <form id="form-address">
+                <div class="modal-body">
+                    <div class="row g-3">
+                        <div class="col-12">
+                            <div class="form-floating">
+                                <input type="text" class="form-control" id="a-nome" name="nome" placeholder="Label">
+                                <label for="a-nome">Label (ex: Casa, Filial centro)</label>
+                            </div>
                         </div>
-                    </div>
-                    <div class="col-md-3">
-                        <div class="form-floating">
-                            <input type="text" class="form-control" id="a-cep" placeholder="CEP">
-                            <label for="a-cep">CEP</label>
+                        <div class="col-md-3">
+                            <div class="form-floating">
+                                <input type="text" class="form-control" id="a-cep" name="cep" placeholder="CEP">
+                                <label for="a-cep">CEP</label>
+                            </div>
                         </div>
-                    </div>
-                    <div class="col-md-7">
-                        <div class="form-floating">
-                            <input type="text" class="form-control" id="a-logradouro" placeholder="Logradouro">
-                            <label for="a-logradouro">Logradouro</label>
+                        <div class="col-md-7">
+                            <div class="form-floating">
+                                <input type="text" class="form-control" id="a-logradouro" name="logradouro"
+                                    placeholder="Logradouro" required>
+                                <label for="a-logradouro">Logradouro</label>
+                            </div>
                         </div>
-                    </div>
-                    <div class="col-md-2">
-                        <div class="form-floating">
-                            <input type="text" class="form-control" id="a-numero" placeholder="Número">
-                            <label for="a-numero">Número</label>
+                        <div class="col-md-2">
+                            <div class="form-floating">
+                                <input type="text" class="form-control" id="a-numero" name="numero"
+                                    placeholder="Número">
+                                <label for="a-numero">Número</label>
+                            </div>
                         </div>
-                    </div>
-                    <div class="col-md-4">
-                        <div class="form-floating">
-                            <input type="text" class="form-control" id="a-complemento" placeholder="Complemento">
-                            <label for="a-complemento">Complemento</label>
+                        <div class="col-md-4">
+                            <div class="form-floating">
+                                <input type="text" class="form-control" id="a-complemento" name="complemento"
+                                    placeholder="Complemento">
+                                <label for="a-complemento">Complemento</label>
+                            </div>
                         </div>
-                    </div>
-                    <div class="col-md-3">
-                        <div class="form-floating">
-                            <input type="text" class="form-control" id="a-bairro" placeholder="Bairro">
-                            <label for="a-bairro">Bairro</label>
+                        <div class="col-md-3">
+                            <div class="form-floating">
+                                <input type="text" class="form-control" id="a-bairro" name="bairro"
+                                    placeholder="Bairro">
+                                <label for="a-bairro">Bairro</label>
+                            </div>
                         </div>
-                    </div>
-                    <div class="col-md-3">
-                        <div class="form-floating">
-                            <input type="text" class="form-control" id="a-cidade" placeholder="Cidade">
-                            <label for="a-cidade">Cidade</label>
+                        <div class="col-md-3">
+                            <div class="form-floating">
+                                <input type="text" class="form-control" id="a-cidade" name="cidade"
+                                    placeholder="Cidade">
+                                <label for="a-cidade">Cidade</label>
+                            </div>
                         </div>
-                    </div>
-                    <div class="col-md-2">
-                        <div class="form-floating">
-                            <input type="text" class="form-control" id="a-estado" placeholder="UF" maxlength="2">
-                            <label for="a-estado">UF</label>
+                        <div class="col-md-2">
+                            <div class="form-floating">
+                                <input type="text" class="form-control" id="a-estado" name="estado" placeholder="UF"
+                                    maxlength="2">
+                                <label for="a-estado">UF</label>
+                            </div>
                         </div>
-                    </div>
-                    <div class="col-12">
-                        <div class="form-check">
-                            <input class="form-check-input" type="checkbox" id="a-principal">
-                            <label class="form-check-label" for="a-principal">Principal</label>
+                        <div class="col-12">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="a-principal" name="principal">
+                                <label class="form-check-label" for="a-principal">Principal</label>
+                            </div>
                         </div>
                     </div>
                 </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                <button type="button" class="btn btn-success" id="btn-save-address">
-                    <i class="bi bi-floppy"></i> Salvar
-                </button>
-            </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-success" id="btn-save-address">
+                        <i class="bi bi-floppy"></i> Salvar
+                    </button>
+                </div>
+            </form>
+            <!-- Fim do Formulário -->
         </div>
     </div>
 </div>
