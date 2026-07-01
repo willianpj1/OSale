@@ -61,15 +61,47 @@ final class ServiceOrder extends Base
             ->orderBy('nome', 'ASC')
             ->fetchAllAssociative();
 
+        // Se a OS já tem uma condição de pagamento vinculada, busca ela + as parcelas
+        $payment      = null;
+        $installments = [];
+
+        if (!empty($order['id_pagamento'])) {
+            $payment = DB::select('*')->from('payment_terms')
+                ->where('id = :id')
+                ->setParameter('id', $order['id_pagamento'], ParameterType::INTEGER)
+                ->fetchAssociative();
+
+            if ($payment) {
+                $rows = DB::select('*')->from('installment')
+                    ->where('id_pagamento = :id')
+                    ->setParameter('id', $order['id_pagamento'], ParameterType::INTEGER)
+                    ->orderBy('parcela', 'ASC')
+                    ->fetchAllAssociative();
+
+                $totalOS = (float) ($order['valor_total'] ?? 0);
+                $qtd     = count($rows);
+
+                foreach ($rows as $r) {
+                    $installments[] = [
+                        'parcela'   => $r['parcela'],
+                        'intervalo' => $r['intervalo'],
+                        'valor'     => $qtd > 0 ? $totalOS / $qtd : $totalOS,
+                    ];
+                }
+            }
+        }
+
         return $this->getTwig()
             ->render($response, $this->setView('service-order'), [
-                'titulo'      => 'Ordem de Serviço',
-                'id'          => $id,
-                'action'      => $action,
-                'order'       => $order,
-                'items'       => $items,
-                'customers'   => $customers,
-                'technicians' => $technicians,
+                'titulo'       => 'Ordem de Serviço',
+                'id'           => $id,
+                'action'       => $action,
+                'order'        => $order,
+                'items'        => $items,
+                'customers'    => $customers,
+                'technicians'  => $technicians,
+                'payment'      => $payment,
+                'installments' => $installments,
             ])
             ->withHeader('Content-Type', 'text/html')
             ->withStatus(200);
@@ -149,7 +181,12 @@ final class ServiceOrder extends Base
                 'defeito_constatado' => $form['defeito_constatado'] ?? null,
                 'observacoes'        => $form['observacoes']        ?? null,
                 'atualizado_em'      => $this->now(),
-            ], ['id' => $id, 'excluido' => false]);
+            ], [
+                'id'       => (int) $id,
+                'excluido' => false,
+            ], [
+                'excluido' => ParameterType::BOOLEAN,   // <-- faltava isso
+            ]);
 
             return $this->json($response, ['status' => true, 'msg' => 'OS atualizada com sucesso!', 'id' => (int) $id], 200);
         } catch (Exception $e) {
@@ -157,7 +194,6 @@ final class ServiceOrder extends Base
             return $this->json($response, ['status' => false, 'msg' => 'Erro ao atualizar: ' . $e->getMessage(), 'id' => 0], 500);
         }
     }
-
     public function delete($request, $response)
     {
         $form = $request->getParsedBody();
@@ -388,15 +424,74 @@ final class ServiceOrder extends Base
         return $this->json($response, ['results' => $results], 200);
     }
 
+    // ── Payment terms (modal de finalizar) ──────────────────────────────────────
+    // Lista as condições de pagamento disponíveis para popular o #payment-terms-list
+
+    public function paymentTerms($request, $response, $args)
+    {
+        $orderId = $args['id'] ?? null;
+
+        try {
+            $terms = DB::select('id, codigo, titulo, atalho')
+                ->from('payment_terms')
+                ->orderBy('titulo', 'ASC')
+                ->fetchAllAssociative();
+
+            $order = null;
+            if ($orderId) {
+                $order = DB::select('valor_total')->from('service_orders')
+                    ->where('id = :id')
+                    ->setParameter('id', $orderId, ParameterType::INTEGER)
+                    ->fetchAssociative();
+            }
+
+            $totalOS = (float) ($order['valor_total'] ?? 0);
+
+            $result = [];
+            foreach ($terms as $t) {
+                $rows = DB::select('parcela, intervalo')->from('installment')
+                    ->where('id_pagamento = :id')
+                    ->setParameter('id', $t['id'], ParameterType::INTEGER)
+                    ->orderBy('parcela', 'ASC')
+                    ->fetchAllAssociative();
+
+                $qtd = count($rows);
+                $parcelas = array_map(fn($r) => [
+                    'parcela'   => $r['parcela'],
+                    'intervalo' => $r['intervalo'],
+                    'valor'     => $qtd > 0 ? $totalOS / $qtd : $totalOS,
+                ], $rows);
+
+                $result[] = [
+                    'id'        => $t['id'],
+                    'codigo'    => $t['codigo'],
+                    'titulo'    => $t['titulo'],
+                    'atalho'    => $t['atalho'],
+                    'parcelas'  => $parcelas,
+                ];
+            }
+
+            return $this->json($response, ['status' => true, 'data' => $result], 200);
+        } catch (Exception $e) {
+            error_log('[ServiceOrder::paymentTerms] ' . $e->getMessage());
+            return $this->json($response, ['status' => false, 'msg' => 'Erro: ' . $e->getMessage(), 'data' => []], 500);
+        }
+    }
+
     // ── Finalize ──────────────────────────────────────────────────────────────
 
     public function finalize($request, $response)
     {
-        $form = $request->getParsedBody();
-        $id   = $form['id'] ?? null;
+        $form           = $request->getParsedBody();
+        $id             = $form['id'] ?? null;
+        $idPaymentTerms = $form['id_payment_terms'] ?? null;
 
         if (!$id) {
             return $this->json($response, ['status' => false, 'msg' => 'ID não informado', 'id' => 0], 403);
+        }
+
+        if (!$idPaymentTerms) {
+            return $this->json($response, ['status' => false, 'msg' => 'Selecione uma condição de pagamento', 'id' => 0], 400);
         }
 
         try {
@@ -409,7 +504,21 @@ final class ServiceOrder extends Base
                 return $this->json($response, ['status' => false, 'msg' => 'OS não pode ser concluída', 'id' => 0], 422);
             }
 
-            DB::connection()->update('service_orders', ['status' => 'concluida', 'atualizado_em' => $this->now()], ['id' => $id]);
+            $paymentTerm = DB::select('id')->from('payment_terms')
+                ->where('id = :id')
+                ->setParameter('id', $idPaymentTerms, ParameterType::INTEGER)
+                ->fetchAssociative();
+
+            if (!$paymentTerm) {
+                return $this->json($response, ['status' => false, 'msg' => 'Condição de pagamento inválida', 'id' => 0], 422);
+            }
+
+            DB::connection()->update('service_orders', [
+                'status'        => 'concluida',
+                'id_pagamento'  => (int) $idPaymentTerms,
+                'concluido_em'  => $this->now(),
+                'atualizado_em' => $this->now(),
+            ], ['id' => $id]);
 
             return $this->json($response, ['status' => true, 'msg' => 'OS concluída com sucesso!', 'id' => (int) $id], 200);
         } catch (Exception $e) {

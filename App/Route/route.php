@@ -122,6 +122,7 @@ $app->group('/os', function ($group) {
     $group->get('/detalhes/{id}',         ServiceOrder::class . ':details')->add(Middleware::web());
     $group->get('/buscar/produtos',       ServiceOrder::class . ':searchProducts')->add(Middleware::web());
     $group->get('/buscar/servicos',       ServiceOrder::class . ':searchServices')->add(Middleware::web());
+    $group->get('/{id}/payment-terms',    ServiceOrder::class . ':paymentTerms')->add(Middleware::web());
 
     $group->post('/listingdata',          ServiceOrder::class . ':listingdata')->add(Middleware::api());
     $group->post('/inserir',              ServiceOrder::class . ':insert')->add(Middleware::api());

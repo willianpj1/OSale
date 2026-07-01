@@ -32,6 +32,8 @@ final class ServiceOrders extends AbstractMigration
             ->addColumn('observacoes',         'text',      ['null' => true, 'default' => null])
             ->addColumn('valor_total',         'decimal',   ['precision' => 10, 'scale' => 2, 'null' => false, 'default' => '0.00'])
             // snapshot calculado ao concluir a OS
+            ->addColumn('id_pagamento',        'biginteger', ['signed' => false, 'null' => true, 'default' => null])
+            // vínculo com payment_terms — só é preenchido quando a OS é finalizada
             ->addColumn('aberto_em',           'timestamp', ['null' => false, 'default' => 'CURRENT_TIMESTAMP'])
             ->addColumn('concluido_em',        'timestamp', ['null' => true,  'default' => null])
             ->addColumn('excluido',            'boolean',   ['null' => false, 'default' => false])
@@ -53,12 +55,18 @@ final class ServiceOrders extends AbstractMigration
                 'update'     => 'CASCADE',
                 'constraint' => 'fk_service_orders_criado_por',
             ])
+            ->addForeignKey('id_pagamento', 'payment_terms', 'id', [
+                'delete'     => 'SET NULL',
+                'update'     => 'CASCADE',
+                'constraint' => 'fk_service_orders_id_pagamento',
+            ])
 
-            ->addIndex(['numero'],      ['unique' => true, 'name' => 'service_orders_numero_unique'])
-            ->addIndex(['customer_id'], ['name' => 'service_orders_customer_id_idx'])
-            ->addIndex(['user_id'],     ['name' => 'service_orders_user_id_idx'])
-            ->addIndex(['status'],      ['name' => 'service_orders_status_idx'])
-            ->addIndex(['excluido'],    ['name' => 'service_orders_excluido_idx'])
+            ->addIndex(['numero'],       ['unique' => true, 'name' => 'service_orders_numero_unique'])
+            ->addIndex(['customer_id'],  ['name' => 'service_orders_customer_id_idx'])
+            ->addIndex(['user_id'],      ['name' => 'service_orders_user_id_idx'])
+            ->addIndex(['status'],       ['name' => 'service_orders_status_idx'])
+            ->addIndex(['excluido'],     ['name' => 'service_orders_excluido_idx'])
+            ->addIndex(['id_pagamento'], ['name' => 'service_orders_id_pagamento_idx'])
 
             ->create();
     }

@@ -21,7 +21,7 @@
     color: var(--white);
 }
 
-.breadcrumb-item + .breadcrumb-item::before {
+.breadcrumb-item+.breadcrumb-item::before {
     color: var(--border);
 }
 
@@ -71,8 +71,8 @@ body .card-body.p-0 {
 }
 
 /* ── Inputs e Formulários ──────────────────────────────────────────────────── */
-body .form-floating > .form-control,
-body .form-floating > .form-select {
+body .form-floating>.form-control,
+body .form-floating>.form-select {
     background-color: var(--bg) !important;
     border: 1px solid var(--border);
     border-radius: 2px;
@@ -82,22 +82,22 @@ body .form-floating > .form-select {
     transition: border-color 0.2s ease;
 }
 
-body .form-floating > .form-control:focus,
-body .form-floating > .form-select:focus {
+body .form-floating>.form-control:focus,
+body .form-floating>.form-select:focus {
     background-color: var(--bg) !important;
     border-color: var(--white);
     color: var(--white) !important;
     box-shadow: none;
 }
 
-body .form-floating > .form-control:disabled {
+body .form-floating>.form-control:disabled {
     background-color: var(--surface) !important;
     border-color: var(--border);
     color: var(--muted) !important;
     opacity: 0.6;
 }
 
-body .form-floating > label {
+body .form-floating>label {
     font-family: 'DM Sans', sans-serif;
     font-size: 0.72rem;
     font-weight: 500;
@@ -106,14 +106,14 @@ body .form-floating > label {
     color: var(--muted);
 }
 
-body .form-floating > .form-control:not(:placeholder-shown) ~ label,
-body .form-floating > .form-control:focus ~ label,
-body .form-floating > .form-select ~ label {
+body .form-floating>.form-control:not(:placeholder-shown)~label,
+body .form-floating>.form-control:focus~label,
+body .form-floating>.form-select~label {
     color: var(--muted);
     opacity: 1;
 }
 
-body .form-floating > textarea.form-control {
+body .form-floating>textarea.form-control {
     height: auto;
     min-height: 80px;
 }
@@ -266,13 +266,13 @@ body .table tbody tr.selected td,
 body .table tbody tr:active td,
 body .table tbody tr.table-active td,
 body .table tbody tr[class*="selected"] td,
-table.dataTable tbody tr.selected > * {
+table.dataTable tbody tr.selected>* {
     background-color: var(--surface) !important;
     color: var(--white) !important;
     box-shadow: none !important;
 }
 
-body .table-bordered > :not(caption) > * > * {
+body .table-bordered> :not(caption)>*>* {
     border-color: var(--border);
 }
 
@@ -475,4 +475,26 @@ body .modal-footer {
 
 .btn-close:hover {
     opacity: 1;
+}
+
+/* ── Barra de ação fixa (rodapé) ───────────────────────────────────────────── */
+.os-action-bar-spacer {
+    height: 76px;
+}
+
+.os-action-bar {
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: var(--surface) !important;
+    border-top: 1px solid var(--border);
+    padding: 0.85rem 1.5rem;
+    box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.35);
+    display: flex;
+    justify-content: flex-end;
+}
+
+.os-action-bar .btn {
+    min-width: 170px;
+    justify-content: center;
 }

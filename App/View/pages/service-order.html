@@ -10,10 +10,13 @@
 {% endblock %}
 
 {% block main %}
+{% set readonly = id and order.status == 'concluida' %}
 <form id="form">
     <input type="hidden" id="action" name="action" value="{{ action }}">
     <input type="hidden" id="id" name="id" value="{{ id }}">
     <div class="row g-3">
+      <div class="col-lg-8">
+        <div class="row g-3">
 
         {# Cabeçalho da OS #}
         <div class="col-12">
@@ -40,7 +43,8 @@
                     <div class="row">
                         <div class="col-lg-6 col-md-6">
                             <div class="form-floating mb-3">
-                                <select class="form-select" id="customer_id" name="customer_id" required>
+                                <select class="form-select" id="customer_id" name="customer_id" required
+                                    {{ readonly ? 'disabled' : '' }}>
                                     <option value="">— Selecione —</option>
                                     {% for c in customers %}
                                     <option value="{{ c.id }}" {{ order.customer_id==c.id ? 'selected' : '' }}>
@@ -53,7 +57,8 @@
                         </div>
                         <div class="col-lg-3 col-md-3">
                             <div class="form-floating mb-3">
-                                <select class="form-select" id="user_id" name="user_id">
+                                <select class="form-select" id="user_id" name="user_id"
+                                    {{ readonly ? 'disabled' : '' }}>
                                     <option value="">— A definir —</option>
                                     {% for t in technicians %}
                                     <option value="{{ t.id }}" {{ order.user_id==t.id ? 'selected' : '' }}>
@@ -66,7 +71,8 @@
                         </div>
                         <div class="col-lg-3 col-md-3">
                             <div class="form-floating mb-3">
-                                <select class="form-select" id="prioridade" name="prioridade">
+                                <select class="form-select" id="prioridade" name="prioridade"
+                                    {{ readonly ? 'disabled' : '' }}>
                                     <option value="baixa" {{ order.prioridade=='baixa' ? 'selected' : '' }}>Baixa
                                     </option>
                                     <option value="normal" {{ order.prioridade=='normal' ? 'selected' : '' }}>Normal
@@ -81,7 +87,8 @@
                         {% if id %}
                         <div class="col-lg-3 col-md-3">
                             <div class="form-floating mb-3">
-                                <select class="form-select" id="status" name="status">
+                                <select class="form-select" id="status" name="status"
+                                    {{ readonly ? 'disabled' : '' }}>
                                     <option value="aberta" {{ order.status=='aberta' ? 'selected' : '' }}>Aberta
                                     </option>
                                     <option value="em_andamento" {{ order.status=='em_andamento' ? 'selected' : '' }}>Em
@@ -111,51 +118,54 @@
                         <div class="col-lg-4 col-md-6">
                             <div class="form-floating mb-3">
                                 <input type="text" class="form-control" id="equipamento" name="equipamento"
-                                    placeholder="Equipamento" value="{{ order.equipamento }}">
+                                    placeholder="Equipamento" value="{{ order.equipamento }}"
+                                    {{ readonly ? 'readonly' : '' }}>
                                 <label for="equipamento">Equipamento</label>
                             </div>
                         </div>
                         <div class="col-lg-4 col-md-6">
                             <div class="form-floating mb-3">
                                 <input type="text" class="form-control" id="marca" name="marca" placeholder="Marca"
-                                    value="{{ order.marca }}">
+                                    value="{{ order.marca }}" {{ readonly ? 'readonly' : '' }}>
                                 <label for="marca">Marca</label>
                             </div>
                         </div>
                         <div class="col-lg-4 col-md-6">
                             <div class="form-floating mb-3">
                                 <input type="text" class="form-control" id="modelo" name="modelo" placeholder="Modelo"
-                                    value="{{ order.modelo }}">
+                                    value="{{ order.modelo }}" {{ readonly ? 'readonly' : '' }}>
                                 <label for="modelo">Modelo</label>
                             </div>
                         </div>
                         <div class="col-lg-4 col-md-6">
                             <div class="form-floating mb-3">
                                 <input type="text" class="form-control" id="numero_serie" name="numero_serie"
-                                    placeholder="Número de série" value="{{ order.numero_serie }}">
+                                    placeholder="Número de série" value="{{ order.numero_serie }}"
+                                    {{ readonly ? 'readonly' : '' }}>
                                 <label for="numero_serie">Número de série</label>
                             </div>
                         </div>
                         <div class="col-lg-4 col-md-6">
                             <div class="form-floating mb-3">
                                 <textarea class="form-control" id="defeito_relatado" name="defeito_relatado"
-                                    placeholder="Defeito relatado"
-                                    style="height:80px">{{ order.defeito_relatado }}</textarea>
+                                    placeholder="Defeito relatado" style="height:80px"
+                                    {{ readonly ? 'readonly' : '' }}>{{ order.defeito_relatado }}</textarea>
                                 <label for="defeito_relatado">Defeito relatado</label>
                             </div>
                         </div>
                         <div class="col-lg-4 col-md-6">
                             <div class="form-floating mb-3">
                                 <textarea class="form-control" id="defeito_constatado" name="defeito_constatado"
-                                    placeholder="Defeito constatado"
-                                    style="height:80px">{{ order.defeito_constatado }}</textarea>
+                                    placeholder="Defeito constatado" style="height:80px"
+                                    {{ readonly ? 'readonly' : '' }}>{{ order.defeito_constatado }}</textarea>
                                 <label for="defeito_constatado">Defeito constatado</label>
                             </div>
                         </div>
                         <div class="col-12">
                             <div class="form-floating mb-3">
                                 <textarea class="form-control" id="observacoes" name="observacoes"
-                                    placeholder="Observações" style="height:80px">{{ order.observacoes }}</textarea>
+                                    placeholder="Observações" style="height:80px"
+                                    {{ readonly ? 'readonly' : '' }}>{{ order.observacoes }}</textarea>
                                 <label for="observacoes">Observações</label>
                             </div>
                         </div>
@@ -170,9 +180,11 @@
             <div class="card">
                 <div class="card-header d-flex align-items-center justify-content-between">
                     <span class="fw-semibold">Itens da OS</span>
+                    {% if not readonly %}
                     <button type="button" class="btn btn-success btn-sm" id="btn-add-item">
                         <i class="bi bi-plus-lg"></i> Adicionar item
                     </button>
+                    {% endif %}
                 </div>
                 <div class="card-body p-0">
                     <table class="table table-bordered table-hover mb-0" id="table-items">
@@ -183,7 +195,7 @@
                                 <th>Qtd</th>
                                 <th>Preço unit.</th>
                                 <th>Subtotal</th>
-                                <th>Ação</th>
+                                {% if not readonly %}<th>Ação</th>{% endif %}
                             </tr>
                         </thead>
                         <tbody>
@@ -194,34 +206,190 @@
                                 <td>{{ item.quantidade }}</td>
                                 <td>R$ {{ item.preco_unitario | number_format(2, ',', '.') }}</td>
                                 <td>R$ {{ item.subtotal | number_format(2, ',', '.') }}</td>
+                                {% if not readonly %}
                                 <td>
                                     <button type="button" class="btn btn-sm btn-danger"
                                         onclick="deleteItem({{ item.id }})">
                                         <i class="bi bi-trash"></i>
                                     </button>
                                 </td>
+                                {% endif %}
                             </tr>
                             {% endfor %}
                         </tbody>
                         <tfoot>
                             <tr>
                                 <td colspan="4" class="text-end fw-semibold">Total:</td>
-                                <td id="os-total" colspan="2" class="fw-semibold">
+                                <td id="os-total" colspan="{{ readonly ? 1 : 2 }}" class="fw-semibold">
                                     R$ {{ order.valor_total | number_format(2, ',', '.') }}
                                 </td>
                             </tr>
                         </tfoot>
                     </table>
-                    <div class="card-footer">
-                        <button id="insert" type="button" class="btn btn-success">
-                            <i class="bi bi-floppy"></i> Salvar
-                        </button>
-                    </div>
                 </div>
             </div>
         </div>
         {% endif %}
 
+        </div>
+      </div>
+
+      {# Resumo — coluna lateral, acompanha a altura de todo o formulário #}
+      {% if id %}
+      <div class="col-lg-4">
+        <div class="card h-100">
+            <div class="card-header">
+                <span class="fw-semibold"><i class="fa-solid fa-receipt me-1"></i> Resumo</span>
+            </div>
+            <div class="card-body">
+                <dl class="row mb-0">
+                    <dt class="col-7">Subtotal</dt>
+                    <dd class="col-5 text-end">R$ <span id="total_bruto">{{ order.valor_total | number_format(2, ',', '.') }}</span></dd>
+
+                    <dt class="col-7 pt-2">Desconto</dt>
+                    <dd class="col-5 text-end pt-2">
+                        <div class="input-group input-group-sm justify-content-end" style="max-width: 140px; margin-left: auto;">
+                            <span class="input-group-text" style="background-color: var(--bg); border: 1px solid var(--border); color: var(--muted);">%</span>
+                            <input type="number" id="desconto" class="form-control text-end"
+                                style="background-color: var(--bg); border: 1px solid var(--border); color: var(--white);"
+                                value="{{ order.desconto is defined and order.desconto is not null ? order.desconto : '0.00' }}"
+                                min="0" max="100" step="0.01" placeholder="0.00" {{ readonly ? 'disabled' : '' }}>
+                        </div>
+                    </dd>
+
+                    <dt class="col-7 pt-2">Acréscimo</dt>
+                    <dd class="col-5 text-end pt-2">
+                        <div class="input-group input-group-sm justify-content-end" style="max-width: 140px; margin-left: auto;">
+                            <span class="input-group-text" style="background-color: var(--bg); border: 1px solid var(--border); color: var(--muted);">%</span>
+                            <input type="number" id="acrescimo" class="form-control text-end"
+                                style="background-color: var(--bg); border: 1px solid var(--border); color: var(--white);"
+                                value="{{ order.acrescimo is defined and order.acrescimo is not null ? order.acrescimo : '0.00' }}"
+                                min="0" max="100" step="0.01" placeholder="0.00" {{ readonly ? 'disabled' : '' }}>
+                        </div>
+                    </dd>
+
+                    <dt class="col-7 pt-2 border-top mt-2" style="border-color: var(--border) !important;">Total</dt>
+                    <dd class="col-5 text-end pt-2 border-top mt-2 fw-bold fs-5" style="border-color: var(--border) !important;">
+                        R$ <span id="total_liquido">{{ order.valor_total | number_format(2, ',', '.') }}</span>
+                    </dd>
+                </dl>
+
+                {# Pagamento vinculado — só aparece se a OS já foi finalizada com uma condição #}
+                {% if payment %}
+                <hr style="border-color: var(--border);">
+                <div>
+                    <span class="fw-semibold" style="font-size: 0.7rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted);">
+                        <i class="fa-solid fa-money-bill-wave me-1"></i> Forma de pagamento
+                    </span>
+                    <div class="mt-2 fw-semibold">{{ payment.titulo ?: payment.codigo }}</div>
+
+                    {% if installments|length %}
+                    <table class="table table-sm mb-0 mt-2">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Intervalo</th>
+                                <th class="text-end">Valor</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for parcela in installments %}
+                            <tr>
+                                <td>{{ loop.index }}</td>
+                                <td>{{ parcela.intervalo ? parcela.intervalo ~ ' dias' : 'À vista' }}</td>
+                                <td class="text-end">R$ {{ parcela.valor | number_format(2, ',', '.') }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                    {% endif %}
+                </div>
+                {% endif %}
+            </div>
+        </div>
+      </div>
+      {% endif %}
+    </div>
+
+    {# Espaçador pra conteúdo não ficar escondido atrás da barra fixa #}
+    {% if not readonly %}<div class="os-action-bar-spacer"></div>{% endif %}
+
+    {# Barra de ação fixa no rodapé — some por completo se a OS estiver concluída #}
+    {% if not readonly %}
+    <div class="os-action-bar position-fixed" style="z-index: 1030;">
+        <button id="btn-action" type="button" class="btn btn-success" data-items-count="{{ items|length }}">
+            <i class="bi bi-floppy"></i>
+            <span id="btn-action-label">Salvar</span>
+        </button>
+    </div>
+    {% endif %}
+
+    <!-- ─── Modal: Condição de Pagamento (Finalizar OS) ─── -->
+    <div class="modal fade" id="modal-payment" tabindex="-1" aria-labelledby="modalPaymentLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header bg-success text-white">
+                    <h5 class="modal-title" id="modalPaymentLabel">
+                        <i class="fa-solid fa-money-bill-wave me-2"></i> Finalizar OS — Condição de Pagamento
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+
+                    <!-- Total da OS -->
+                    <div class="alert alert-info d-flex align-items-center gap-2 mb-3">
+                        <i class="fa-solid fa-circle-info"></i>
+                        <span>Total da OS: <strong>R$ <span id="modal-total-os">{{ order.valor_total | number_format(2, ',', '.') }}</span></strong></span>
+                    </div>
+
+                    <!-- Seleção da condição -->
+                    <div class="mb-4">
+                        <label class="form-label fw-bold">Selecione a condição de pagamento</label>
+                        <div id="payment-terms-list" class="d-flex flex-wrap gap-2">
+                            <div class="text-muted">
+                                <span class="spinner-border spinner-border-sm me-1"></span> Carregando...
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Parcelas (aparece após selecionar condição) -->
+                    <div id="installments-section" class="d-none">
+                        <hr>
+                        <h6 class="fw-bold mb-3">
+                            <i class="fa-solid fa-calendar-check me-1"></i> Parcelas
+                            <span class="badge bg-secondary ms-1" id="selected-term-name"></span>
+                        </h6>
+                        <div class="table-responsive">
+                            <table class="table table-bordered table-sm align-middle" id="installments-table">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th style="width:60px">#</th>
+                                        <th>Vencimento</th>
+                                        <th class="text-end">Valor</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="installments-tbody"></tbody>
+                                <tfoot>
+                                    <tr class="table-light fw-bold">
+                                        <td colspan="2" class="text-end">Total:</td>
+                                        <td class="text-end" id="installments-total">R$ 0,00</td>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
+                    </div>
+
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="fa-solid fa-xmark me-1"></i> Cancelar
+                    </button>
+                    <button type="button" class="btn btn-success" id="confirm-payment-btn" disabled>
+                        <i class="fa-solid fa-check me-1"></i> Confirmar e Finalizar OS
+                    </button>
+                </div>
+            </div>
+        </div>
     </div>
 
     <div class="modal fade" id="modal-item" tabindex="-1">
