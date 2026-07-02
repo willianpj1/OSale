@@ -480,3 +480,23 @@ window.deleteItem = async function (itemId) {
         $('button').prop('disabled', false);
     }
 };
+const inputDesconto = document.getElementById('modal-desconto');
+const inputAcrescimo = document.getElementById('modal-acrescimo');
+
+function zerarCampo(el) {
+    el.value = '0,00%';
+}
+
+inputDesconto.addEventListener('input', () => {
+    const valor = parseFloat(inputDesconto.value.replace(',', '.')) || 0;
+    if (valor > 0) {
+        zerarCampo(inputAcrescimo);
+    }
+});
+
+inputAcrescimo.addEventListener('input', () => {
+    const valor = parseFloat(inputAcrescimo.value.replace(',', '.')) || 0;
+    if (valor > 0) {
+        zerarCampo(inputDesconto);
+    }
+});
