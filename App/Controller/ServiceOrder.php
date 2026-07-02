@@ -61,47 +61,47 @@ final class ServiceOrder extends Base
             ->orderBy('nome', 'ASC')
             ->fetchAllAssociative();
 
-        // Se a OS já tem uma condição de pagamento vinculada, busca ela + as parcelas
-        $payment      = null;
-        $installments = [];
+        // Agora uma OS finalizada pode ter N formas de pagamento (split).
+        // Cada linha de service_order_payments vira um "bloco" com título +
+        // suas próprias parcelas calculadas sobre a fatia (valor) daquele split.
+        $paymentSplits = [];
 
-        if (!empty($order['id_pagamento'])) {
-            $payment = DB::select('*')->from('payment_terms')
-                ->where('id = :id')
-                ->setParameter('id', $order['id_pagamento'], ParameterType::INTEGER)
-                ->fetchAssociative();
+        if ($id) {
+            $splits = DB::select('sop.*, pt.titulo, pt.codigo, pt.atalho')
+                ->from('service_order_payments', 'sop')
+                ->leftJoin('sop', 'payment_terms', 'pt', 'pt.id = sop.id_pagamento')
+                ->where('sop.service_order_id = :id')
+                ->setParameter('id', $id, ParameterType::INTEGER)
+                ->orderBy('sop.id', 'ASC')
+                ->fetchAllAssociative();
 
-            if ($payment) {
-                // Usa só a quantidade de parcelas que foi de fato escolhida ao
-                // finalizar (ex: crédito em 7x) — não as 12 linhas inteiras
-                // cadastradas na condição.
-                $qtdParcelas = (int) ($order['parcelas'] ?? 1);
-
+            foreach ($splits as $split) {
                 $rows = DB::select('parcela, intervalo')->from('installment')
                     ->where('id_pagamento = :id')
-                    ->setParameter('id', $order['id_pagamento'], ParameterType::INTEGER)
+                    ->setParameter('id', $split['id_pagamento'], ParameterType::INTEGER)
                     ->orderBy('parcela', 'ASC')
-                    ->setMaxResults($qtdParcelas)
+                    ->setMaxResults((int) $split['parcelas'])
                     ->fetchAllAssociative();
 
-                // Usa o valor já negociado (com desconto/acréscimo) quando a OS foi
-                // finalizada; cai pro valor_total (subtotal) caso não exista ainda.
-                $totalOS      = (float) ($order['valor_liquido'] ?? $order['valor_total'] ?? 0);
-                $installments = $this->calcularParcelas($rows, $totalOS);
+                $paymentSplits[] = [
+                    'titulo'       => $split['titulo'] ?: $split['codigo'],
+                    'parcelas_qtd' => (int) $split['parcelas'],
+                    'valor'        => (float) $split['valor'],
+                    'installments' => $this->calcularParcelas($rows, (float) $split['valor']),
+                ];
             }
         }
 
         return $this->getTwig()
             ->render($response, $this->setView('service-order'), [
-                'titulo'       => 'Ordem de Serviço',
-                'id'           => $id,
-                'action'       => $action,
-                'order'        => $order,
-                'items'        => $items,
-                'customers'    => $customers,
-                'technicians'  => $technicians,
-                'payment'      => $payment,
-                'installments' => $installments,
+                'titulo'         => 'Ordem de Serviço',
+                'id'             => $id,
+                'action'         => $action,
+                'order'          => $order,
+                'items'          => $items,
+                'customers'      => $customers,
+                'technicians'    => $technicians,
+                'paymentSplits'  => $paymentSplits,
             ])
             ->withHeader('Content-Type', 'text/html')
             ->withStatus(200);
@@ -377,8 +377,6 @@ final class ServiceOrder extends Base
     }
 
     // ── Search ────────────────────────────────────────────────────────────────
-    // Usados pela DataTable do modal "Adicionar item" (service-order.js),
-    // que espera um array de objetos com as chaves 'id', 'nome' e 'preco'.
 
     public function searchProducts($request, $response)
     {
@@ -426,11 +424,8 @@ final class ServiceOrder extends Base
     }
 
     // ── Payment terms (modal de finalizar) ──────────────────────────────────────
-    // Lista as condições de pagamento disponíveis para popular o #payment-terms-list.
-    // Cada condição já vem com 'max_parcelas' (quantidade de linhas cadastradas
-    // em installment) — o front usa isso pra decidir se mostra o seletor 1x..Nx.
-    // Aceita desconto/acrescimo (%) via query string para recalcular o preview das
-    // parcelas em tempo real, sem persistir nada — a persistência só acontece em finalize().
+    // Sem mudanças na listagem das condições — cada "cartão" no modal continua
+    // representando uma forma de pagamento disponível, independente de split.
 
     public function paymentTerms($request, $response, $args)
     {
@@ -467,17 +462,12 @@ final class ServiceOrder extends Base
 
                 $maxParcelas = count($rows);
 
-                // Preview inicial (1x) — o front recalcula via installmentPreview()
-                // sempre que o usuário mudar a quantidade de parcelas escolhida.
-                $rowsUmaParcela = array_slice($rows, 0, 1);
-
                 $result[] = [
                     'id'           => $t['id'],
                     'codigo'       => $t['codigo'],
                     'titulo'       => $t['titulo'],
                     'atalho'       => $t['atalho'],
                     'max_parcelas' => $maxParcelas,
-                    'parcelas'     => $this->calcularParcelas($rowsUmaParcela, $totalOS),
                 ];
             }
 
@@ -495,33 +485,23 @@ final class ServiceOrder extends Base
         }
     }
 
-    // Devolve o preview de parcelas pra uma quantidade específica escolhida
-    // pelo usuário (ex: crédito em 7x). Usa só as N primeiras linhas de
-    // installment daquela condição — não persiste nada, é só preview.
+    // Preview de parcelas agora recebe o VALOR da fatia (não mais o total da OS),
+    // já que cada forma de pagamento no split pode cobrir só uma parte do total.
+    // Ex: split de R$4000 em 4x -> manda ?valor=4000&parcelas=4
 
     public function installmentPreview($request, $response, $args)
     {
-        $orderId = $args['id'] ?? null;
-        $query   = $request->getQueryParams();
+        $query = $request->getQueryParams();
 
         $idPaymentTerms = $query['id_payment_terms'] ?? null;
         $qtdParcelas    = max(1, (int) ($query['parcelas'] ?? 1));
-        $desconto       = isset($query['desconto'])  ? max(0, min(100, (float) $query['desconto']))  : 0.0;
-        $acrescimo      = isset($query['acrescimo']) ? max(0, min(100, (float) $query['acrescimo'])) : 0.0;
+        $valor          = (float) ($query['valor'] ?? 0);
 
-        if (!$orderId || !$idPaymentTerms) {
+        if (!$idPaymentTerms || $valor <= 0) {
             return $this->json($response, ['status' => false, 'msg' => 'Parâmetros inválidos', 'data' => []], 400);
         }
 
         try {
-            $order = DB::select('valor_total')->from('service_orders')
-                ->where('id = :id')
-                ->setParameter('id', $orderId, ParameterType::INTEGER)
-                ->fetchAssociative();
-
-            $subtotal = (float) ($order['valor_total'] ?? 0);
-            $totalOS  = round($subtotal - ($subtotal * $desconto / 100) + ($subtotal * $acrescimo / 100), 2);
-
             $rows = DB::select('parcela, intervalo')->from('installment')
                 ->where('id_pagamento = :id')
                 ->setParameter('id', $idPaymentTerms, ParameterType::INTEGER)
@@ -533,12 +513,12 @@ final class ServiceOrder extends Base
                 return $this->json($response, ['status' => false, 'msg' => 'Condição sem parcelas cadastradas', 'data' => []], 422);
             }
 
-            $parcelas = $this->calcularParcelas($rows, $totalOS);
+            $parcelas = $this->calcularParcelas($rows, $valor);
 
             return $this->json($response, [
                 'status' => true,
                 'data'   => $parcelas,
-                'total'  => $totalOS,
+                'total'  => $valor,
             ], 200);
         } catch (Exception $e) {
             error_log('[ServiceOrder::installmentPreview] ' . $e->getMessage());
@@ -547,25 +527,35 @@ final class ServiceOrder extends Base
     }
 
     // ── Finalize ──────────────────────────────────────────────────────────────
-    // Aqui é o único lugar onde a negociação (desconto/acréscimo) e a quantidade
-    // de parcelas escolhida são de fato validadas e persistidas — junto com o
-    // valor_liquido calculado sobre valor_total.
+    // Agora recebe uma LISTA de formas de pagamento (split). Cada item cobre uma
+    // fatia em R$ do valor_liquido total; a soma das fatias precisa bater
+    // exatamente com o valor_liquido calculado a partir de desconto/acréscimo
+    // (que continuam sendo aplicados uma única vez sobre o total da OS).
+    //
+    // form esperado:
+    // id                => id da OS
+    // desconto          => % (opcional)
+    // acrescimo         => % (opcional)
+    // payments          => JSON string: [{id_payment_terms, parcelas, valor}, ...]
 
     public function finalize($request, $response)
     {
-        $form           = $request->getParsedBody();
-        $id             = $form['id'] ?? null;
-        $idPaymentTerms = $form['id_payment_terms'] ?? null;
-        $qtdParcelas    = max(1, (int) ($form['parcelas'] ?? 1));
-        $desconto       = isset($form['desconto'])  ? max(0, min(100, (float) $form['desconto']))  : 0.0;
-        $acrescimo      = isset($form['acrescimo']) ? max(0, min(100, (float) $form['acrescimo'])) : 0.0;
+        $form      = $request->getParsedBody();
+        $id        = $form['id'] ?? null;
+        $desconto  = isset($form['desconto'])  ? max(0, min(100, (float) $form['desconto']))  : 0.0;
+        $acrescimo = isset($form['acrescimo']) ? max(0, min(100, (float) $form['acrescimo'])) : 0.0;
+
+        $payments = $form['payments'] ?? null;
+        if (is_string($payments)) {
+            $payments = json_decode($payments, true);
+        }
 
         if (!$id) {
             return $this->json($response, ['status' => false, 'msg' => 'ID não informado', 'id' => 0], 403);
         }
 
-        if (!$idPaymentTerms) {
-            return $this->json($response, ['status' => false, 'msg' => 'Selecione uma condição de pagamento', 'id' => 0], 400);
+        if (empty($payments) || !is_array($payments)) {
+            return $this->json($response, ['status' => false, 'msg' => 'Informe ao menos uma forma de pagamento', 'id' => 0], 400);
         }
 
         try {
@@ -578,39 +568,99 @@ final class ServiceOrder extends Base
                 return $this->json($response, ['status' => false, 'msg' => 'OS não pode ser concluída', 'id' => 0], 422);
             }
 
-            $paymentTerm = DB::select('id')->from('payment_terms')
-                ->where('id = :id')
-                ->setParameter('id', $idPaymentTerms, ParameterType::INTEGER)
-                ->fetchAssociative();
-
-            if (!$paymentTerm) {
-                return $this->json($response, ['status' => false, 'msg' => 'Condição de pagamento inválida', 'id' => 0], 422);
-            }
-
-            // Garante que a quantidade de parcelas escolhida realmente existe
-            // pra essa condição (não deixa mandar "20x" numa condição de 12x).
-            $maxParcelas = (int) DB::select('COUNT(*)')->from('installment')
-                ->where('id_pagamento = :id')
-                ->setParameter('id', $idPaymentTerms, ParameterType::INTEGER)
-                ->fetchOne();
-
-            if ($qtdParcelas > $maxParcelas) {
-                return $this->json($response, ['status' => false, 'msg' => 'Quantidade de parcelas inválida para essa condição', 'id' => 0], 422);
-            }
-
             $subtotal     = (float) $order['valor_total'];
             $valorLiquido = round($subtotal - ($subtotal * $desconto / 100) + ($subtotal * $acrescimo / 100), 2);
 
-            DB::connection()->update('service_orders', [
-                'status'        => 'concluida',
-                'id_pagamento'  => (int) $idPaymentTerms,
-                'parcelas'      => $qtdParcelas,
-                'desconto'      => $desconto,
-                'acrescimo'     => $acrescimo,
-                'valor_liquido' => $valorLiquido,
-                'concluido_em'  => $this->now(),
-                'atualizado_em' => $this->now(),
-            ], ['id' => $id]);
+            // Valida cada split e soma os valores em centavos pra evitar erro de
+            // ponto flutuante na comparação com valorLiquido.
+            $somaSplitsCentavos = 0;
+            $splitsValidados    = [];
+
+            foreach ($payments as $p) {
+                $idPaymentTerms = $p['id_payment_terms'] ?? null;
+                $qtdParcelas    = max(1, (int) ($p['parcelas'] ?? 1));
+                $valor          = round((float) ($p['valor'] ?? 0), 2);
+
+                if (!$idPaymentTerms || $valor <= 0) {
+                    return $this->json($response, ['status' => false, 'msg' => 'Forma de pagamento inválida no split', 'id' => 0], 422);
+                }
+
+                $paymentTerm = DB::select('id')->from('payment_terms')
+                    ->where('id = :id')
+                    ->setParameter('id', $idPaymentTerms, ParameterType::INTEGER)
+                    ->fetchAssociative();
+
+                if (!$paymentTerm) {
+                    return $this->json($response, ['status' => false, 'msg' => 'Condição de pagamento inválida', 'id' => 0], 422);
+                }
+
+                $maxParcelas = (int) DB::select('COUNT(*)')->from('installment')
+                    ->where('id_pagamento = :id')
+                    ->setParameter('id', $idPaymentTerms, ParameterType::INTEGER)
+                    ->fetchOne();
+
+                if ($qtdParcelas > $maxParcelas) {
+                    return $this->json($response, ['status' => false, 'msg' => 'Quantidade de parcelas inválida para uma das formas selecionadas', 'id' => 0], 422);
+                }
+
+                $somaSplitsCentavos += (int) round($valor * 100);
+                $splitsValidados[]   = [
+                    'id_pagamento' => (int) $idPaymentTerms,
+                    'parcelas'     => $qtdParcelas,
+                    'valor'        => $valor,
+                ];
+            }
+
+            $totalLiquidoCentavos = (int) round($valorLiquido * 100);
+
+            if ($somaSplitsCentavos !== $totalLiquidoCentavos) {
+                return $this->json($response, [
+                    'status' => false,
+                    'msg'    => 'A soma das formas de pagamento (R$ ' . number_format($somaSplitsCentavos / 100, 2, ',', '.')
+                                . ') precisa ser igual ao total da OS (R$ ' . number_format($valorLiquido, 2, ',', '.') . ')',
+                    'id'     => 0,
+                ], 422);
+            }
+
+            $conn = DB::connection();
+            $conn->beginTransaction();
+
+            try {
+                // Remove splits antigos, se essa OS já teve uma tentativa de finalização
+                // interrompida (mantém idempotente reenviar o finalize).
+                $conn->delete('service_order_payments', ['service_order_id' => (int) $id]);
+
+                foreach ($splitsValidados as $split) {
+                    $conn->insert('service_order_payments', [
+                        'service_order_id' => (int) $id,
+                        'id_pagamento'      => $split['id_pagamento'],
+                        'parcelas'          => $split['parcelas'],
+                        'valor'             => $split['valor'],
+                        'criado_em'         => $this->now(),
+                    ]);
+                }
+
+                // Mantém id_pagamento/parcelas na própria OS como atalho quando há
+                // uma única forma (facilita telas/relatórios simples que ainda
+                // olham direto pra service_orders); em split fica null.
+                $unicaForma = count($splitsValidados) === 1;
+
+                $conn->update('service_orders', [
+                    'status'        => 'concluida',
+                    'id_pagamento'  => $unicaForma ? $splitsValidados[0]['id_pagamento'] : null,
+                    'parcelas'      => $unicaForma ? $splitsValidados[0]['parcelas']     : null,
+                    'desconto'      => $desconto,
+                    'acrescimo'     => $acrescimo,
+                    'valor_liquido' => $valorLiquido,
+                    'concluido_em'  => $this->now(),
+                    'atualizado_em' => $this->now(),
+                ], ['id' => $id]);
+
+                $conn->commit();
+            } catch (Exception $e) {
+                $conn->rollBack();
+                throw $e;
+            }
 
             return $this->json($response, ['status' => true, 'msg' => 'OS concluída com sucesso!', 'id' => (int) $id], 200);
         } catch (Exception $e) {
@@ -621,15 +671,6 @@ final class ServiceOrder extends Base
 
     // ── Helpers ───────────────────────────────────────────────────────────────
 
-    /**
-     * Divide $total em parcelas iguais (uma por linha de $rows), arredondando
-     * cada uma para 2 casas decimais e jogando a sobra de centavos (resultante
-     * do arredondamento) na última parcela — garante que soma(parcelas) === $total
-     * sempre, mesmo quando a divisão não é exata (ex: 47.04 / 3).
-     *
-     * @param array $rows Lista de linhas com 'parcela' e 'intervalo'
-     * @return array Lista de parcelas com 'parcela', 'intervalo' e 'valor'
-     */
     private function calcularParcelas(array $rows, float $total): array
     {
         $qtd = count($rows);
@@ -644,8 +685,6 @@ final class ServiceOrder extends Base
 
         foreach ($rows as $i => $r) {
             $isUltima = ($i === $qtd - 1);
-            // a última parcela recebe o que sobrar, não o valor base —
-            // isso absorve os centavos perdidos no arredondamento das anteriores
             $valor = $isUltima ? round($total - $somaParcial, 2) : $valorBase;
 
             $parcelas[] = [

@@ -8,8 +8,6 @@ const BtnAction = document.getElementById('btn-action');
 const BtnActionLabel = document.getElementById('btn-action-label');
 const itemsCount = parseInt(BtnAction?.dataset.itemsCount ?? '0', 10);
 
-// ── Helper: o Requests.post() só manda o que estiver em setBody/setForm,
-// então pra mandar dados soltos montamos um URLSearchParams manualmente.
 async function postData(url, data) {
     const params = new URLSearchParams();
     Object.entries(data).forEach(([key, value]) => params.append(key, value));
@@ -59,16 +57,16 @@ async function applyChanges({ silent = false } = {}) {
     }
 }
 
-// ── Modal de pagamento (Finalizar OS) ─────────────────────────────────────────
+// ── Modal de pagamento (Finalizar OS) — agora com SPLIT ──────────────────────
 
-let selectedPaymentTermId = null;
-let selectedParcelas = 1;
-let paymentTermsData = [];
+let paymentTermsData = [];   // condições disponíveis (com max_parcelas)
+let splits = [];             // [{id_payment_terms, titulo, parcelas, valor}]
+let totalLiquido = 0;
+let pendingTerm = null;      // condição selecionada no formulário de "adicionar"
 
 function fmtBRL(value) {
     return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
 }
-
 function fmtNumber(value) {
     return new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(value);
 }
@@ -86,6 +84,7 @@ function applyMoneyMask(input) {
     };
     input.addEventListener('input', format);
     input._maskFormat = format;
+    return format;
 }
 
 function setMoneyValue(input, value) {
@@ -104,10 +103,77 @@ function applyPercentMask(input, max = 100) {
     input.addEventListener('input', format);
     format();
 }
+
 function getNegotiationValues() {
     const desconto = parseFloat(document.getElementById('modal-desconto')?.dataset.rawValue) || 0;
     const acrescimo = parseFloat(document.getElementById('modal-acrescimo')?.dataset.rawValue) || 0;
     return { desconto, acrescimo };
+}
+
+// soma em centavos pra não sofrer com ponto flutuante
+function somaSplitsCentavos() {
+    return splits.reduce((acc, s) => acc + Math.round(s.valor * 100), 0);
+}
+
+function saldoRestante() {
+    const totalCentavos = Math.round(totalLiquido * 100);
+    return (totalCentavos - somaSplitsCentavos()) / 100;
+}
+
+function renderSaldo() {
+    const restante = saldoRestante();
+    const el = document.getElementById('saldo-restante');
+    const alertEl = document.getElementById('saldo-alert');
+
+    el.textContent = fmtBRL(Math.max(restante, 0));
+
+    alertEl.classList.remove('alert-info', 'alert-success', 'alert-danger');
+    if (Math.abs(restante) < 0.005) {
+        alertEl.classList.add('alert-success');
+    } else if (restante < 0) {
+        alertEl.classList.add('alert-danger');
+        el.textContent = '- ' + fmtBRL(Math.abs(restante));
+    } else {
+        alertEl.classList.add('alert-info');
+    }
+
+    document.getElementById('confirm-payment-btn').disabled = !(Math.abs(restante) < 0.005 && splits.length > 0);
+}
+
+function renderSplitTable() {
+    const tbody = document.getElementById('split-tbody');
+    tbody.innerHTML = '';
+
+    if (splits.length === 0) {
+        tbody.innerHTML = '<tr id="split-empty-row"><td colspan="4" class="text-center text-muted py-2">Nenhuma forma adicionada ainda.</td></tr>';
+        return;
+    }
+
+    splits.forEach((s, index) => {
+        const parcelas = s.installments && s.installments.length ? s.installments : [{ intervalo: null, valor: s.valor }];
+
+        parcelas.forEach((p, pIndex) => {
+            const tr = document.createElement('tr');
+            const isFirstRow = pIndex === 0;
+
+            tr.innerHTML = `
+                <td>${isFirstRow ? s.titulo : ''}</td>
+                <td>${parcelas.length > 1 ? `${pIndex + 1}/${parcelas.length}` : 'À vista'}${p.intervalo ? ` <span class="text-muted">(${p.intervalo}d)</span>` : ''}</td>
+                <td class="text-end">${fmtBRL(p.valor)}</td>
+                <td class="text-center">
+                    ${isFirstRow ? `<button type="button" class="btn btn-sm btn-danger btn-remove-split" data-index="${index}"><i class="fa-solid fa-trash"></i></button>` : ''}
+                </td>`;
+            tbody.appendChild(tr);
+        });
+    });
+
+    tbody.querySelectorAll('.btn-remove-split').forEach(btn => {
+        btn.addEventListener('click', () => {
+            splits.splice(parseInt(btn.dataset.index, 10), 1);
+            renderSplitTable();
+            renderSaldo();
+        });
+    });
 }
 
 function renderPaymentTerms(terms) {
@@ -122,17 +188,16 @@ function renderPaymentTerms(terms) {
     terms.forEach(term => {
         const btn = document.createElement('button');
         btn.type = 'button';
-        btn.className = 'btn btn-secondary';
+        btn.className = 'btn btn-secondary btn-sm';
         btn.textContent = term.titulo || term.codigo || `Condição #${term.id}`;
         btn.dataset.termId = term.id;
-        btn.addEventListener('click', () => selectPaymentTerm(term, btn));
+        btn.addEventListener('click', () => selectTermForNewSplit(term, btn));
         list.appendChild(btn);
     });
 }
 
-function selectPaymentTerm(term, btnEl) {
-    selectedPaymentTermId = term.id;
-    selectedParcelas = 1;
+function selectTermForNewSplit(term, btnEl) {
+    pendingTerm = term;
 
     document.querySelectorAll('#payment-terms-list .btn').forEach(b => {
         b.classList.remove('btn-primary');
@@ -141,27 +206,33 @@ function selectPaymentTerm(term, btnEl) {
     btnEl.classList.remove('btn-secondary');
     btnEl.classList.add('btn-primary');
 
-    document.getElementById('selected-term-name').textContent = term.titulo || term.codigo || '';
+    document.getElementById('add-split-form').classList.remove('d-none');
 
-    renderParcelasSelector(term);
-    loadInstallmentPreview();
+    const valorInput = document.getElementById('split-valor');
+    setMoneyValue(valorInput, Math.max(saldoRestante(), 0));
 
-    document.getElementById('confirm-payment-btn').disabled = false;
+    renderParcelasSelectorForPending(term);
 }
 
-function renderParcelasSelector(term) {
-    const wrap = document.getElementById('parcelas-selector-wrap');
-    const selectorEl = document.getElementById('parcelas-selector');
-    selectorEl.innerHTML = '';
+let pendingParcelas = 1;
 
-    const maxParcelas = term.max_parcelas || (term.parcelas?.length ?? 1);
+function renderParcelasSelectorForPending(term) {
+    const wrap = document.getElementById('split-parcelas-wrap');
+    const selectorEl = document.getElementById('split-parcelas-selector');
+    selectorEl.innerHTML = '';
+    pendingParcelas = 1;
+
+    const maxParcelas = term.max_parcelas || 1;
+    const valorBadge = document.getElementById('split-valor-step-badge');
 
     if (maxParcelas <= 1) {
         wrap.classList.add('d-none');
+        if (valorBadge) valorBadge.textContent = '2';
         return;
     }
 
     wrap.classList.remove('d-none');
+    if (valorBadge) valorBadge.textContent = '3';
 
     for (let i = 1; i <= maxParcelas; i++) {
         const btn = document.createElement('button');
@@ -170,70 +241,85 @@ function renderParcelasSelector(term) {
         btn.textContent = `${i}x`;
         btn.dataset.parcelas = i;
         btn.addEventListener('click', () => {
-            selectedParcelas = i;
+            pendingParcelas = i;
             selectorEl.querySelectorAll('button').forEach(b => {
                 b.classList.remove('btn-primary');
                 b.classList.add('btn-outline-secondary');
             });
             btn.classList.remove('btn-outline-secondary');
             btn.classList.add('btn-primary');
-            loadInstallmentPreview();
         });
         selectorEl.appendChild(btn);
     }
 }
 
-async function loadInstallmentPreview() {
-    if (!selectedPaymentTermId) return;
-
-    const orderId = Id.value;
-    const { desconto, acrescimo } = getNegotiationValues();
-
-    const section = document.getElementById('installments-section');
-    const tbody = document.getElementById('installments-tbody');
-    const totalEl = document.getElementById('installments-total');
-
-    const requests = new Requests();
-    try {
-        const url = `/os/${orderId}/installment-preview?id_payment_terms=${selectedPaymentTermId}&parcelas=${selectedParcelas}&desconto=${desconto}&acrescimo=${acrescimo}`;
-        const response = await requests.get(url);
-
-        if (!response.status) {
-            section.classList.add('d-none');
-            return;
-        }
-
-        tbody.innerHTML = '';
-        let total = 0;
-
-        response.data.forEach((p, index) => {
-            total += p.valor;
-            const tr = document.createElement('tr');
-            tr.innerHTML = `
-                <td>${index + 1}</td>
-                <td>${p.intervalo ? `${p.intervalo} dias` : 'À vista'}</td>
-                <td class="text-end">${fmtBRL(p.valor)}</td>
-            `;
-            tbody.appendChild(tr);
-        });
-
-        totalEl.textContent = fmtBRL(total);
-        section.classList.remove('d-none');
-    } catch (error) {
-        section.classList.add('d-none');
-    }
+function resetAddSplitForm() {
+    pendingTerm = null;
+    pendingParcelas = 1;
+    document.getElementById('add-split-form').classList.add('d-none');
+    document.getElementById('split-parcelas-wrap').classList.add('d-none');
+    document.querySelectorAll('#payment-terms-list .btn').forEach(b => {
+        b.classList.remove('btn-primary');
+        b.classList.add('btn-secondary');
+    });
 }
+
+document.getElementById('btn-usar-restante')?.addEventListener('click', () => {
+    const valorInput = document.getElementById('split-valor');
+    setMoneyValue(valorInput, Math.max(saldoRestante(), 0));
+});
+
+document.getElementById('btn-add-split')?.addEventListener('click', async () => {
+    if (!pendingTerm) return;
+
+    const valorInput = document.getElementById('split-valor');
+    const valor = parseFloat(valorInput.dataset.rawValue) || 0;
+    const addBtn = document.getElementById('btn-add-split');
+
+    if (valor <= 0) {
+        Swal.fire({ icon: 'error', title: 'Atenção', text: 'Informe um valor maior que zero.', timer: 2500, timerProgressBar: true });
+        return;
+    }
+
+    if (valor - saldoRestante() > 0.005) {
+        Swal.fire({ icon: 'error', title: 'Atenção', text: `Esse valor ultrapassa o saldo restante (${fmtBRL(saldoRestante())}).`, timer: 3000, timerProgressBar: true });
+        return;
+    }
+
+    addBtn.disabled = true;
+
+    let installments = [];
+    try {
+        const requests = new Requests();
+        const url = `/os/${Id.value}/installment-preview?id_payment_terms=${pendingTerm.id}&parcelas=${pendingParcelas}&valor=${valor}`;
+        const preview = await requests.get(url);
+        if (preview.status) {
+            installments = preview.data;
+        }
+    } catch (error) {
+        // se o preview falhar, segue só com o valor total — o backend valida de qualquer forma no confirm
+    }
+
+    splits.push({
+        id_payment_terms: pendingTerm.id,
+        titulo: pendingTerm.titulo || pendingTerm.codigo,
+        parcelas: pendingParcelas,
+        valor,
+        installments,
+    });
+
+    addBtn.disabled = false;
+    renderSplitTable();
+    renderSaldo();
+    resetAddSplitForm();
+});
 
 async function loadPaymentTerms() {
     const orderId = Id.value;
     const list = document.getElementById('payment-terms-list');
     list.innerHTML = '<div class="text-muted"><span class="spinner-border spinner-border-sm me-1"></span> Carregando...</div>';
 
-    document.getElementById('installments-section').classList.add('d-none');
-    document.getElementById('parcelas-selector-wrap').classList.add('d-none');
-    document.getElementById('confirm-payment-btn').disabled = true;
-    selectedPaymentTermId = null;
-    selectedParcelas = 1;
+    resetAddSplitForm();
 
     const { desconto, acrescimo } = getNegotiationValues();
 
@@ -247,26 +333,35 @@ async function loadPaymentTerms() {
         paymentTermsData = response.data || [];
         renderPaymentTerms(paymentTermsData);
 
+        totalLiquido = response.total_liquido;
+
         document.getElementById('modal-subtotal').textContent = fmtNumber(response.subtotal);
         document.getElementById('modal-total-os').textContent = fmtNumber(response.total_liquido);
+
+        renderSaldo();
     } catch (error) {
         list.innerHTML = '<div class="text-danger">Erro ao carregar condições de pagamento.</div>';
     }
 }
 
 async function confirmPayment() {
-    if (!selectedPaymentTermId) return;
+    if (splits.length === 0 || Math.abs(saldoRestante()) >= 0.005) return;
 
     $('#modal-payment button').prop('disabled', true);
     const { desconto, acrescimo } = getNegotiationValues();
 
+    const payments = splits.map(s => ({
+        id_payment_terms: s.id_payment_terms,
+        parcelas: s.parcelas,
+        valor: s.valor,
+    }));
+
     try {
         const response = await postData('/os/concluir', {
             id: Id.value,
-            id_payment_terms: selectedPaymentTermId,
-            parcelas: selectedParcelas,
             desconto,
             acrescimo,
+            payments: JSON.stringify(payments),
         });
 
         if (!response.status) {
@@ -288,18 +383,51 @@ const modalPaymentEl = document.getElementById('modal-payment');
 if (modalPaymentEl) {
     applyPercentMask(document.getElementById('modal-desconto'));
     applyPercentMask(document.getElementById('modal-acrescimo'));
+    applyMoneyMask(document.getElementById('split-valor'));
 
-    modalPaymentEl.addEventListener('show.bs.modal', loadPaymentTerms);
+    modalPaymentEl.addEventListener('show.bs.modal', () => {
+        splits = [];
+        renderSplitTable();
+        loadPaymentTerms();
+    });
+
     document.getElementById('confirm-payment-btn')?.addEventListener('click', confirmPayment);
 
+    // Mudar desconto/acréscimo altera o total_liquido -> zera o split, pois os
+    // valores já alocados deixariam de bater com o novo total.
     let negotiationDebounce = null;
     ['modal-desconto', 'modal-acrescimo'].forEach(id => {
         document.getElementById(id)?.addEventListener('input', () => {
             clearTimeout(negotiationDebounce);
-            negotiationDebounce = setTimeout(loadPaymentTerms, 400);
+            negotiationDebounce = setTimeout(() => {
+                if (splits.length > 0) {
+                    Swal.fire({ icon: 'info', title: 'Split reiniciado', text: 'A negociação mudou o total da OS — refaça a divisão das formas de pagamento.', timer: 3000, timerProgressBar: true });
+                }
+                splits = [];
+                renderSplitTable();
+                loadPaymentTerms();
+            }, 400);
         });
     });
 }
+
+const inputDesconto = document.getElementById('modal-desconto');
+const inputAcrescimo = document.getElementById('modal-acrescimo');
+
+function zerarCampo(el) {
+    el.value = '0,00%';
+    el.dataset.rawValue = '0.00';
+}
+
+inputDesconto?.addEventListener('input', () => {
+    const valor = parseFloat(inputDesconto.dataset.rawValue) || 0;
+    if (valor > 0) zerarCampo(inputAcrescimo);
+});
+
+inputAcrescimo?.addEventListener('input', () => {
+    const valor = parseFloat(inputAcrescimo.dataset.rawValue) || 0;
+    if (valor > 0) zerarCampo(inputDesconto);
+});
 
 // ── Estado do botão de ação ──────────────────────────────────────────────────
 
@@ -480,23 +608,3 @@ window.deleteItem = async function (itemId) {
         $('button').prop('disabled', false);
     }
 };
-const inputDesconto = document.getElementById('modal-desconto');
-const inputAcrescimo = document.getElementById('modal-acrescimo');
-
-function zerarCampo(el) {
-    el.value = '0,00%';
-}
-
-inputDesconto.addEventListener('input', () => {
-    const valor = parseFloat(inputDesconto.value.replace(',', '.')) || 0;
-    if (valor > 0) {
-        zerarCampo(inputAcrescimo);
-    }
-});
-
-inputAcrescimo.addEventListener('input', () => {
-    const valor = parseFloat(inputAcrescimo.value.replace(',', '.')) || 0;
-    if (valor > 0) {
-        zerarCampo(inputDesconto);
-    }
-});

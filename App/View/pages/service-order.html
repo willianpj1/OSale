@@ -241,8 +241,7 @@
             </div>
         </div>
 
-        {# Resumo — coluna lateral, acompanha a altura de todo o formulário.
-        Aparece mesmo antes de salvar a OS — antes disso só mostra R$ 0,00. #}
+        {# Resumo — coluna lateral #}
         <div class="col-lg-4">
             <div class="card h-100">
                 <div class="card-header">
@@ -255,10 +254,7 @@
                                 number_format(2,
                                 ',', '.') }}</span></dd>
 
-                        {# Desconto/acréscimo só existem depois que a OS foi negociada e
-                        finalizada (não são editáveis aqui — isso acontece no modal
-                        de "Finalizar OS"). #}
-                        {% if payment %}
+                        {% if paymentSplits|length %}
                         <dt class="col-7 pt-2">Desconto</dt>
                         <dd class="col-5 text-end pt-2">
                             {{ order.desconto and order.desconto > 0 ? order.desconto | number_format(2, ',', '.') ~ '%'
@@ -282,32 +278,32 @@
                         </dd>
                     </dl>
 
-                    {# Pagamento vinculado — só aparece se a OS já foi finalizada com uma condição #}
-                    {% if payment %}
+                    {# Formas de pagamento vinculadas — agora é uma LISTA (split),
+                    cada bloco com seu título + suas próprias parcelas. #}
+                    {% if paymentSplits|length %}
                     <hr style="border-color: var(--border);">
-                    <div>
-                        <span class="fw-semibold"
-                            style="font-size: 0.7rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted);">
-                            <i class="fa-solid fa-money-bill-wave me-1"></i> Forma de pagamento
-                        </span>
-                        <div class="mt-2 fw-semibold">
-                            {{ payment.titulo ?: payment.codigo }}
-                            {% if order.parcelas and order.parcelas > 1 %}
-                            <span class="badge bg-secondary ms-1">{{ order.parcelas }}x</span>
-                            {% endif %}
+                    <span class="fw-semibold d-block mb-2"
+                        style="font-size: 0.7rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted);">
+                        <i class="fa-solid fa-money-bill-wave me-1"></i> Formas de pagamento
+                    </span>
+
+                    {% for split in paymentSplits %}
+                    <div class="mb-3 pb-2 {{ not loop.last ? 'border-bottom' : '' }}"
+                        style="border-color: var(--border) !important;">
+                        <div class="d-flex justify-content-between">
+                            <span class="fw-semibold">
+                                {{ split.titulo }}
+                                {% if split.parcelas_qtd > 1 %}
+                                <span class="badge bg-secondary ms-1">{{ split.parcelas_qtd }}x</span>
+                                {% endif %}
+                            </span>
+                            <span>R$ {{ split.valor | number_format(2, ',', '.') }}</span>
                         </div>
 
-                        {% if installments|length %}
+                        {% if split.installments|length > 1 %}
                         <table class="table table-sm mb-0 mt-2">
-                            <thead>
-                                <tr>
-                                    <th>#</th>
-                                    <th>Intervalo</th>
-                                    <th class="text-end">Valor</th>
-                                </tr>
-                            </thead>
                             <tbody>
-                                {% for parcela in installments %}
+                                {% for parcela in split.installments %}
                                 <tr>
                                     <td>{{ loop.index }}</td>
                                     <td>{{ parcela.intervalo ? parcela.intervalo ~ ' dias' : 'À vista' }}</td>
@@ -318,16 +314,15 @@
                         </table>
                         {% endif %}
                     </div>
+                    {% endfor %}
                     {% endif %}
                 </div>
             </div>
         </div>
     </div>
 
-    {# Espaçador pra conteúdo não ficar escondido atrás da barra fixa #}
     {% if not readonly %}<div class="os-action-bar-spacer"></div>{% endif %}
 
-    {# Barra de ação fixa no rodapé — some por completo se a OS estiver concluída #}
     {% if not readonly %}
     <div class="os-action-bar position-fixed" style="z-index: 1030;">
         <button id="btn-action" type="button" class="btn btn-success" data-items-count="{{ items|length }}">
@@ -337,13 +332,13 @@
     </div>
     {% endif %}
 
-    <!-- ─── Modal: Condição de Pagamento (Finalizar OS) ─── -->
+    <!-- ─── Modal: Condição de Pagamento (Finalizar OS) — agora com SPLIT ─── -->
     <div class="modal fade" id="modal-payment" tabindex="-1" aria-labelledby="modalPaymentLabel" aria-hidden="true">
         <div class="modal-dialog modal-lg">
             <div class="modal-content">
                 <div class="modal-header bg-success text-white">
                     <h5 class="modal-title" id="modalPaymentLabel">
-                        <i class="fa-solid fa-money-bill-wave me-2"></i> Finalizar OS — Condição de Pagamento
+                        <i class="fa-solid fa-money-bill-wave me-2"></i> Finalizar OS — Formas de Pagamento
                     </h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
@@ -353,17 +348,15 @@
                     <div class="alert alert-info mb-3">
                         <div class="d-flex align-items-center gap-2">
                             <i class="fa-solid fa-circle-info"></i>
-                            <span>Subtotal da OS: <strong>R$ <span id="modal-subtotal">{{ order.valor_total |
-                                        number_format(2, ',', '.') }}</span></strong></span>
+                            <span>Subtotal da OS: <strong>R$ <span id="modal-subtotal">0,00</span></strong></span>
                         </div>
                         <div class="d-flex align-items-center gap-2 mt-1">
                             <i class="fa-solid fa-circle-info"></i>
-                            <span>Total com negociação: <strong>R$ <span id="modal-total-os">{{ order.valor_total |
-                                        number_format(2, ',', '.') }}</span></strong></span>
+                            <span>Total com negociação: <strong>R$ <span id="modal-total-os">0,00</span></strong></span>
                         </div>
                     </div>
 
-                    <!-- Negociação: desconto / acréscimo -->
+                    <!-- Negociação: desconto / acréscimo (única, sobre o total) -->
                     <div class="mb-4">
                         <label class="form-label fw-bold">Negociação</label>
                         <div class="row g-2">
@@ -390,47 +383,81 @@
                         </div>
                     </div>
 
-                    <!-- Seleção da condição -->
-                    <div class="mb-4">
-                        <label class="form-label fw-bold">Selecione a condição de pagamento</label>
-                        <div id="payment-terms-list" class="d-flex flex-wrap gap-2">
-                            <div class="text-muted">
-                                <span class="spinner-border spinner-border-sm me-1"></span> Carregando...
-                            </div>
+                    <!-- Saldo restante a alocar -->
+                    <div class="alert mb-3 d-flex align-items-center justify-content-between" id="saldo-alert">
+                        <span><i class="fa-solid fa-scale-balanced me-1"></i> Valor a alocar:</span>
+                        <strong id="saldo-restante">R$ 0,00</strong>
+                    </div>
+
+                    <!-- Formas já adicionadas ao split -->
+                    <div class="mb-3" id="split-list-wrap">
+                        <label class="form-label fw-bold mb-2">Formas de pagamento adicionadas</label>
+                        <div class="table-responsive">
+                            <table class="table table-sm table-bordered align-middle mb-0" id="split-table">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Forma</th>
+                                        <th style="width:90px">Parcelas</th>
+                                        <th style="width:130px" class="text-end">Valor</th>
+                                        <th style="width:50px"></th>
+                                    </tr>
+                                </thead>
+                                <tbody id="split-tbody">
+                                    <tr id="split-empty-row">
+                                        <td colspan="4" class="text-center text-muted py-2">Nenhuma forma adicionada
+                                            ainda.</td>
+                                    </tr>
+                                </tbody>
+                            </table>
                         </div>
                     </div>
 
-                    <!-- Seletor de parcelas — só aparece quando a condição selecionada
-                         permite mais de 1 parcela (ex: Cartão de Crédito, 1x a 12x) -->
-                    <div class="mb-4 d-none" id="parcelas-selector-wrap">
-                        <label class="form-label fw-bold">Parcelar em</label>
-                        <div id="parcelas-selector" class="d-flex flex-wrap gap-1"></div>
-                    </div>
+                    <hr>
 
-                    <!-- Parcelas (aparece após selecionar condição) -->
-                    <div id="installments-section" class="d-none">
-                        <hr>
-                        <h6 class="fw-bold mb-3">
-                            <i class="fa-solid fa-calendar-check me-1"></i> Parcelas
-                            <span class="badge bg-secondary ms-1" id="selected-term-name"></span>
-                        </h6>
-                        <div class="table-responsive">
-                            <table class="table table-bordered table-sm align-middle" id="installments-table">
-                                <thead class="table-light">
-                                    <tr>
-                                        <th style="width:60px">#</th>
-                                        <th>Vencimento</th>
-                                        <th class="text-end">Valor</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="installments-tbody"></tbody>
-                                <tfoot>
-                                    <tr class="table-light fw-bold">
-                                        <td colspan="2" class="text-end">Total:</td>
-                                        <td class="text-end" id="installments-total">R$ 0,00</td>
-                                    </tr>
-                                </tfoot>
-                            </table>
+                    <!-- Adicionar nova forma ao split -->
+                    <div class="card" style="background-color: var(--bg); border: 1px solid var(--border);">
+                        <div class="card-body">
+                            <div class="fw-bold mb-2">
+                                <span class="badge bg-secondary me-1">1</span> Forma de pagamento
+                            </div>
+                            <div id="payment-terms-list" class="d-flex flex-wrap gap-2 mb-3">
+                                <div class="text-muted">
+                                    <span class="spinner-border spinner-border-sm me-1"></span> Carregando...
+                                </div>
+                            </div>
+
+                            <div id="add-split-form" class="d-none">
+
+                                <div class="d-none mb-3" id="split-parcelas-wrap">
+                                    <div class="fw-bold mb-2">
+                                        <span class="badge bg-secondary me-1">2</span> Parcelar em
+                                    </div>
+                                    <div id="split-parcelas-selector" class="d-flex flex-wrap gap-2"></div>
+                                </div>
+
+                                <div class="mb-3">
+                                    <div class="fw-bold mb-2">
+                                        <span class="badge bg-secondary me-1" id="split-valor-step-badge">2</span>
+                                        Valor pago nessa forma
+                                    </div>
+                                    <div class="input-group">
+                                        <span class="input-group-text"
+                                            style="background-color: var(--bg); border: 1px solid var(--border); color: var(--muted);">R$</span>
+                                        <input type="text" inputmode="numeric" id="split-valor" class="form-control"
+                                            style="background-color: var(--bg); border: 1px solid var(--border); color: var(--white);"
+                                            placeholder="0,00">
+                                        <button type="button" class="btn btn-outline-secondary" id="btn-usar-restante">
+                                            <i class="fa-solid fa-arrow-turn-down me-1"></i> Valor restante
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div class="d-grid">
+                                    <button type="button" class="btn btn-primary" id="btn-add-split">
+                                        <i class="fa-solid fa-plus"></i> Adicionar esta forma ao pagamento
+                                    </button>
+                                </div>
+                            </div>
                         </div>
                     </div>
 
@@ -456,8 +483,6 @@
                 </div>
                 <div class="modal-body">
                     <div class="row g-3">
-
-                        {# Step 1: tipo #}
                         <div class="col-12">
                             <div class="form-floating">
                                 <select class="form-select" id="item-tipo" name="item-tipo">
@@ -467,8 +492,6 @@
                                 <label for="item-tipo">Tipo</label>
                             </div>
                         </div>
-
-                        {# Step 2: DataTable de busca #}
                         <div class="col-12">
                             <table class="table table-bordered table-hover table-sm" id="table-search-items">
                                 <thead>
@@ -480,8 +503,6 @@
                                 <tbody></tbody>
                             </table>
                         </div>
-
-                        {# Step 3: form — aparece após selecionar #}
                         <div class="col-12 d-none" id="item-form-wrap">
                             <hr>
                             <div class="row g-2">
@@ -514,7 +535,6 @@
                                 </div>
                             </div>
                         </div>
-
                     </div>
                 </div>
                 <div class="modal-footer">
