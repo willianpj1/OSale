@@ -83,7 +83,6 @@
         </div>
 
         {# Endereços — só exibe se já tiver ID (edição) #}
-        {% if id %}
         <div class="col-12">
             <div class="card">
                 <div class="card-header d-flex align-items-center justify-content-between">
@@ -105,24 +104,7 @@
                                 <th>Ação</th>
                             </tr>
                         </thead>
-                        <tbody>
-                            {% for a in addresses %}
-                            <tr>
-                                <td>{{ a.nome }}</td>
-                                <td>{{ a.logradouro }}</td>
-                                <td>{{ a.numero }}</td>
-                                <td>{{ a.bairro }}</td>
-                                <td>{{ a.cidade }}{% if a.estado %} / {{ a.estado }}{% endif %}</td>
-                                <td>{{ a.principal ? 'Sim' : 'Não' }}</td>
-                                <td>
-                                    <button type="button" class="btn btn-sm btn-danger"
-                                        onclick="deleteAddress({{ a.id }})">
-                                        <i class="bi bi-trash"></i>
-                                    </button>
-                                </td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
+                        <tbody></tbody>
                     </table>
                 </div>
             </div>
@@ -148,27 +130,11 @@
                                 <th>Ação</th>
                             </tr>
                         </thead>
-                        <tbody>
-                            {% for c in contacts %}
-                            <tr>
-                                <td>{{ c.tipo }}</td>
-                                <td>{{ c.nome }}</td>
-                                <td>{{ c.contato }}</td>
-                                <td>{{ c.principal ? 'Sim' : 'Não' }}</td>
-                                <td>
-                                    <button type="button" class="btn btn-sm btn-danger"
-                                        onclick="deleteContact({{ c.id }})">
-                                        <i class="bi bi-trash"></i>
-                                    </button>
-                                </td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
+                        <tbody></tbody>
                     </table>
                 </div>
             </div>
         </div>
-        {% endif %}
 
     </div>
 </form>
@@ -241,7 +207,8 @@
                         </div>
                         <div class="col-12">
                             <div class="form-check">
-                                <input class="form-check-input" type="checkbox" id="a-principal" name="principal">
+                                <input class="form-check-input" type="checkbox" id="a-principal" name="principal"
+                                    value="true">
                                 <label class="form-check-label" for="a-principal">Principal</label>
                             </div>
                         </div>

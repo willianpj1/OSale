@@ -7,37 +7,15 @@ const Action = document.getElementById('action');
 const Id = document.getElementById('id');
 const Insert = document.getElementById('insert');
 const Cnpj = document.getElementById('cpf_cnpj')
+const elModal = document.getElementById('modal-address');
+const modalAddress = elModal ? new Modal(elModal) : null;
+const form = document.getElementById('form-address');
+
+
 
 // ── Salvar cliente ────────────────────────────────────────────────────────────
 // ── Máscaras de Entrada do Formulário (Usando Inputmask) ──────────────────────
 
-document.addEventListener('DOMContentLoaded', () => {
-
-    // 1. Máscara dinâmica para CPF/CNPJ no mesmo campo
-    const cpfCnpjInput = document.getElementById('cpf_cnpj'); // Certifique-se de que o id no HTML seja este
-    if (cpfCnpjInput) {
-        Inputmask({
-            mask: ['999.999.999-99', '99.999.999/9999-99'],
-            keepStatic: true, // Evita que a máscara mude agressivamente enquanto digita
-            clearIncomplete: false
-        }).mask(cpfCnpjInput);
-    }
-
-    // 2. Máscara de CEP no modal de endereços
-    const cepInput = document.getElementById('a-cep');
-    if (cepInput) {
-        Inputmask('99999-999').mask(cepInput);
-    }
-
-    // 3. Máscara dinâmica para Celular/Telefone no modal de contatos
-    const telInput = document.getElementById('c-contato');
-    if (telInput) {
-        Inputmask({
-            mask: ['(99) 9999-9999', '(99) 99999-9999'],
-            keepStatic: true
-        }).mask(telInput);
-    }
-});
 async function applyChanges() {
     $('button').prop('disabled', true);
 
@@ -79,6 +57,34 @@ async function applyChanges() {
     }
 }
 
+document.addEventListener('DOMContentLoaded', () => {
+
+    // 1. Máscara dinâmica para CPF/CNPJ no mesmo campo
+    const cpfCnpjInput = document.getElementById('cpf_cnpj'); // Certifique-se de que o id no HTML seja este
+    if (cpfCnpjInput) {
+        Inputmask({
+            mask: ['999.999.999-99', '99.999.999/9999-99'],
+            keepStatic: true, // Evita que a máscara mude agressivamente enquanto digita
+            clearIncomplete: false
+        }).mask(cpfCnpjInput);
+    }
+
+    // 2. Máscara de CEP no modal de endereços
+    const cepInput = document.getElementById('a-cep');
+    if (cepInput) {
+        Inputmask('99999-999').mask(cepInput);
+    }
+
+    // 3. Máscara dinâmica para Celular/Telefone no modal de contatos
+    const telInput = document.getElementById('c-contato');
+    if (telInput) {
+        Inputmask({
+            mask: ['(99) 9999-9999', '(99) 99999-9999'],
+            keepStatic: true
+        }).mask(telInput);
+    }
+});
+
 Cnpj.addEventListener('blur', async () => {
     if (Cnpj.value.trim() === '' || Cnpj.value.replace(/\D/g, '').length < 14) {
         return;
@@ -97,12 +103,44 @@ Insert.addEventListener('click', applyChanges);
 
 // ── Endereços ─────────────────────────────────────────────────────────────────
 
-const elModal = document.getElementById('modal-address');
-const modalAddress = elModal ? new Modal(elModal) : null;
-const form = document.getElementById('form-address');
 
 // Centralizador de alertas para evitar repetição de código
 const toast = (icon, title, text, cb) => Swal.fire({ icon, title, text, timer: 2000, timerProgressBar: true }).then(cb);
+
+async function listAddresses() {
+    const requests = new Requests();
+    try {
+        const response = await requests.post(`/cliente/${Id.value}/enderecoslista`);
+        if (!response.status) {
+            Swal.fire({ icon: 'error', title: 'Erro', text: response.msg || 'Erro ao listar endereços.', timer: 3000, timerProgressBar: true });
+            return;
+        }
+        const addressesContainer = document.getElementById('addresses-container');
+        let HTML = '';
+        if (response.data.length === 0) {
+            addressesContainer.innerHTML = '<p class="text-muted">Nenhum endereço cadastrado.</p>';
+            return;
+        }
+        response.data.forEach(item => {
+            HTML += `
+                <tr id="address-${item.id}">
+                    <td>${item.label}</td>
+                    <td>${item.logradouro}</td>
+                    <td>${item.numero}</td>
+                    <td>${item.bairro}</td>
+                    <td>${item.cidade} / ${item.estado}</td>
+                    <td>${item.principal ? 'Sim' : 'Não'}</td>
+                    <td>
+                        <button class="btn btn-sm btn-outline-danger" onclick="deleteAddress(${item.id})">Excluir</button>
+                    </td>
+                </tr>           
+            `;
+        });
+        addressesContainer.innerHTML = response.html; // Supondo que o backend retorne HTML para os endereços
+    } catch (error) {
+        Swal.fire({ icon: 'error', title: 'Erro', text: error.message, timer: 3000, timerProgressBar: true });
+    }
+}
 
 // 1. Abrir e Limpar Modal
 document.getElementById('btn-add-address')?.addEventListener('click', () => {
@@ -137,19 +175,20 @@ document.getElementById('a-cep')?.addEventListener('blur', async (e) => {
 
 // 3. Salvar Endereço (Captura automática via FormData)
 document.getElementById('btn-save-address')?.addEventListener('click', async () => {
-    if (!form.checkValidity()) return form.reportValidity();
-
-    const data = Object.fromEntries(new FormData(form));
-    data.principal = form.querySelector('[name="principal"]').checked ? 'true' : 'false';
-
+    const requests = new Requests();
     try {
-        const res = await fetch(`/cliente/${Id.value}/endereco`, { method: 'POST', body: new URLSearchParams(data) });
-        const resData = await res.json();
+        // O .SetForm('form') já captura todos os inputs e o estado do checkbox sozinho
+        const response = await requests.setForm('form-address').post(`/cliente/${Id.value}/endereco`);
 
-        if (!resData.status) throw new Error(resData.msg);
+        // Correção de 'resData' para 'response'
+        if (!response.status) {
+            throw new Error(response.msg);
+        }
 
         modalAddress.hide();
-        toast('success', 'Sucesso', resData.msg, () => window.location.reload());
+        toast('success', 'Sucesso', response.msg);
+        await listAddresses();
+
     } catch (e) {
         toast('error', 'Erro', e.message);
     }
