@@ -8,6 +8,14 @@ const BtnAction = document.getElementById('btn-action');
 const BtnActionLabel = document.getElementById('btn-action-label');
 const itemsCount = parseInt(BtnAction?.dataset.itemsCount ?? '0', 10);
 
+// ── Helper: o Requests.post() só manda o que estiver em setBody/setForm,
+// então pra mandar dados soltos montamos um URLSearchParams manualmente.
+async function postData(url, data) {
+    const params = new URLSearchParams();
+    Object.entries(data).forEach(([key, value]) => params.append(key, value));
+    return new Requests().setBody(params).post(url);
+}
+
 // ── Salvar OS ─────────────────────────────────────────────────────────────────
 
 async function applyChanges({ silent = false } = {}) {
@@ -54,10 +62,52 @@ async function applyChanges({ silent = false } = {}) {
 // ── Modal de pagamento (Finalizar OS) ─────────────────────────────────────────
 
 let selectedPaymentTermId = null;
+let selectedParcelas = 1;
 let paymentTermsData = [];
 
 function fmtBRL(value) {
     return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
+}
+
+function fmtNumber(value) {
+    return new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(value);
+}
+function digitsToDecimal(digits) {
+    if (!digits) digits = '0';
+    return parseInt(digits, 10) / 100;
+}
+
+function applyMoneyMask(input) {
+    const format = () => {
+        const digits = input.value.replace(/\D/g, '');
+        const value = digitsToDecimal(digits);
+        input.dataset.rawValue = value.toFixed(2);
+        input.value = 'R$ ' + value.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    };
+    input.addEventListener('input', format);
+    input._maskFormat = format;
+}
+
+function setMoneyValue(input, value) {
+    input.dataset.rawValue = value.toFixed(2);
+    input.value = 'R$ ' + value.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+function applyPercentMask(input, max = 100) {
+    const format = () => {
+        const digits = input.value.replace(/\D/g, '');
+        let value = digitsToDecimal(digits);
+        if (value > max) value = max;
+        input.dataset.rawValue = value.toFixed(2);
+        input.value = value.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + '%';
+    };
+    input.addEventListener('input', format);
+    format();
+}
+function getNegotiationValues() {
+    const desconto = parseFloat(document.getElementById('modal-desconto')?.dataset.rawValue) || 0;
+    const acrescimo = parseFloat(document.getElementById('modal-acrescimo')?.dataset.rawValue) || 0;
+    return { desconto, acrescimo };
 }
 
 function renderPaymentTerms(terms) {
@@ -65,7 +115,7 @@ function renderPaymentTerms(terms) {
     list.innerHTML = '';
 
     if (!terms.length) {
-        list.innerHTML = '<div class="text-muted">Nenhuma condição de pagamento cadastrada.</div>';
+        list.innerHTML = '<div class="">Nenhuma condição de pagamento cadastrada.</div>';
         return;
     }
 
@@ -82,8 +132,8 @@ function renderPaymentTerms(terms) {
 
 function selectPaymentTerm(term, btnEl) {
     selectedPaymentTermId = term.id;
+    selectedParcelas = 1;
 
-    // marca visualmente o botão selecionado
     document.querySelectorAll('#payment-terms-list .btn').forEach(b => {
         b.classList.remove('btn-primary');
         b.classList.add('btn-secondary');
@@ -91,33 +141,87 @@ function selectPaymentTerm(term, btnEl) {
     btnEl.classList.remove('btn-secondary');
     btnEl.classList.add('btn-primary');
 
-    // renderiza as parcelas dessa condição
+    document.getElementById('selected-term-name').textContent = term.titulo || term.codigo || '';
+
+    renderParcelasSelector(term);
+    loadInstallmentPreview();
+
+    document.getElementById('confirm-payment-btn').disabled = false;
+}
+
+function renderParcelasSelector(term) {
+    const wrap = document.getElementById('parcelas-selector-wrap');
+    const selectorEl = document.getElementById('parcelas-selector');
+    selectorEl.innerHTML = '';
+
+    const maxParcelas = term.max_parcelas || (term.parcelas?.length ?? 1);
+
+    if (maxParcelas <= 1) {
+        wrap.classList.add('d-none');
+        return;
+    }
+
+    wrap.classList.remove('d-none');
+
+    for (let i = 1; i <= maxParcelas; i++) {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'btn btn-sm ' + (i === 1 ? 'btn-primary' : 'btn-outline-secondary');
+        btn.textContent = `${i}x`;
+        btn.dataset.parcelas = i;
+        btn.addEventListener('click', () => {
+            selectedParcelas = i;
+            selectorEl.querySelectorAll('button').forEach(b => {
+                b.classList.remove('btn-primary');
+                b.classList.add('btn-outline-secondary');
+            });
+            btn.classList.remove('btn-outline-secondary');
+            btn.classList.add('btn-primary');
+            loadInstallmentPreview();
+        });
+        selectorEl.appendChild(btn);
+    }
+}
+
+async function loadInstallmentPreview() {
+    if (!selectedPaymentTermId) return;
+
+    const orderId = Id.value;
+    const { desconto, acrescimo } = getNegotiationValues();
+
     const section = document.getElementById('installments-section');
     const tbody = document.getElementById('installments-tbody');
     const totalEl = document.getElementById('installments-total');
-    const nameEl = document.getElementById('selected-term-name');
 
-    nameEl.textContent = term.titulo || term.codigo || '';
-    tbody.innerHTML = '';
+    const requests = new Requests();
+    try {
+        const url = `/os/${orderId}/installment-preview?id_payment_terms=${selectedPaymentTermId}&parcelas=${selectedParcelas}&desconto=${desconto}&acrescimo=${acrescimo}`;
+        const response = await requests.get(url);
 
-    let total = 0;
-    const parcelas = term.parcelas?.length ? term.parcelas : [{ parcela: 1, intervalo: 0, valor: 0 }];
+        if (!response.status) {
+            section.classList.add('d-none');
+            return;
+        }
 
-    parcelas.forEach((p, index) => {
-        total += p.valor;
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-            <td>${index + 1}</td>
-            <td>${p.intervalo ? `${p.intervalo} dias` : 'À vista'}</td>
-            <td class="text-end">${fmtBRL(p.valor)}</td>
-        `;
-        tbody.appendChild(tr);
-    });
+        tbody.innerHTML = '';
+        let total = 0;
 
-    totalEl.textContent = fmtBRL(total);
-    section.classList.remove('d-none');
+        response.data.forEach((p, index) => {
+            total += p.valor;
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td>${index + 1}</td>
+                <td>${p.intervalo ? `${p.intervalo} dias` : 'À vista'}</td>
+                <td class="text-end">${fmtBRL(p.valor)}</td>
+            `;
+            tbody.appendChild(tr);
+        });
 
-    document.getElementById('confirm-payment-btn').disabled = false;
+        totalEl.textContent = fmtBRL(total);
+        section.classList.remove('d-none');
+    } catch (error) {
+        section.classList.add('d-none');
+    }
 }
 
 async function loadPaymentTerms() {
@@ -126,18 +230,25 @@ async function loadPaymentTerms() {
     list.innerHTML = '<div class="text-muted"><span class="spinner-border spinner-border-sm me-1"></span> Carregando...</div>';
 
     document.getElementById('installments-section').classList.add('d-none');
+    document.getElementById('parcelas-selector-wrap').classList.add('d-none');
     document.getElementById('confirm-payment-btn').disabled = true;
     selectedPaymentTermId = null;
+    selectedParcelas = 1;
+
+    const { desconto, acrescimo } = getNegotiationValues();
 
     const requests = new Requests();
     try {
-        const response = await requests.get(`/os/${orderId}/payment-terms`);
+        const response = await requests.get(`/os/${orderId}/payment-terms?desconto=${desconto}&acrescimo=${acrescimo}`);
         if (!response.status) {
             list.innerHTML = '<div class="text-danger">Erro ao carregar condições de pagamento.</div>';
             return;
         }
         paymentTermsData = response.data || [];
         renderPaymentTerms(paymentTermsData);
+
+        document.getElementById('modal-subtotal').textContent = fmtNumber(response.subtotal);
+        document.getElementById('modal-total-os').textContent = fmtNumber(response.total_liquido);
     } catch (error) {
         list.innerHTML = '<div class="text-danger">Erro ao carregar condições de pagamento.</div>';
     }
@@ -147,12 +258,15 @@ async function confirmPayment() {
     if (!selectedPaymentTermId) return;
 
     $('#modal-payment button').prop('disabled', true);
+    const { desconto, acrescimo } = getNegotiationValues();
 
-    const requests = new Requests();
     try {
-        const response = await requests.post('/os/concluir', {
+        const response = await postData('/os/concluir', {
             id: Id.value,
             id_payment_terms: selectedPaymentTermId,
+            parcelas: selectedParcelas,
+            desconto,
+            acrescimo,
         });
 
         if (!response.status) {
@@ -172,18 +286,27 @@ async function confirmPayment() {
 
 const modalPaymentEl = document.getElementById('modal-payment');
 if (modalPaymentEl) {
+    applyPercentMask(document.getElementById('modal-desconto'));
+    applyPercentMask(document.getElementById('modal-acrescimo'));
+
     modalPaymentEl.addEventListener('show.bs.modal', loadPaymentTerms);
     document.getElementById('confirm-payment-btn')?.addEventListener('click', confirmPayment);
+
+    let negotiationDebounce = null;
+    ['modal-desconto', 'modal-acrescimo'].forEach(id => {
+        document.getElementById(id)?.addEventListener('input', () => {
+            clearTimeout(negotiationDebounce);
+            negotiationDebounce = setTimeout(loadPaymentTerms, 400);
+        });
+    });
 }
 
 // ── Estado do botão de ação ──────────────────────────────────────────────────
 
 async function handleFinalizeClick() {
-    // 1) salva alterações pendentes da OS antes de abrir o modal de pagamento
     const saved = await applyChanges({ silent: true });
     if (!saved) return;
 
-    // 2) abre modal de forma de pagamento
     const modal = new bootstrap.Modal(document.getElementById('modal-payment'));
     modal.show();
 }
@@ -192,17 +315,14 @@ function configureActionButton() {
     if (!BtnAction) return;
 
     if (Action.value === 'e' && itemsCount > 0) {
-        // OS já criada e com itens: finalizar
         BtnActionLabel.textContent = 'Finalizar OS';
         BtnAction.classList.remove('btn-success');
         BtnAction.classList.add('btn-primary');
         BtnAction.onclick = handleFinalizeClick;
     } else if (Action.value === 'e') {
-        // OS já criada, ainda sem itens
         BtnActionLabel.textContent = 'Salvar alterações';
         BtnAction.onclick = () => applyChanges();
     } else {
-        // Criando nova OS
         BtnActionLabel.textContent = 'Salvar';
         BtnAction.onclick = () => applyChanges();
     }
@@ -219,19 +339,16 @@ if (BtnAddItem) {
     let dtSearchItems = null;
     let selectedItem = null;
 
-    // ── Subtotal ──────────────────────────────────────────────────────────────
-
     function calcularSubtotal() {
         const quantidade = parseFloat(document.getElementById('item-quantidade').value) || 0;
-        const preco = parseFloat(document.getElementById('item-preco').value) || 0;
+        const preco = parseFloat(document.getElementById('item-preco').dataset.rawValue) || 0;
         const subtotal = (quantidade * preco).toFixed(2).replace('.', ',');
         document.getElementById('item-subtotal').textContent = `R$ ${subtotal}`;
     }
 
     document.getElementById('item-quantidade').addEventListener('input', calcularSubtotal);
     document.getElementById('item-preco').addEventListener('input', calcularSubtotal);
-
-    // ── DataTable de busca ────────────────────────────────────────────────────
+    applyMoneyMask(document.getElementById('item-preco'));
 
     function initDtSearch(tipo) {
         const url = tipo === 'servico' ? '/os/buscar/servicos' : '/os/buscar/produtos';
@@ -241,7 +358,7 @@ if (BtnAddItem) {
         document.getElementById('btn-save-item').classList.add('d-none');
         document.getElementById('item-descricao').value = '';
         document.getElementById('item-quantidade').value = '1';
-        document.getElementById('item-preco').value = '';
+        setMoneyValue(document.getElementById('item-preco'), 0);
         document.getElementById('item-subtotal').textContent = 'R$ 0,00';
 
         if (dtSearchItems) {
@@ -279,7 +396,7 @@ if (BtnAddItem) {
 
             selectedItem = { id: data.id, nome: data.nome, preco: data.preco, tipo };
             document.getElementById('item-descricao').value = data.nome;
-            document.getElementById('item-preco').value = parseFloat(data.preco).toFixed(2);
+            setMoneyValue(document.getElementById('item-preco'), parseFloat(data.preco));
             document.getElementById('item-quantidade').value = '1';
             calcularSubtotal();
 
@@ -287,8 +404,6 @@ if (BtnAddItem) {
             document.getElementById('btn-save-item').classList.remove('d-none');
         });
     }
-
-    // ── Abre modal ────────────────────────────────────────────────────────────
 
     BtnAddItem.addEventListener('click', () => {
         const modalEl = document.getElementById('modal-item');
@@ -307,12 +422,13 @@ if (BtnAddItem) {
         initDtSearch(this.value);
     });
 
-    // ── Salvar item ───────────────────────────────────────────────────────────
-
     document.getElementById('btn-save-item').addEventListener('click', async () => {
 
         $('button').prop('disabled', true);
         const orderId = Id.value;
+        const precoInput = document.getElementById('item-preco');
+        const precoMasked = precoInput.value;
+        precoInput.value = precoInput.dataset.rawValue;
 
         const requests = new Requests();
         try {
@@ -326,6 +442,7 @@ if (BtnAddItem) {
         } catch (error) {
             Swal.fire({ icon: 'error', title: 'Erro', text: `Restrição: ${error.message}`, timer: 3000, timerProgressBar: true });
         } finally {
+            precoInput.value = precoMasked;
             $('button').prop('disabled', false);
         }
     });
@@ -347,10 +464,9 @@ window.deleteItem = async function (itemId) {
     if (!confirm.isConfirmed) return;
 
     $('button').prop('disabled', true);
-    const requests = new Requests();
     try {
         const orderId = Id.value;
-        const response = await requests.post(`/os/${orderId}/item/${itemId}`, { _method: 'DELETE' });
+        const response = await postData(`/os/${orderId}/item/${itemId}`, { _method: 'DELETE' });
 
         if (!response.status) {
             Swal.fire({ icon: 'error', title: 'Erro', text: response.msg || 'Erro ao excluir item.', timer: 3000, timerProgressBar: true });

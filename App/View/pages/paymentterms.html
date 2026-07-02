@@ -1,0 +1,139 @@
+{% extends 'layouts/main.html' %}
+
+{% block breadcrumbs %}
+<ol class="breadcrumb float-sm-end">
+    <li class="breadcrumb-item"><a href="/">Início</a></li>
+    <li class="breadcrumb-item"><a href="/payment/lista">Condições de pagamento</a></li>
+    <li class="breadcrumb-item active" aria-current="page">Detalhes</li>
+    {{ vite('resources/css/pages/product.css') }}
+</ol>
+{% endblock %}
+
+{% block main %}
+<form id="form">
+    <input type="hidden" id="action"  name="action"  value="{{ action }}">
+    <input type="hidden" id="id"      name="id"      value="{{ id }}">
+
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow-sm">
+
+                <div class="card-header d-flex align-items-center gap-2 py-3">
+                    <a href="/payment/lista" class="btn btn-warning">
+                        <i class="fa-solid fa-chevron-left"></i> Voltar
+                    </a>
+                    <span class="fw-semibold text-muted ms-1">Condição de Pagamento</span>
+                </div>
+
+                <div class="card-body">
+
+                    <div class="row g-3 mb-4">
+                        <div class="col-lg-6 col-md-12">
+                            <div class="form-floating">
+                                <select class="form-select" id="codigo" name="codigo" required>
+                                    <option value="" disabled {% if not paymentTerm.codigo %}selected{% endif %}>Selecione...</option>
+                                    <option value="01" {% if paymentTerm.codigo == '01' %}selected{% endif %}>Dinheiro</option>
+                                    <option value="03" {% if paymentTerm.codigo == '03' %}selected{% endif %}>Cartão de Crédito</option>
+                                    <option value="04" {% if paymentTerm.codigo == '04' %}selected{% endif %}>Cartão de Débito</option>
+                                    <option value="20" {% if paymentTerm.codigo == '20' %}selected{% endif %}>PIX - Estático</option>
+                                </select>
+                                <label for="codigo">Forma de Pagamento *</label>
+                            </div>
+                        </div>
+
+                        <div class="col-lg-3 col-md-6">
+                            <div class="form-floating">
+                                <input type="text" class="form-control" id="titulo" name="titulo"
+                                    placeholder="Ex: À Vista" value="{{ paymentTerm.titulo }}" required>
+                                <label for="titulo">Título (Ex: Cartão de Crédito 18x)</label>
+                            </div>
+                        </div>
+
+                        <div class="col-lg-3 col-md-6">
+                            <div class="form-floating">
+                                <input type="text" class="form-control" id="atalho" name="atalho"
+                                    placeholder="Atalho" value="{{ paymentTerm.atalho }}">
+                                <label for="atalho">Atalho</label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <hr class="my-3">
+
+                    <h6 class="fw-bold mb-3">
+                        <i class="fa-solid fa-calendar-days me-1"></i> Parcelas
+                    </h6>
+
+                    {% if not id %}
+                    <div class="alert alert-secondary py-2 mb-3 d-flex align-items-center gap-2">
+                        <i class="fa-solid fa-circle-info"></i>
+                        <span>Salve a condição de pagamento antes de adicionar parcelas.</span>
+                    </div>
+                    {% endif %}
+
+                    <div id="avisoSemParcela" class="alert alert-warning d-none py-2 mb-3 d-flex align-items-center gap-2">
+                        <i class="fa-solid fa-triangle-exclamation"></i>
+                        <span>
+                            <strong id="nomeFormaPagamento"></strong> não permite parcelamento.
+                            Clique em <strong>Adicionar</strong> para gerar a parcela única.
+                        </span>
+                    </div>
+
+                    <div class="row g-3 align-items-end mb-3">
+
+                        <div class="col-lg-4 col-md-6" id="wrapParcela">
+                            <div class="form-floating">
+                                <input type="number" class="form-control" id="parcela" placeholder="1" min="1">
+                                <label for="parcela">Máx. Parcelas (gera 1x até Nx)</label>
+                            </div>
+                        </div>
+
+                        <div class="col-lg-4 col-md-6" id="wrapIntervalo">
+                            <div class="form-floating">
+                                <input type="number" class="form-control" id="intervalo" placeholder="30" min="0" max="40">
+                                <label for="intervalo">Intervalo entre parcelas (dias) <small class="text-muted">máx. 40</small></label>
+                            </div>
+                        </div>
+
+                        <div class="col-lg-4 col-md-6 d-grid">
+                            <button id="btnAddParcela" type="button" class="btn btn-outline-primary" style="height:58px">
+                                <i class="fa-solid fa-plus"></i> Adicionar
+                            </button>
+                        </div>
+
+                    </div>
+
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-sm table-striped align-middle mb-0">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th style="width:120px">Parcela</th>
+                                    <th>Intervalo (Dias)</th>
+                                    <th class="text-center" style="width:100px">Ação</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tbInstallments">
+                                <tr>
+                                    <td colspan="3" class="text-center text-muted py-3">Nenhuma parcela adicionada.</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                </div>
+
+                <div class="card-footer">
+                    <button id="insert" type="button" class="btn btn-success">
+                        <i class="fa-solid fa-floppy-disk"></i> Salvar
+                    </button>
+                </div>
+
+            </div>
+        </div>
+    </div>
+</form>
+{% endblock %}
+
+{% block script %}
+{{ vite('resources/js/pages/paymentterms.js') }}
+{% endblock %}

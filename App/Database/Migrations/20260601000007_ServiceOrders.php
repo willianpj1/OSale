@@ -31,9 +31,18 @@ final class ServiceOrders extends AbstractMigration
             ->addColumn('defeito_constatado',  'text',      ['null' => true, 'default' => null])
             ->addColumn('observacoes',         'text',      ['null' => true, 'default' => null])
             ->addColumn('valor_total',         'decimal',   ['precision' => 10, 'scale' => 2, 'null' => false, 'default' => '0.00'])
-            // snapshot calculado ao concluir a OS
+            // subtotal calculado a partir da soma dos itens (service_order_items)
+            ->addColumn('desconto',            'decimal',   ['precision' => 5, 'scale' => 2, 'null' => false, 'default' => '0.00'])
+            // % de desconto aplicado na negociação, preenchido só ao finalizar a OS
+            ->addColumn('acrescimo',           'decimal',   ['precision' => 5, 'scale' => 2, 'null' => false, 'default' => '0.00'])
+            // % de acréscimo aplicado na negociação, preenchido só ao finalizar a OS
+            ->addColumn('valor_liquido',       'decimal',   ['precision' => 10, 'scale' => 2, 'null' => true, 'default' => null])
+            // snapshot do valor_total já com desconto/acréscimo aplicados, calculado ao concluir a OS
             ->addColumn('id_pagamento',        'biginteger', ['signed' => false, 'null' => true, 'default' => null])
             // vínculo com payment_terms — só é preenchido quando a OS é finalizada
+            ->addColumn('parcelas',            'integer',   ['null' => true, 'default' => 1])
+            // quantidade de parcelas escolhida pelo cliente ao finalizar (ex: crédito em 7x) —
+            // só é relevante quando id_pagamento aponta pra uma condição parcelável
             ->addColumn('aberto_em',           'timestamp', ['null' => false, 'default' => 'CURRENT_TIMESTAMP'])
             ->addColumn('concluido_em',        'timestamp', ['null' => true,  'default' => null])
             ->addColumn('excluido',            'boolean',   ['null' => false, 'default' => false])

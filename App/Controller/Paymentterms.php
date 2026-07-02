@@ -4,6 +4,11 @@ declare(strict_types=1);
 
 namespace App\Controller;
 
+use App\Database\DB;
+use Doctrine\DBAL\ParameterType;
+use DateTime;
+use Exception;
+
 final class PaymentTerms extends Base
 {
     public function list($request, $response)
@@ -22,25 +27,12 @@ final class PaymentTerms extends Base
         $action = ($id === null) ? 'c' : 'e';
         $paymentTerm = [];
 
-        // id_sale pode vir como query param (ex: /payment/detalhes?id_sale=42)
-        $queryParams = $request->getQueryParams();
-        $idSale      = $queryParams['id_sale'] ?? null;
-        $totalVenda  = null;
-
         if (!is_null($id)) {
-            $qb = \App\Database\DB::select('*')->from('payment_terms');
-            $paymentTerm = $qb
-                ->where('id = ' . $qb->createPositionalParameter($id, \Doctrine\DBAL\ParameterType::INTEGER))
+            $paymentTerm = DB::select('*')
+                ->from('payment_terms')
+                ->where('id = :id')
+                ->setParameter('id', $id, ParameterType::INTEGER)
                 ->fetchAssociative();
-        }
-
-        // Busca o total_liquido da venda para exibir o valor fixo
-        if (!is_null($idSale)) {
-            $qbSale = \App\Database\DB::select('total_liquido')->from('sale');
-            $sale   = $qbSale
-                ->where('id = ' . $qbSale->createPositionalParameter((int) $idSale, \Doctrine\DBAL\ParameterType::INTEGER))
-                ->fetchAssociative();
-            $totalVenda = $sale['total_liquido'] ?? null;
         }
 
         return $this->getTwig()
@@ -49,8 +41,6 @@ final class PaymentTerms extends Base
                 'id'          => $id,
                 'action'      => $action,
                 'paymentTerm' => $paymentTerm,
-                'id_sale'     => $idSale,
-                'total_venda' => $totalVenda,
             ])
             ->withHeader('Content-Type', 'text/html')
             ->withStatus(200);
@@ -60,32 +50,34 @@ final class PaymentTerms extends Base
     {
         $form = $request->getParsedBody();
 
-        $FieldsAndValues = [
-            'codigo' => $form['codigo'] ?? null,
-            'titulo' => $form['titulo'] ?? null,
-            'atalho' => $form['atalho'] ?? null,
-        ];
+        if (empty($form['codigo'])) {
+            return $this->json($response, ['status' => false, 'msg' => 'Selecione a forma de pagamento', 'id' => 0], 400);
+        }
+
+        if (empty($form['titulo'])) {
+            return $this->json($response, ['status' => false, 'msg' => 'Informe o título', 'id' => 0], 400);
+        }
 
         try {
-            \App\Database\DB::connection()->insert('payment_terms', $FieldsAndValues);
+            DB::connection()->insert('payment_terms', [
+                'codigo'        => $form['codigo'],
+                'titulo'        => $form['titulo'],
+                'atalho'        => $form['atalho'] ?? null,
+                'criado_em'     => $this->now(),
+                'atualizado_em' => $this->now(),
+            ]);
 
-            $id = \App\Database\DB::select('id')
-                ->from('payment_terms')
-                ->orderBy('id', 'DESC')
-                ->setMaxResults(1)
-                ->fetchAssociative();
+            $id = (int) DB::connection()->lastInsertId();
 
-            return $this->json($response, [
-                'status' => true,
-                'msg'    => 'Salvo com sucesso!',
-                'id'     => $id['id'],
-            ], 201);
-        } catch (\Exception $e) {
-            return $this->json($response, [
-                'status' => false,
-                'msg'    => 'Restrição: ' . $e->getMessage(),
-                'id'     => 0,
-            ], 500);
+            if ($id === 0) {
+                $id = (int) (DB::select('id')->from('payment_terms')
+                    ->orderBy('id', 'DESC')->setMaxResults(1)->fetchOne() ?? 0);
+            }
+
+            return $this->json($response, ['status' => true, 'msg' => 'Salvo com sucesso!', 'id' => $id], 201);
+        } catch (Exception $e) {
+            error_log('[PaymentTerms::insert] ' . $e->getMessage());
+            return $this->json($response, ['status' => false, 'msg' => 'Restrição: ' . $e->getMessage(), 'id' => 0], 500);
         }
     }
 
@@ -94,29 +86,29 @@ final class PaymentTerms extends Base
         $form = $request->getParsedBody();
         $id   = $form['id'] ?? null;
 
-        if (is_null($id)) {
-            return $this->json($response, [
-                'status' => false,
-                'msg'    => 'Por favor informe o ID do registro',
-                'id'     => 0,
-            ], 403);
+        if (is_null($id) || $id === '') {
+            return $this->json($response, ['status' => false, 'msg' => 'Informe o ID do registro', 'id' => 0], 403);
         }
 
-        $FieldsAndValues = [
-            'codigo' => $form['codigo'] ?? null,
-            'titulo' => $form['titulo'] ?? null,
-            'atalho' => $form['atalho'] ?? null,
-        ];
+        if (empty($form['codigo'])) {
+            return $this->json($response, ['status' => false, 'msg' => 'Selecione a forma de pagamento', 'id' => 0], 400);
+        }
+
+        if (empty($form['titulo'])) {
+            return $this->json($response, ['status' => false, 'msg' => 'Informe o título', 'id' => 0], 400);
+        }
 
         try {
-            $IsUpdated = \App\Database\DB::connection()->update('payment_terms', $FieldsAndValues, ['id' => $id]);
+            DB::connection()->update('payment_terms', [
+                'codigo'        => $form['codigo'],
+                'titulo'        => $form['titulo'],
+                'atalho'        => $form['atalho'] ?? null,
+                'atualizado_em' => $this->now(),
+            ], ['id' => (int) $id]);
 
-            if (!$IsUpdated) {
-                return $this->json($response, ['status' => false, 'msg' => 'Nenhum registro alterado.', 'id' => 0], 403);
-            }
-
-            return $this->json($response, ['status' => true, 'msg' => 'Alterado com sucesso!', 'id' => $id], 201);
-        } catch (\Exception $e) {
+            return $this->json($response, ['status' => true, 'msg' => 'Alterado com sucesso!', 'id' => (int) $id], 200);
+        } catch (Exception $e) {
+            error_log('[PaymentTerms::update] ' . $e->getMessage());
             return $this->json($response, ['status' => false, 'msg' => 'Restrição: ' . $e->getMessage(), 'id' => 0], 500);
         }
     }
@@ -131,9 +123,24 @@ final class PaymentTerms extends Base
         }
 
         try {
-            \App\Database\DB::connection()->delete('payment_terms', ['id' => $id]);
-            return $this->json($response, ['status' => true, 'msg' => 'Removido com sucesso!', 'id' => $id]);
-        } catch (\Exception $e) {
+            $emUso = (int) DB::select('COUNT(*)')->from('service_orders')
+                ->where('id_pagamento = :id')
+                ->setParameter('id', $id, ParameterType::INTEGER)
+                ->fetchOne();
+
+            if ($emUso > 0) {
+                return $this->json($response, [
+                    'status' => false,
+                    'msg'    => 'Esta condição já foi usada em ordens de serviço e não pode ser excluída.',
+                    'id'     => 0,
+                ], 422);
+            }
+
+            DB::connection()->delete('payment_terms', ['id' => $id]);
+
+            return $this->json($response, ['status' => true, 'msg' => 'Removido com sucesso!', 'id' => (int) $id]);
+        } catch (Exception $e) {
+            error_log('[PaymentTerms::delete] ' . $e->getMessage());
             return $this->json($response, ['status' => false, 'msg' => 'Restrição: ' . $e->getMessage(), 'id' => 0], 500);
         }
     }
@@ -146,7 +153,7 @@ final class PaymentTerms extends Base
         $length = (int) ($form['length'] ?? 10);
 
         $columns = [
-            0 => 'id',
+            0 => 'codigo',
             1 => 'codigo',
             2 => 'titulo',
             3 => 'atalho',
@@ -154,24 +161,25 @@ final class PaymentTerms extends Base
             5 => 'atualizado_em',
         ];
 
-        $posField  = (isset($form['order'][0]['column']) && isset($columns[(int) $form['order'][0]['column']]))
-            ? (int) $form['order'][0]['column'] : 0;
-        $orderType = in_array(strtoupper($form['order'][0]['dir'] ?? 'DESC'), ['ASC', 'DESC'], true)
+        $posField   = (isset($form['order'][0]['column']) && isset($columns[(int) $form['order'][0]['column']]))
+            ? (int) $form['order'][0]['column'] : 4;
+        $orderType  = in_array(strtoupper($form['order'][0]['dir'] ?? 'DESC'), ['ASC', 'DESC'], true)
             ? strtoupper($form['order'][0]['dir']) : 'DESC';
         $orderField = $columns[$posField];
 
-        // Mapa código → label
         $formas = [
-            '01' => 'Dinheiro', '02' => 'Cheque', '03' => 'Cartão de Crédito',
-            '04' => 'Cartão de Débito', '15' => 'Boleto Bancário', '17' => 'PIX', '99' => 'Outros',
+            '01' => 'Dinheiro',
+            '03' => 'Cartão de Crédito',
+            '04' => 'Cartão de Débito',
+            '20' => 'PIX - Estático',
         ];
 
         try {
-            $totalRecords = (int) \App\Database\DB::select('COUNT(*)')->from('payment_terms')->fetchOne();
+            $totalRecords = (int) DB::select('COUNT(*)')->from('payment_terms')->fetchOne();
 
-            $query = \App\Database\DB::select('*')->from('payment_terms');
+            $query = DB::select('*')->from('payment_terms');
 
-            if (!is_null($term) && $term !== '') {
+            if (!empty($term)) {
                 $query->setParameter('term', '%' . $term . '%')
                     ->where('CAST(id AS TEXT) ILIKE :term')
                     ->orWhere('codigo ILIKE :term')
@@ -186,33 +194,36 @@ final class PaymentTerms extends Base
                 ->setFirstResult($start)->setMaxResults($length)
                 ->fetchAllAssociative();
 
-            $rows = [];
-            foreach ($items as $key => $value) {
-                $rows[$key] = [
-                    $value['id'],
-                    $formas[$value['codigo']] ?? $value['codigo'],
-                    $value['titulo'],
-                    $value['atalho'],
-                    (new \DateTime($value['criado_em']))->format('d/m/Y H:i:s'),
-                    (new \DateTime($value['atualizado_em']))->format('d/m/Y H:i:s'),
-                    "<td>
-                        <a class='btn btn-sm btn-warning' href='/payment/detalhes/{$value['id']}'>
-                            <i class='fa-solid fa-pen-to-square'></i> Editar
-                        </a>
-                        <button type='button' class='btn btn-sm btn-danger' onclick='ShowModal({$value['id']});'>
-                            <i class='fa-solid fa-trash'></i> Excluir
-                        </button>
-                    </td>",
-                ];
-            }
+            $rows = array_map(fn($v) => [
+                $v['codigo'],
+                $formas[$v['codigo']] ?? $v['codigo'],
+                $v['titulo'],
+                $v['atalho'] ?? '—',
+                (new DateTime($v['criado_em']))->format('d/m/Y H:i:s'),
+                (new DateTime($v['atualizado_em']))->format('d/m/Y H:i:s'),
+                "<td>
+                    <a class='btn btn-sm btn-warning' href='/payment/detalhes/{$v['id']}'>
+                        <i class='fa-solid fa-pen-to-square'></i> Editar
+                    </a>
+                    <button type='button' class='btn btn-sm btn-danger' onclick='ShowModal({$v['id']});'>
+                        <i class='fa-solid fa-trash'></i> Excluir
+                    </button>
+                </td>",
+            ], $items);
 
             return $this->json($response, [
                 'recordsTotal'    => $totalRecords,
                 'recordsFiltered' => $filteredRecords,
                 'data'            => $rows,
             ], 200);
-        } catch (\Exception $e) {
-            return $this->json($response, ['status' => false, 'msg' => 'Restrição: ' . $e->getMessage(), 'id' => 0], 500);
+        } catch (Exception $e) {
+            error_log('[PaymentTerms::listingdata] ' . $e->getMessage());
+            return $this->json($response, ['status' => false, 'msg' => 'Restrição: ' . $e->getMessage()], 500);
         }
+    }
+
+    private function now(): string
+    {
+        return (new DateTime())->format('Y-m-d H:i:s');
     }
 }

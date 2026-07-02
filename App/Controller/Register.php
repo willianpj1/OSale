@@ -38,7 +38,7 @@ final class Register extends Base
             if (ob_get_length()) ob_clean();
             return $this->json($response, [
                 'status'  => false,
-                'message' => 'E-mail inválido.',
+                'message' => 'Ensira um E-mail válido. Ex: usuario@gmail.com',
             ], 400);
         }
 

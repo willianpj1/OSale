@@ -13,6 +13,8 @@ use App\Controller\ServiceOrder;
 use App\Controller\Sale;
 use App\Controller\Report;
 use App\Controller\Users;
+use App\Controller\PaymentTerms;
+use App\Controller\Installment;
 use App\Middleware\Middleware;
 
 // ── Rotas públicas ────────────────────────────────────────────────────────────
@@ -117,20 +119,21 @@ $app->group('/servico', function ($group) {
 // ── Ordens de Serviço ─────────────────────────────────────────────────────────
 
 $app->group('/os', function ($group) {
-    $group->get('/lista',                 ServiceOrder::class . ':list')->add(Middleware::web());
-    $group->get('/detalhes',              ServiceOrder::class . ':details')->add(Middleware::web());
-    $group->get('/detalhes/{id}',         ServiceOrder::class . ':details')->add(Middleware::web());
-    $group->get('/buscar/produtos',       ServiceOrder::class . ':searchProducts')->add(Middleware::web());
-    $group->get('/buscar/servicos',       ServiceOrder::class . ':searchServices')->add(Middleware::web());
-    $group->get('/{id}/payment-terms',    ServiceOrder::class . ':paymentTerms')->add(Middleware::web());
+    $group->get('/lista',                     ServiceOrder::class . ':list')->add(Middleware::web());
+    $group->get('/detalhes',                  ServiceOrder::class . ':details')->add(Middleware::web());
+    $group->get('/detalhes/{id}',             ServiceOrder::class . ':details')->add(Middleware::web());
+    $group->get('/buscar/produtos',           ServiceOrder::class . ':searchProducts')->add(Middleware::web());
+    $group->get('/buscar/servicos',           ServiceOrder::class . ':searchServices')->add(Middleware::web());
+    $group->get('/{id}/payment-terms',        ServiceOrder::class . ':paymentTerms')->add(Middleware::web());
+    $group->get('/{id}/installment-preview',  ServiceOrder::class . ':installmentPreview')->add(Middleware::web());
 
-    $group->post('/listingdata',          ServiceOrder::class . ':listingdata')->add(Middleware::api());
-    $group->post('/inserir',              ServiceOrder::class . ':insert')->add(Middleware::api());
-    $group->post('/atualizar',            ServiceOrder::class . ':update')->add(Middleware::api());
-    $group->post('/concluir',             ServiceOrder::class . ':finalize')->add(Middleware::api());
-    $group->post('/excluir',              ServiceOrder::class . ':delete')->add(Middleware::api());
-    $group->post('/{id}/item',            ServiceOrder::class . ':itemInsert')->add(Middleware::api());
-    $group->post('/{id}/item/{itemId}',   ServiceOrder::class . ':itemDelete')->add(Middleware::api());
+    $group->post('/listingdata',              ServiceOrder::class . ':listingdata')->add(Middleware::api());
+    $group->post('/inserir',                  ServiceOrder::class . ':insert')->add(Middleware::api());
+    $group->post('/atualizar',                ServiceOrder::class . ':update')->add(Middleware::api());
+    $group->post('/concluir',                 ServiceOrder::class . ':finalize')->add(Middleware::api());
+    $group->post('/excluir',                  ServiceOrder::class . ':delete')->add(Middleware::api());
+    $group->post('/{id}/item',                ServiceOrder::class . ':itemInsert')->add(Middleware::api());
+    $group->post('/{id}/item/{itemId}',       ServiceOrder::class . ':itemDelete')->add(Middleware::api());
 });
 
 // ── Vendas ────────────────────────────────────────────────────────────────────
@@ -150,4 +153,24 @@ $app->group('/venda', function ($group) {
     // Busca
     $group->get('/buscar/produtos',       Sale::class . ':searchProducts');
     $group->get('/buscar/servicos',       Sale::class . ':searchServices');
+});
+
+// ── Condições de Pagamento ────────────────────────────────────────────────────
+
+$app->group('/payment', function ($group) {
+    $group->get('/lista',                 PaymentTerms::class . ':list');
+    $group->get('/detalhes',              PaymentTerms::class . ':details');
+    $group->get('/detalhes/{id}',         PaymentTerms::class . ':details');
+    $group->post('/listingdata',          PaymentTerms::class . ':listingdata');
+    $group->post('/inserir',              PaymentTerms::class . ':insert');
+    $group->post('/atualizar',            PaymentTerms::class . ':update');
+    $group->post('/excluir',              PaymentTerms::class . ':delete');
+});
+
+// ── Parcelas (vinculadas a uma condição de pagamento) ────────────────────────
+
+$app->group('/installment', function ($group) {
+    $group->post('/inserir', Installment::class . ':insert');
+    $group->post('/listar',  Installment::class . ':list');
+    $group->post('/excluir', Installment::class . ':delete');
 });

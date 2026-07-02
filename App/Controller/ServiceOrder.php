@@ -72,22 +72,22 @@ final class ServiceOrder extends Base
                 ->fetchAssociative();
 
             if ($payment) {
-                $rows = DB::select('*')->from('installment')
+                // Usa só a quantidade de parcelas que foi de fato escolhida ao
+                // finalizar (ex: crédito em 7x) — não as 12 linhas inteiras
+                // cadastradas na condição.
+                $qtdParcelas = (int) ($order['parcelas'] ?? 1);
+
+                $rows = DB::select('parcela, intervalo')->from('installment')
                     ->where('id_pagamento = :id')
                     ->setParameter('id', $order['id_pagamento'], ParameterType::INTEGER)
                     ->orderBy('parcela', 'ASC')
+                    ->setMaxResults($qtdParcelas)
                     ->fetchAllAssociative();
 
-                $totalOS = (float) ($order['valor_total'] ?? 0);
-                $qtd     = count($rows);
-
-                foreach ($rows as $r) {
-                    $installments[] = [
-                        'parcela'   => $r['parcela'],
-                        'intervalo' => $r['intervalo'],
-                        'valor'     => $qtd > 0 ? $totalOS / $qtd : $totalOS,
-                    ];
-                }
+                // Usa o valor já negociado (com desconto/acréscimo) quando a OS foi
+                // finalizada; cai pro valor_total (subtotal) caso não exista ainda.
+                $totalOS      = (float) ($order['valor_liquido'] ?? $order['valor_total'] ?? 0);
+                $installments = $this->calcularParcelas($rows, $totalOS);
             }
         }
 
@@ -185,7 +185,7 @@ final class ServiceOrder extends Base
                 'id'       => (int) $id,
                 'excluido' => false,
             ], [
-                'excluido' => ParameterType::BOOLEAN,   // <-- faltava isso
+                'excluido' => ParameterType::BOOLEAN,
             ]);
 
             return $this->json($response, ['status' => true, 'msg' => 'OS atualizada com sucesso!', 'id' => (int) $id], 200);
@@ -194,6 +194,7 @@ final class ServiceOrder extends Base
             return $this->json($response, ['status' => false, 'msg' => 'Erro ao atualizar: ' . $e->getMessage(), 'id' => 0], 500);
         }
     }
+
     public function delete($request, $response)
     {
         $form = $request->getParsedBody();
@@ -307,14 +308,13 @@ final class ServiceOrder extends Base
 
     public function itemInsert($request, $response, $args)
     {
-        $orderId   = $args['id'] ?? null;
-        $form      = $request->getParsedBody();
-        $tipo      = $form['item-tipo'] ?? null;
-        $descricao = trim($form['item-descricao'] ?? '');
+        $orderId    = $args['id'] ?? null;
+        $form       = $request->getParsedBody();
+        $tipo       = $form['item-tipo'] ?? null;
+        $descricao  = trim($form['item-descricao'] ?? '');
         $quantidade = trim($form['item-quantidade'] ?? '');
         $preco_unit = trim($form['item-preco'] ?? '0');
-        #132.25 -> R$ 132,25
-        #1352.55 -> R$ 1.352,55
+
         if (!$orderId) {
             return $this->json($response, ['status' => false, 'msg' => 'ID da OS não informado', 'id' => 0], 403);
         }
@@ -330,9 +330,10 @@ final class ServiceOrder extends Base
         if ($preco_unit === '') {
             return $this->json($response, ['status' => false, 'msg' => 'O campo preço unitário é obrigatório', 'id' => 0], 400);
         }
-        $subtotal      = round($quantidade * $preco_unit, 2);
-        try {
 
+        $subtotal = round($quantidade * $preco_unit, 2);
+
+        try {
             DB::connection()->insert('service_order_items', [
                 'service_order_id' => (int) $orderId,
                 'tipo'             => $tipo,
@@ -425,11 +426,19 @@ final class ServiceOrder extends Base
     }
 
     // ── Payment terms (modal de finalizar) ──────────────────────────────────────
-    // Lista as condições de pagamento disponíveis para popular o #payment-terms-list
+    // Lista as condições de pagamento disponíveis para popular o #payment-terms-list.
+    // Cada condição já vem com 'max_parcelas' (quantidade de linhas cadastradas
+    // em installment) — o front usa isso pra decidir se mostra o seletor 1x..Nx.
+    // Aceita desconto/acrescimo (%) via query string para recalcular o preview das
+    // parcelas em tempo real, sem persistir nada — a persistência só acontece em finalize().
 
     public function paymentTerms($request, $response, $args)
     {
         $orderId = $args['id'] ?? null;
+        $query   = $request->getQueryParams();
+
+        $desconto  = isset($query['desconto'])  ? max(0, min(100, (float) $query['desconto']))  : 0.0;
+        $acrescimo = isset($query['acrescimo']) ? max(0, min(100, (float) $query['acrescimo'])) : 0.0;
 
         try {
             $terms = DB::select('id, codigo, titulo, atalho')
@@ -445,7 +454,8 @@ final class ServiceOrder extends Base
                     ->fetchAssociative();
             }
 
-            $totalOS = (float) ($order['valor_total'] ?? 0);
+            $subtotal = (float) ($order['valor_total'] ?? 0);
+            $totalOS  = round($subtotal - ($subtotal * $desconto / 100) + ($subtotal * $acrescimo / 100), 2);
 
             $result = [];
             foreach ($terms as $t) {
@@ -455,36 +465,100 @@ final class ServiceOrder extends Base
                     ->orderBy('parcela', 'ASC')
                     ->fetchAllAssociative();
 
-                $qtd = count($rows);
-                $parcelas = array_map(fn($r) => [
-                    'parcela'   => $r['parcela'],
-                    'intervalo' => $r['intervalo'],
-                    'valor'     => $qtd > 0 ? $totalOS / $qtd : $totalOS,
-                ], $rows);
+                $maxParcelas = count($rows);
+
+                // Preview inicial (1x) — o front recalcula via installmentPreview()
+                // sempre que o usuário mudar a quantidade de parcelas escolhida.
+                $rowsUmaParcela = array_slice($rows, 0, 1);
 
                 $result[] = [
-                    'id'        => $t['id'],
-                    'codigo'    => $t['codigo'],
-                    'titulo'    => $t['titulo'],
-                    'atalho'    => $t['atalho'],
-                    'parcelas'  => $parcelas,
+                    'id'           => $t['id'],
+                    'codigo'       => $t['codigo'],
+                    'titulo'       => $t['titulo'],
+                    'atalho'       => $t['atalho'],
+                    'max_parcelas' => $maxParcelas,
+                    'parcelas'     => $this->calcularParcelas($rowsUmaParcela, $totalOS),
                 ];
             }
 
-            return $this->json($response, ['status' => true, 'data' => $result], 200);
+            return $this->json($response, [
+                'status'        => true,
+                'data'          => $result,
+                'subtotal'      => $subtotal,
+                'desconto'      => $desconto,
+                'acrescimo'     => $acrescimo,
+                'total_liquido' => $totalOS,
+            ], 200);
         } catch (Exception $e) {
             error_log('[ServiceOrder::paymentTerms] ' . $e->getMessage());
             return $this->json($response, ['status' => false, 'msg' => 'Erro: ' . $e->getMessage(), 'data' => []], 500);
         }
     }
 
+    // Devolve o preview de parcelas pra uma quantidade específica escolhida
+    // pelo usuário (ex: crédito em 7x). Usa só as N primeiras linhas de
+    // installment daquela condição — não persiste nada, é só preview.
+
+    public function installmentPreview($request, $response, $args)
+    {
+        $orderId = $args['id'] ?? null;
+        $query   = $request->getQueryParams();
+
+        $idPaymentTerms = $query['id_payment_terms'] ?? null;
+        $qtdParcelas    = max(1, (int) ($query['parcelas'] ?? 1));
+        $desconto       = isset($query['desconto'])  ? max(0, min(100, (float) $query['desconto']))  : 0.0;
+        $acrescimo      = isset($query['acrescimo']) ? max(0, min(100, (float) $query['acrescimo'])) : 0.0;
+
+        if (!$orderId || !$idPaymentTerms) {
+            return $this->json($response, ['status' => false, 'msg' => 'Parâmetros inválidos', 'data' => []], 400);
+        }
+
+        try {
+            $order = DB::select('valor_total')->from('service_orders')
+                ->where('id = :id')
+                ->setParameter('id', $orderId, ParameterType::INTEGER)
+                ->fetchAssociative();
+
+            $subtotal = (float) ($order['valor_total'] ?? 0);
+            $totalOS  = round($subtotal - ($subtotal * $desconto / 100) + ($subtotal * $acrescimo / 100), 2);
+
+            $rows = DB::select('parcela, intervalo')->from('installment')
+                ->where('id_pagamento = :id')
+                ->setParameter('id', $idPaymentTerms, ParameterType::INTEGER)
+                ->orderBy('parcela', 'ASC')
+                ->setMaxResults($qtdParcelas)
+                ->fetchAllAssociative();
+
+            if (empty($rows)) {
+                return $this->json($response, ['status' => false, 'msg' => 'Condição sem parcelas cadastradas', 'data' => []], 422);
+            }
+
+            $parcelas = $this->calcularParcelas($rows, $totalOS);
+
+            return $this->json($response, [
+                'status' => true,
+                'data'   => $parcelas,
+                'total'  => $totalOS,
+            ], 200);
+        } catch (Exception $e) {
+            error_log('[ServiceOrder::installmentPreview] ' . $e->getMessage());
+            return $this->json($response, ['status' => false, 'msg' => 'Erro: ' . $e->getMessage(), 'data' => []], 500);
+        }
+    }
+
     // ── Finalize ──────────────────────────────────────────────────────────────
+    // Aqui é o único lugar onde a negociação (desconto/acréscimo) e a quantidade
+    // de parcelas escolhida são de fato validadas e persistidas — junto com o
+    // valor_liquido calculado sobre valor_total.
 
     public function finalize($request, $response)
     {
         $form           = $request->getParsedBody();
         $id             = $form['id'] ?? null;
         $idPaymentTerms = $form['id_payment_terms'] ?? null;
+        $qtdParcelas    = max(1, (int) ($form['parcelas'] ?? 1));
+        $desconto       = isset($form['desconto'])  ? max(0, min(100, (float) $form['desconto']))  : 0.0;
+        $acrescimo      = isset($form['acrescimo']) ? max(0, min(100, (float) $form['acrescimo'])) : 0.0;
 
         if (!$id) {
             return $this->json($response, ['status' => false, 'msg' => 'ID não informado', 'id' => 0], 403);
@@ -495,7 +569,7 @@ final class ServiceOrder extends Base
         }
 
         try {
-            $order = DB::select('status')->from('service_orders')
+            $order = DB::select('status, valor_total')->from('service_orders')
                 ->where('id = :id')->andWhere('excluido = false')
                 ->setParameter('id', $id, ParameterType::INTEGER)
                 ->fetchAssociative();
@@ -513,20 +587,78 @@ final class ServiceOrder extends Base
                 return $this->json($response, ['status' => false, 'msg' => 'Condição de pagamento inválida', 'id' => 0], 422);
             }
 
+            // Garante que a quantidade de parcelas escolhida realmente existe
+            // pra essa condição (não deixa mandar "20x" numa condição de 12x).
+            $maxParcelas = (int) DB::select('COUNT(*)')->from('installment')
+                ->where('id_pagamento = :id')
+                ->setParameter('id', $idPaymentTerms, ParameterType::INTEGER)
+                ->fetchOne();
+
+            if ($qtdParcelas > $maxParcelas) {
+                return $this->json($response, ['status' => false, 'msg' => 'Quantidade de parcelas inválida para essa condição', 'id' => 0], 422);
+            }
+
+            $subtotal     = (float) $order['valor_total'];
+            $valorLiquido = round($subtotal - ($subtotal * $desconto / 100) + ($subtotal * $acrescimo / 100), 2);
+
             DB::connection()->update('service_orders', [
                 'status'        => 'concluida',
                 'id_pagamento'  => (int) $idPaymentTerms,
+                'parcelas'      => $qtdParcelas,
+                'desconto'      => $desconto,
+                'acrescimo'     => $acrescimo,
+                'valor_liquido' => $valorLiquido,
                 'concluido_em'  => $this->now(),
                 'atualizado_em' => $this->now(),
             ], ['id' => $id]);
 
             return $this->json($response, ['status' => true, 'msg' => 'OS concluída com sucesso!', 'id' => (int) $id], 200);
         } catch (Exception $e) {
+            error_log('[ServiceOrder::finalize] ' . $e->getMessage());
             return $this->json($response, ['status' => false, 'msg' => 'Erro: ' . $e->getMessage(), 'id' => 0], 500);
         }
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────
+
+    /**
+     * Divide $total em parcelas iguais (uma por linha de $rows), arredondando
+     * cada uma para 2 casas decimais e jogando a sobra de centavos (resultante
+     * do arredondamento) na última parcela — garante que soma(parcelas) === $total
+     * sempre, mesmo quando a divisão não é exata (ex: 47.04 / 3).
+     *
+     * @param array $rows Lista de linhas com 'parcela' e 'intervalo'
+     * @return array Lista de parcelas com 'parcela', 'intervalo' e 'valor'
+     */
+    private function calcularParcelas(array $rows, float $total): array
+    {
+        $qtd = count($rows);
+
+        if ($qtd === 0) {
+            return [];
+        }
+
+        $valorBase   = round($total / $qtd, 2);
+        $parcelas    = [];
+        $somaParcial = 0.0;
+
+        foreach ($rows as $i => $r) {
+            $isUltima = ($i === $qtd - 1);
+            // a última parcela recebe o que sobrar, não o valor base —
+            // isso absorve os centavos perdidos no arredondamento das anteriores
+            $valor = $isUltima ? round($total - $somaParcial, 2) : $valorBase;
+
+            $parcelas[] = [
+                'parcela'   => $r['parcela'],
+                'intervalo' => $r['intervalo'],
+                'valor'     => $valor,
+            ];
+
+            $somaParcial += $valor;
+        }
+
+        return $parcelas;
+    }
 
     private function recalcularTotal(int $orderId): void
     {
