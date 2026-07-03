@@ -57,12 +57,12 @@ async function applyChanges({ silent = false } = {}) {
     }
 }
 
-// ── Modal de pagamento (Finalizar OS) — agora com SPLIT ──────────────────────
+// ── Modal de pagamento (Finalizar OS) — com SPLIT ──────────────────────────
 
-let paymentTermsData = [];   // condições disponíveis (com max_parcelas)
-let splits = [];             // [{id_payment_terms, titulo, parcelas, valor}]
+let paymentTermsData = [];
+let splits = [];
 let totalLiquido = 0;
-let pendingTerm = null;      // condição selecionada no formulário de "adicionar"
+let pendingTerm = null;
 
 function fmtBRL(value) {
     return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
@@ -110,7 +110,6 @@ function getNegotiationValues() {
     return { desconto, acrescimo };
 }
 
-// soma em centavos pra não sofrer com ponto flutuante
 function somaSplitsCentavos() {
     return splits.reduce((acc, s) => acc + Math.round(s.valor * 100), 0);
 }
@@ -393,8 +392,6 @@ if (modalPaymentEl) {
 
     document.getElementById('confirm-payment-btn')?.addEventListener('click', confirmPayment);
 
-    // Mudar desconto/acréscimo altera o total_liquido -> zera o split, pois os
-    // valores já alocados deixariam de bater com o novo total.
     let negotiationDebounce = null;
     ['modal-desconto', 'modal-acrescimo'].forEach(id => {
         document.getElementById(id)?.addEventListener('input', () => {
@@ -488,6 +485,9 @@ if (BtnAddItem) {
         document.getElementById('item-quantidade').value = '1';
         setMoneyValue(document.getElementById('item-preco'), 0);
         document.getElementById('item-subtotal').textContent = 'R$ 0,00';
+        // CORREÇÃO: limpa os hidden inputs ao trocar tipo/reabrir modal
+        document.getElementById('item-product-id').value = '';
+        document.getElementById('item-service-id').value = '';
 
         if (dtSearchItems) {
             dtSearchItems.destroy();
@@ -527,6 +527,12 @@ if (BtnAddItem) {
             setMoneyValue(document.getElementById('item-preco'), parseFloat(data.preco));
             document.getElementById('item-quantidade').value = '1';
             calcularSubtotal();
+
+            // CORREÇÃO PRINCIPAL: preenche os hidden inputs que o form envia no submit.
+            // Sem isso, product_id/service_id chegavam vazios no backend e o item
+            // salvava com product_id = NULL, quebrando a baixa de estoque no finalize().
+            document.getElementById('item-product-id').value = tipo === 'produto' ? data.id : '';
+            document.getElementById('item-service-id').value = tipo === 'servico' ? data.id : '';
 
             document.getElementById('item-form-wrap').classList.remove('d-none');
             document.getElementById('btn-save-item').classList.remove('d-none');

@@ -35,10 +35,11 @@
                         <div class="col-lg-4 col-md-6">
                             <div class="form-floating mb-3">
                                 <select class="form-select" id="unidade" name="unidade">
-                                    <option value="un" {{ product.unidade == 'un' ? 'selected' : '' }}>Unidade (un)</option>
-                                    <option value="kg" {{ product.unidade == 'kg' ? 'selected' : '' }}>Quilo (kg)</option>
-                                    <option value="m"  {{ product.unidade == 'm'  ? 'selected' : '' }}>Metro (m)</option>
-                                    <option value="l"  {{ product.unidade == 'l'  ? 'selected' : '' }}>Litro (l)</option>
+                                    <option value="un" {{ product.unidade=='un' ? 'selected' : '' }}>Unidade (un)
+                                    </option>
+                                    <option value="kg" {{ product.unidade=='kg' ? 'selected' : '' }}>Quilo (kg)</option>
+                                    <option value="m" {{ product.unidade=='m' ? 'selected' : '' }}>Metro (m)</option>
+                                    <option value="l" {{ product.unidade=='l' ? 'selected' : '' }}>Litro (l)</option>
                                 </select>
                                 <label for="unidade">Unidade</label>
                             </div>
@@ -55,7 +56,7 @@
                                 <select class="form-select" id="supplier_id" name="supplier_id">
                                     <option value="">— Sem fornecedor —</option>
                                     {% for s in suppliers %}
-                                    <option value="{{ s.id }}" {{ product.supplier_id == s.id ? 'selected' : '' }}>
+                                    <option value="{{ s.id }}" {{ product.supplier_id==s.id ? 'selected' : '' }}>
                                         {{ s.nome }}
                                     </option>
                                     {% endfor %}
@@ -65,8 +66,8 @@
                         </div>
                         <div class="col-12">
                             <div class="form-floating mb-3">
-                                <textarea class="form-control" id="descricao" name="descricao"
-                                    placeholder="Descrição" style="height:80px">{{ product.descricao }}</textarea>
+                                <textarea class="form-control" id="descricao" name="descricao" placeholder="Descrição"
+                                    style="height:80px">{{ product.descricao }}</textarea>
                                 <label for="descricao">Descrição</label>
                             </div>
                         </div>
@@ -111,28 +112,33 @@
                 <div class="card-header fw-semibold">Estoque</div>
                 <div class="card-body">
                     <div class="row">
-                        <div class="col-lg-4 col-md-6">
+                        {% if id %}
+                        {# Estoque atual só existe depois que o produto já foi criado.
+                        Ele nunca é editável aqui — só via ajuste manual na listagem
+                        de produtos ou compra. Isso evita alguém digitar um número
+                        aqui e dessincronizar de stock_movements. #}
+                        <div class="col-lg-6 col-md-6">
                             <div class="form-floating mb-3">
-                                <input type="number" step="0.001" class="form-control" id="estoque_minimo"
-                                    name="estoque_minimo" placeholder="Estoque mínimo"
-                                    value="{{ product.estoque_minimo }}">
-                                <label for="estoque_minimo">Estoque mínimo</label>
-                            </div>
-                        </div>
-                        <div class="col-lg-4 col-md-6">
-                            <div class="form-floating mb-3">
-                                <input type="number" step="0.001" class="form-control" id="estoque_atual"
-                                    name="estoque_atual" placeholder="Estoque atual"
-                                    value="{{ product.estoque_atual }}" disabled>
+                                <input type="text" class="form-control" id="estoque_atual"
+                                    value="{{ product.estoque_atual }} {{ product.unidade }}" disabled>
                                 <label for="estoque_atual">Estoque atual</label>
                             </div>
                         </div>
+                        {% else %}
+                        <div class="col-lg-8 col-md-6 d-flex align-items-center">
+                            <div class="alert alert-info mb-0 py-2 px-3 w-100">
+                                <i class="bi bi-info-circle me-1"></i>
+                                O produto será cadastrado com estoque zerado. Use a tela de
+                                <strong>Produtos</strong> para dar entrada após salvar.
+                            </div>
+                        </div>
+                        {% endif %}
                     </div>
                 </div>
                 <div class="card-footer d-flex gap-2">
                     <div class="form-check">
-                        <input class="form-check-input" type="checkbox" id="ativo" name="ativo"
-                            value="true" {{ product.ativo ? 'checked' : '' }}>
+                        <input class="form-check-input" type="checkbox" id="ativo" name="ativo" value="true" {{
+                            product.ativo ? 'checked' : '' }}>
                         <label class="form-check-label" for="ativo">Ativo</label>
                     </div>
                 </div>

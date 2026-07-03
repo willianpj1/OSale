@@ -331,19 +331,55 @@ final class ServiceOrder extends Base
             return $this->json($response, ['status' => false, 'msg' => 'O campo preço unitário é obrigatório', 'id' => 0], 400);
         }
 
+        // Ao adicionar produto na OS, valida contra o estoque disponível.
+        // Não reserva/baixa nada aqui ainda — a baixa real só acontece no
+        // finalize(), pra não travar estoque de orçamentos que não viram venda.
+        // Mas bloquear o item aqui evita montar uma OS com item que já
+        // sabemos que não vai poder ser vendido.
+        if ($tipo === 'produto' && !empty($form['product_id'])) {
+            $produto = DB::select('estoque_atual, nome')
+                ->from('products')
+                ->where('id = :id')
+                ->setParameter('id', (int) $form['product_id'], ParameterType::INTEGER)
+                ->fetchAssociative();
+
+            if ($produto && (float) $quantidade > (float) $produto['estoque_atual']) {
+                return $this->json($response, [
+                    'status' => false,
+                    'msg'    => "Estoque insuficiente de \"{$produto['nome']}\" (disponível: {$produto['estoque_atual']})",
+                    'id'     => 0,
+                ], 422);
+            }
+        }
+
         $subtotal = round($quantidade * $preco_unit, 2);
 
         try {
-            DB::connection()->insert('service_order_items', [
+            $FieldAndValues = [
                 'service_order_id' => (int) $orderId,
                 'tipo'             => $tipo,
-                'service_id'       => $tipo === 'servico' && !empty($form['service_id']) ? (int) $form['service_id'] : null,
-                'product_id'       => $tipo === 'produto' && !empty($form['product_id']) ? (int) $form['product_id'] : null,
+                #'service_id'       => $tipo === 'servico' && !empty($form['service_id']) ? (int) $form['service_id'] : null,
+                #'product_id'       => $tipo === 'produto' && !empty($form['product_id']) ? (int) $form['product_id'] : null,
                 'descricao'        => $descricao,
                 'quantidade'       => $quantidade,
                 'preco_unitario'   => $preco_unit,
                 'subtotal'         => $subtotal,
                 'criado_em'        => $this->now(),
+            ];
+            if ($tipo === 'servico') {
+                $FieldAndValues['product_id'] = null;
+                $FieldAndValues['service_id'] = $form['service_id'] ?? null;
+            } elseif ($tipo === 'produto') {
+                $FieldAndValues['service_id'] = null;
+                $FieldAndValues['product_id'] = $form['product_id'] ?? null;
+            }
+            DB::connection()->insert('service_order_items', $FieldAndValues, [
+                'service_order_id' => ParameterType::INTEGER,
+                'service_id'       => ParameterType::INTEGER,
+                'product_id'       => ParameterType::INTEGER,
+                'quantidade'       => ParameterType::STRING,
+                'preco_unitario'   => ParameterType::STRING,
+                'subtotal'         => ParameterType::STRING,
             ]);
 
             $itemId = (int) DB::connection()->lastInsertId();
@@ -365,6 +401,18 @@ final class ServiceOrder extends Base
             return $this->json($response, ['status' => false, 'msg' => 'ID do item não informado', 'id' => 0], 403);
         }
 
+        // Não permite excluir item de OS já concluída — a baixa de estoque já
+        // foi feita e removê-lo aqui deixaria stock_movements dessincronizado
+        // do que realmente está na OS.
+        $order = DB::select('status')->from('service_orders')
+            ->where('id = :id')
+            ->setParameter('id', $orderId, ParameterType::INTEGER)
+            ->fetchAssociative();
+
+        if ($order && $order['status'] === 'concluida') {
+            return $this->json($response, ['status' => false, 'msg' => 'Não é possível remover itens de uma OS já concluída', 'id' => 0], 422);
+        }
+
         try {
             DB::connection()->delete('service_order_items', ['id' => $itemId, 'service_order_id' => $orderId]);
             $this->recalcularTotal((int) $orderId);
@@ -381,19 +429,22 @@ final class ServiceOrder extends Base
     public function searchProducts($request, $response)
     {
         $term  = $request->getQueryParams()['q'] ?? null;
-        $query = DB::select('id, nome, preco_venda as preco, unidade')->from('products');
+        $query = DB::select('id, nome, preco_venda as preco, unidade, estoque_atual')->from('products')
+            ->where('excluido = false')
+            ->andWhere('ativo = true');
 
         if (!empty($term)) {
-            $query->where('CAST(id AS TEXT) ILIKE :term')->orWhere('nome ILIKE :term')
+            $query->andWhere($query->expr()->or('CAST(id AS TEXT) ILIKE :term', 'nome ILIKE :term'))
                 ->setParameter('term', '%' . $term . '%');
         }
 
         $produtos = $query->orderBy('nome', 'ASC')->setMaxResults(20)->fetchAllAssociative();
 
         $results = array_map(fn($p) => [
-            'id'    => $p['id'],
-            'nome'  => $p['nome'],
-            'preco' => (float) $p['preco'],
+            'id'            => $p['id'],
+            'nome'          => $p['nome'],
+            'preco'         => (float) $p['preco'],
+            'estoque_atual' => (float) $p['estoque_atual'],
         ], $produtos);
 
         return $this->json($response, ['results' => $results], 200);
@@ -424,8 +475,6 @@ final class ServiceOrder extends Base
     }
 
     // ── Payment terms (modal de finalizar) ──────────────────────────────────────
-    // Sem mudanças na listagem das condições — cada "cartão" no modal continua
-    // representando uma forma de pagamento disponível, independente de split.
 
     public function paymentTerms($request, $response, $args)
     {
@@ -485,10 +534,6 @@ final class ServiceOrder extends Base
         }
     }
 
-    // Preview de parcelas agora recebe o VALOR da fatia (não mais o total da OS),
-    // já que cada forma de pagamento no split pode cobrir só uma parte do total.
-    // Ex: split de R$4000 em 4x -> manda ?valor=4000&parcelas=4
-
     public function installmentPreview($request, $response, $args)
     {
         $query = $request->getQueryParams();
@@ -529,14 +574,11 @@ final class ServiceOrder extends Base
     // ── Finalize ──────────────────────────────────────────────────────────────
     // Agora recebe uma LISTA de formas de pagamento (split). Cada item cobre uma
     // fatia em R$ do valor_liquido total; a soma das fatias precisa bater
-    // exatamente com o valor_liquido calculado a partir de desconto/acréscimo
-    // (que continuam sendo aplicados uma única vez sobre o total da OS).
+    // exatamente com o valor_liquido calculado a partir de desconto/acréscimo.
     //
-    // form esperado:
-    // id                => id da OS
-    // desconto          => % (opcional)
-    // acrescimo         => % (opcional)
-    // payments          => JSON string: [{id_payment_terms, parcelas, valor}, ...]
+    // Além disso, a finalização agora também é o ponto único de baixa de
+    // estoque: todo item tipo='produto' da OS gera um stock_movement SAIDA/VENDA
+    // dentro da MESMA transação — ou a OS conclui E dá baixa, ou nenhuma das duas.
 
     public function finalize($request, $response)
     {
@@ -617,17 +659,66 @@ final class ServiceOrder extends Base
                 return $this->json($response, [
                     'status' => false,
                     'msg'    => 'A soma das formas de pagamento (R$ ' . number_format($somaSplitsCentavos / 100, 2, ',', '.')
-                                . ') precisa ser igual ao total da OS (R$ ' . number_format($valorLiquido, 2, ',', '.') . ')',
+                        . ') precisa ser igual ao total da OS (R$ ' . number_format($valorLiquido, 2, ',', '.') . ')',
                     'id'     => 0,
                 ], 422);
             }
+
+            // Carrega os itens tipo='produto' ANTES de abrir a transação, só
+            // pra validar rápido se algum já ficou sem estoque suficiente
+            // entre o momento em que foi adicionado na OS e agora.
+            $itensProduto = DB::select('id, product_id, quantidade, descricao')
+                ->from('service_order_items')
+                ->where('service_order_id = :id')
+                ->andWhere('tipo = :tipo')
+                ->andWhere('product_id IS NOT NULL')
+                ->setParameter('id', $id, ParameterType::INTEGER)
+                ->setParameter('tipo', 'produto')
+                ->fetchAllAssociative();
 
             $conn = DB::connection();
             $conn->beginTransaction();
 
             try {
-                // Remove splits antigos, se essa OS já teve uma tentativa de finalização
-                // interrompida (mantém idempotente reenviar o finalize).
+                // ── Baixa de estoque (venda) ─────────────────────────────
+                // Lock pessimista linha a linha evita duas OSs concorrentes
+                // vendendo o mesmo saldo de estoque ao mesmo tempo.
+                foreach ($itensProduto as $item) {
+                    $produto = $conn->fetchAssociative(
+                        'SELECT estoque_atual FROM products WHERE id = :id FOR UPDATE',
+                        ['id' => (int) $item['product_id']]
+                    );
+
+                    if (!$produto) {
+                        throw new Exception("Produto \"{$item['descricao']}\" não encontrado");
+                    }
+
+                    $estoqueAnterior = (float) $produto['estoque_atual'];
+                    $quantidade      = (float) $item['quantidade'];
+
+                    if ($quantidade > $estoqueAnterior) {
+                        throw new Exception("Estoque insuficiente de \"{$item['descricao']}\" (disponível: {$estoqueAnterior})");
+                    }
+
+                    $estoquePosterior = $estoqueAnterior - $quantidade;
+
+                    $conn->insert('stock_movements', [
+                        'product_id'            => (int) $item['product_id'],
+                        'service_order_item_id' => (int) $item['id'],
+                        'tipo'                  => 'SAIDA',
+                        'origem'                => 'VENDA',
+                        'quantidade'            => $quantidade,
+                        'estoque_anterior'      => $estoqueAnterior,
+                        'estoque_posterior'     => $estoquePosterior,
+                        'criado_por'            => $_SESSION['user']['id'] ?? null,
+                        'criado_em'             => $this->now(),
+                    ]);
+                    // trigger fn_apply_stock_movement já atualiza products.estoque_atual
+                }
+
+                // ── Formas de pagamento (split) ──────────────────────────
+                // Remove splits antigos, se essa OS já teve uma tentativa de
+                // finalização interrompida (mantém idempotente reenviar o finalize).
                 $conn->delete('service_order_payments', ['service_order_id' => (int) $id]);
 
                 foreach ($splitsValidados as $split) {
@@ -640,9 +731,6 @@ final class ServiceOrder extends Base
                     ]);
                 }
 
-                // Mantém id_pagamento/parcelas na própria OS como atalho quando há
-                // uma única forma (facilita telas/relatórios simples que ainda
-                // olham direto pra service_orders); em split fica null.
                 $unicaForma = count($splitsValidados) === 1;
 
                 $conn->update('service_orders', [

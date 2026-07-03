@@ -15,6 +15,7 @@ use App\Controller\Report;
 use App\Controller\Users;
 use App\Controller\PaymentTerms;
 use App\Controller\Installment;
+use App\Controller\StockMovement;
 use App\Middleware\Middleware;
 
 // ── Rotas públicas ────────────────────────────────────────────────────────────
@@ -102,6 +103,14 @@ $app->group('/produto', function ($group) {
     $group->post('/inserir',              Product::class . ':insert');
     $group->post('/atualizar',            Product::class . ':update');
     $group->post('/excluir',              Product::class . ':delete');
+});
+
+// ── Estoque ───────────────────────────────────────────────────────────────────
+
+$app->group('/estoque', function ($group) {
+    $group->get('/',              StockMovement::class . ':list');
+    $group->post('/listingdata',  StockMovement::class . ':listingdata');
+    $group->post('/ajustar',      StockMovement::class . ':ajustar');
 });
 
 // ── Serviços ──────────────────────────────────────────────────────────────────

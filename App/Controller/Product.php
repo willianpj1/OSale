@@ -66,6 +66,11 @@ final class Product extends Base
         }
 
         try {
+            // estoque_atual NÃO é aceito do form de propósito — produto sempre
+            // nasce com estoque 0. O único jeito de ganhar saldo é via ajuste
+            // manual (StockMovement::ajustar) ou compra (fase futura).
+            // A trigger trg_force_zero_stock_on_insert garante isso também a
+            // nível de banco, mesmo que alguém tente burlar isso aqui.
             DB::connection()->insert('products', [
                 'supplier_id'    => !empty($form['supplier_id']) ? (int) $form['supplier_id'] : null,
                 'nome'           => $nome,
@@ -75,7 +80,6 @@ final class Product extends Base
                 'preco_compra'   => (float) ($form['preco_compra']   ?? 0),
                 'margem_lucro'   => (float) ($form['margem_lucro']   ?? 0),
                 'preco_venda'    => (float) ($form['preco_venda']    ?? 0),
-                'estoque_atual'  => (float) ($form['estoque_atual']  ?? 0),
                 'estoque_minimo' => (float) ($form['estoque_minimo'] ?? 0),
                 'ativo'          => filter_var($form['ativo'] ?? true, FILTER_VALIDATE_BOOLEAN),
                 'excluido'       => false,
@@ -108,6 +112,7 @@ final class Product extends Base
         }
 
         try {
+            // estoque_atual também não é editável aqui — só via stock_movements.
             DB::connection()->update('products', [
                 'supplier_id'    => !empty($form['supplier_id']) ? (int) $form['supplier_id'] : null,
                 'nome'           => $nome,
@@ -162,8 +167,8 @@ final class Product extends Base
             2 => 'p.preco_venda',
             3 => 'p.estoque_atual',
             4 => 'p.codigo_barra',
-            6 => 'p.ativo',
-            7 => 'p.criado_em',
+            5 => 'p.ativo',
+            6 => 'p.criado_em',
         ];
 
         $orderField = $columns[(int) ($form['order'][0]['column'] ?? 0)] ?? 'p.id';
@@ -196,14 +201,20 @@ final class Product extends Base
                 $v['nome'],
                 'R$ ' . number_format((float) $v['preco_venda'], 2, ',', '.'),
                 "<span class='" . ((float) $v['estoque_atual'] <= (float) $v['estoque_minimo'] ? 'text-danger fw-bold' : '') . "'>"
-                    . number_format((float) $v['estoque_atual'], 3, ',', '.') . "</span>",
+                    . $this->formatarEstoque((float) $v['estoque_atual']) . " {$v['unidade']}</span>
+    <button type='button' class='btn btn-sm btn-outline-primary ms-1 btn-ajustar-estoque'
+        data-product-id='{$v['id']}'
+        data-product-nome='" . htmlspecialchars($v['nome'], ENT_QUOTES) . "'
+        data-estoque-atual='{$v['estoque_atual']}'>
+        <i class='bi bi-plus-slash-minus'></i>
+    </button>",
                 $v['codigo_barra'] ?? '',
                 $v['ativo'] ? 'Ativo' : 'Inativo',
                 (new DateTime($v['criado_em']))->format('d/m/Y H:i:s'),
                 "<td>
-        <a class='btn btn-sm btn-warning' href='/produto/detalhes/{$v['id']}'><i class='bi bi-pencil-square'></i> Editar</a>
-        <button type='button' class='btn btn-sm btn-danger' onclick='ShowModal({$v['id']});'><i class='bi bi-trash'></i> Excluir</button>
-    </td>",
+<a class='btn btn-sm btn-warning' href='/produto/detalhes/{$v['id']}'><i class='bi bi-pencil-square'></i> Editar</a>
+<button type='button' class='btn btn-sm btn-danger' onclick='ShowModal({$v['id']});'><i class='bi bi-trash'></i> Excluir</button>
+</td>",
             ], $products);
 
             return $this->json($response, [
@@ -215,8 +226,14 @@ final class Product extends Base
             return $this->json($response, ['status' => false, 'msg' => $e->getMessage()], 500);
         }
     }
-
     // ── Helpers ───────────────────────────────────────────────────────────────
+
+    private function formatarEstoque(float $valor): string
+    {
+        // Remove zeros e ponto decimal desnecessários (9.000 -> 9, 9.500 -> 9,5)
+        $formatado = rtrim(rtrim(number_format($valor, 3, '.', ''), '0'), '.');
+        return str_replace('.', ',', $formatado);
+    }
 
     private function now(): string
     {

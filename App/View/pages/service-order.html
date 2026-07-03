@@ -278,8 +278,6 @@
                         </dd>
                     </dl>
 
-                    {# Formas de pagamento vinculadas — agora é uma LISTA (split),
-                    cada bloco com seu título + suas próprias parcelas. #}
                     {% if paymentSplits|length %}
                     <hr style="border-color: var(--border);">
                     <span class="fw-semibold d-block mb-2"
@@ -332,7 +330,7 @@
     </div>
     {% endif %}
 
-    <!-- ─── Modal: Condição de Pagamento (Finalizar OS) — agora com SPLIT ─── -->
+    <!-- ─── Modal: Condição de Pagamento (Finalizar OS) — com SPLIT ─── -->
     <div class="modal fade" id="modal-payment" tabindex="-1" aria-labelledby="modalPaymentLabel" aria-hidden="true">
         <div class="modal-dialog modal-lg">
             <div class="modal-content">
@@ -474,6 +472,7 @@
         </div>
     </div>
 
+    <!-- ─── Modal: Adicionar item (produto ou serviço) ─── -->
     <div class="modal fade" id="modal-item" tabindex="-1">
         <div class="modal-dialog modal-lg">
             <div class="modal-content">
@@ -504,6 +503,10 @@
                             </table>
                         </div>
                         <div class="col-12 d-none" id="item-form-wrap">
+                            <!-- CORREÇÃO: hidden inputs que faltavam — sem eles product_id/service_id
+                                 nunca eram enviados no submit do form e ficavam NULL no banco -->
+                            <input type="hidden" id="item-product-id" name="product_id">
+                            <input type="hidden" id="item-service-id" name="service_id">
                             <hr>
                             <div class="row g-2">
                                 <div class="col-12">
