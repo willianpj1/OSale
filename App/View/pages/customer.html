@@ -13,6 +13,7 @@
 <form id="form">
     <input type="hidden" id="action" name="action" value="{{ action }}">
     <input type="hidden" id="id" name="id" value="{{ id }}">
+    <input type="hidden" id="id_endereco" name="id_endereco">
     <div class="row g-3">
 
         {# Dados principais #}
@@ -82,7 +83,7 @@
             </div>
         </div>
 
-        {# Endereços — só exibe se já tiver ID (edição) #}
+        {# Endereços — #}
         <div class="col-12">
             <div class="card">
                 <div class="card-header d-flex align-items-center justify-content-between">
@@ -106,6 +107,89 @@
                         </thead>
                         <tbody></tbody>
                     </table>
+                </div>
+            </div>
+        </div>
+        <!-- modal endereço -->
+        <div class="modal fade" id="modal-address" tabindex="-1">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Adicionar endereço</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="row g-3">
+                            <div class="col-12">
+                                <div class="form-floating">
+                                    <input type="text" class="form-control" id="a-nome" name="nome" placeholder="Label">
+                                    <label for="a-nome">Label (ex: Casa, Filial centro)</label>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="form-floating">
+                                    <input type="text" class="form-control" id="a-cep" name="cep" placeholder="CEP">
+                                    <label for="a-cep">CEP</label>
+                                </div>
+                            </div>
+                            <div class="col-md-7">
+                                <div class="form-floating">
+                                    <input type="text" class="form-control" id="a-logradouro" name="logradouro"
+                                        placeholder="Logradouro" required>
+                                    <label for="a-logradouro">Logradouro</label>
+                                </div>
+                            </div>
+                            <div class="col-md-2">
+                                <div class="form-floating">
+                                    <input type="text" class="form-control" id="a-numero" name="numero"
+                                        placeholder="Número">
+                                    <label for="a-numero">Número</label>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-floating">
+                                    <input type="text" class="form-control" id="a-complemento" name="complemento"
+                                        placeholder="Complemento">
+                                    <label for="a-complemento">Complemento</label>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="form-floating">
+                                    <input type="text" class="form-control" id="a-bairro" name="bairro"
+                                        placeholder="Bairro">
+                                    <label for="a-bairro">Bairro</label>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="form-floating">
+                                    <input type="text" class="form-control" id="a-cidade" name="cidade"
+                                        placeholder="Cidade">
+                                    <label for="a-cidade">Cidade</label>
+                                </div>
+                            </div>
+                            <div class="col-md-2">
+                                <div class="form-floating">
+                                    <input type="text" class="form-control" id="a-estado" name="estado" placeholder="UF"
+                                        maxlength="2">
+                                    <label for="a-estado">UF</label>
+                                </div>
+                            </div>
+                            <div class="col-12">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="a-principal" name="principal"
+                                        value="true">
+                                    <label class="form-check-label" for="a-principal">Principal</label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="button" class="btn btn-success" id="btn-save-address">
+                            <i class="bi bi-floppy"></i> Salvar
+                        </button>
+                    </div>
+                    <!-- Fim do Formulário -->
                 </div>
             </div>
         </div>
@@ -137,94 +221,10 @@
         </div>
 
     </div>
+
 </form>
 
-{# Modal endereço #}
-<div class="modal fade" id="modal-address" tabindex="-1">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Adicionar endereço</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <!-- Início do Formulário -->
-            <form id="form-address">
-                <div class="modal-body">
-                    <div class="row g-3">
-                        <div class="col-12">
-                            <div class="form-floating">
-                                <input type="text" class="form-control" id="a-nome" name="nome" placeholder="Label">
-                                <label for="a-nome">Label (ex: Casa, Filial centro)</label>
-                            </div>
-                        </div>
-                        <div class="col-md-3">
-                            <div class="form-floating">
-                                <input type="text" class="form-control" id="a-cep" name="cep" placeholder="CEP">
-                                <label for="a-cep">CEP</label>
-                            </div>
-                        </div>
-                        <div class="col-md-7">
-                            <div class="form-floating">
-                                <input type="text" class="form-control" id="a-logradouro" name="logradouro"
-                                    placeholder="Logradouro" required>
-                                <label for="a-logradouro">Logradouro</label>
-                            </div>
-                        </div>
-                        <div class="col-md-2">
-                            <div class="form-floating">
-                                <input type="text" class="form-control" id="a-numero" name="numero"
-                                    placeholder="Número">
-                                <label for="a-numero">Número</label>
-                            </div>
-                        </div>
-                        <div class="col-md-4">
-                            <div class="form-floating">
-                                <input type="text" class="form-control" id="a-complemento" name="complemento"
-                                    placeholder="Complemento">
-                                <label for="a-complemento">Complemento</label>
-                            </div>
-                        </div>
-                        <div class="col-md-3">
-                            <div class="form-floating">
-                                <input type="text" class="form-control" id="a-bairro" name="bairro"
-                                    placeholder="Bairro">
-                                <label for="a-bairro">Bairro</label>
-                            </div>
-                        </div>
-                        <div class="col-md-3">
-                            <div class="form-floating">
-                                <input type="text" class="form-control" id="a-cidade" name="cidade"
-                                    placeholder="Cidade">
-                                <label for="a-cidade">Cidade</label>
-                            </div>
-                        </div>
-                        <div class="col-md-2">
-                            <div class="form-floating">
-                                <input type="text" class="form-control" id="a-estado" name="estado" placeholder="UF"
-                                    maxlength="2">
-                                <label for="a-estado">UF</label>
-                            </div>
-                        </div>
-                        <div class="col-12">
-                            <div class="form-check">
-                                <input class="form-check-input" type="checkbox" id="a-principal" name="principal"
-                                    value="true">
-                                <label class="form-check-label" for="a-principal">Principal</label>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                    <button type="button" class="btn btn-success" id="btn-save-address">
-                        <i class="bi bi-floppy"></i> Salvar
-                    </button>
-                </div>
-            </form>
-            <!-- Fim do Formulário -->
-        </div>
-    </div>
-</div>
+
 
 {# Modal contato #}
 <div class="modal fade" id="modal-contact" tabindex="-1">

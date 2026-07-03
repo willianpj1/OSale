@@ -69,7 +69,7 @@ $app->group('/cliente', function ($group) {
     $group->post('/contato/{contactId}',  Customer::class . ':contactDelete');
     // Endereços
     $group->post('/{id}/endereco',        Customer::class . ':addressInsert');
-    $group->post('/{id}/enderecolista',   Customer::class . ':addressListingData');
+    $group->post('/{id}/enderecoslista',   Customer::class . ':addressListingData');
     $group->post('/endereco/{addressId}', Customer::class . ':addressDelete');
 });
 

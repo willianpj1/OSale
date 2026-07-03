@@ -439,7 +439,7 @@ final class Customer extends Base
              FROM addresses 
              WHERE entidade_id = :cliente_id 
                AND entidade = :entidade 
-               AND excluido = false 
+               --AND excluido = false 
              ORDER BY principal DESC, id DESC",
                 ['cliente_id' => $id, 'entidade' => 'customer']
             )->fetchAllAssociative();
@@ -474,38 +474,18 @@ final class Customer extends Base
 
     public function addressDelete($request, $response, $args)
     {
-        $addressId = $args['addressId'] ?? null;
-
-        // Validação estrita do ID conforme o padrão do professor
-        if (is_null($addressId) || $addressId === '') {
-            return $this->json($response, ['status' => false, 'msg' => 'ID do endereço não informado', 'id' => 0], 403);
+        $form = $request->getParsedBody();
+        $id = $form['id_endereco'] ?? null;
+        if (is_null($id) || $id === '') {
+            return $this->json($response, ['status' => false, 'msg' => 'Informe o código do endereço', 'id' => 0], 403);
         }
-
         try {
-            // Captura a conexão do Doctrine no padrão estabelecido
-            $db = \App\Database\DB::connection();
-
-            // Campos e valores que serão modificados (Exclusão Lógica)
-            $fieldsAndValues = [
-                'excluido'      => true,
-                'atualizado_em' => (new DateTime())->format('Y-m-d H:i:s')
-            ];
-
-            // Condições do WHERE para garantir a segurança da alteração
-            $whereCondition = [
-                'id'       => $addressId,
-                'entidade' => 'customer'
-            ];
-
-            // Executa o UPDATE de forma segura através do Doctrine
-            $IsUpdated = $db->update('addresses', $fieldsAndValues, $whereCondition);
-
-            if (!$IsUpdated) {
-                return $this->json($response, ['status' => false, 'msg' => 'Restrição: O endereço não pôde ser marcado como removido.', 'id' => $addressId], 403);
+            $IsDeleted = \App\Database\DB::connection()->delete('addresses', ['id' => $id]);
+            if (!$IsDeleted) {
+                return $this->json($response, ['status' => false, 'msg' => 'Restrição: ' . $IsDeleted, 'id' => $id], 403);
             }
-
-            return $this->json($response, ['status' => true, 'msg' => 'Endereço removido!', 'id' => (int) $addressId]);
-        } catch (Exception $e) {
+            return $this->json($response, ['status' => true, 'msg' => 'Removido com sucesso!', 'id' => $id]);
+        } catch (\Exception $e) {
             return $this->json($response, ['status' => false, 'msg' => 'Restrição: ' . $e->getMessage(), 'id' => 0], 500);
         }
     }
