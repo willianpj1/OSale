@@ -6,6 +6,7 @@ namespace App\Controller;
 
 use App\Trait\DatabaseValueNormalizer;
 use App\Trait\Response;
+use App\Trait\Request;
 use App\Trait\Template;
 
 abstract class Base

@@ -369,7 +369,7 @@ final class Customer extends Base
     // ── Addresses ─────────────────────────────────────────────────────────────
 
     public function addressInsert($request, $response, $args)
-    {
+    {         
         $id   = $args['id'] ?? null;
         $form = $request->getParsedBody();
 

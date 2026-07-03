@@ -14,9 +14,9 @@
     <input type="hidden" id="action" name="action" value="{{ action }}">
     <input type="hidden" id="id" name="id" value="{{ id }}">
     <input type="hidden" id="id_endereco" name="id_endereco">
+    <input type="hidden" id="id_contato" name="id_contato">
     <div class="row g-3">
-
-        {# Dados principais #}
+        <!-- Dados principais -->
         <div class="col-12">
             <div class="card">
                 <div class="card-header d-flex align-items-center gap-2">
@@ -83,7 +83,7 @@
             </div>
         </div>
 
-        {# Endereços — #}
+        <!-- Endereços — -->
         <div class="col-12">
             <div class="card">
                 <div class="card-header d-flex align-items-center justify-content-between">
@@ -128,55 +128,55 @@
                             </div>
                             <div class="col-md-3">
                                 <div class="form-floating">
-                                    <input type="text" class="form-control" id="a-cep" name="cep" placeholder="CEP">
+                                    <input type="text" class="form-control" id="a-cep" name="a-cep" placeholder="CEP">
                                     <label for="a-cep">CEP</label>
                                 </div>
                             </div>
                             <div class="col-md-7">
                                 <div class="form-floating">
-                                    <input type="text" class="form-control" id="a-logradouro" name="logradouro"
+                                    <input type="text" class="form-control" id="a-logradouro" name="a-logradouro"
                                         placeholder="Logradouro" required>
                                     <label for="a-logradouro">Logradouro</label>
                                 </div>
                             </div>
                             <div class="col-md-2">
                                 <div class="form-floating">
-                                    <input type="text" class="form-control" id="a-numero" name="numero"
+                                    <input type="text" class="form-control" id="a-numero" name="a-numero"
                                         placeholder="Número">
                                     <label for="a-numero">Número</label>
                                 </div>
                             </div>
                             <div class="col-md-4">
                                 <div class="form-floating">
-                                    <input type="text" class="form-control" id="a-complemento" name="complemento"
+                                    <input type="text" class="form-control" id="a-complemento" name="a-complemento"
                                         placeholder="Complemento">
                                     <label for="a-complemento">Complemento</label>
                                 </div>
                             </div>
                             <div class="col-md-3">
                                 <div class="form-floating">
-                                    <input type="text" class="form-control" id="a-bairro" name="bairro"
+                                    <input type="text" class="form-control" id="a-bairro" name="a-bairro"
                                         placeholder="Bairro">
                                     <label for="a-bairro">Bairro</label>
                                 </div>
                             </div>
                             <div class="col-md-3">
                                 <div class="form-floating">
-                                    <input type="text" class="form-control" id="a-cidade" name="cidade"
+                                    <input type="text" class="form-control" id="a-cidade" name="a-cidade"
                                         placeholder="Cidade">
                                     <label for="a-cidade">Cidade</label>
                                 </div>
                             </div>
                             <div class="col-md-2">
                                 <div class="form-floating">
-                                    <input type="text" class="form-control" id="a-estado" name="estado" placeholder="UF"
+                                    <input type="text" class="form-control" id="a-estado" name="a-estado" placeholder="UF"
                                         maxlength="2">
                                     <label for="a-estado">UF</label>
                                 </div>
                             </div>
                             <div class="col-12">
                                 <div class="form-check">
-                                    <input class="form-check-input" type="checkbox" id="a-principal" name="principal"
+                                    <input class="form-check-input" type="checkbox" id="a-principal" name="a-principal"
                                         value="true">
                                     <label class="form-check-label" for="a-principal">Principal</label>
                                 </div>
@@ -194,7 +194,7 @@
             </div>
         </div>
 
-        {# Contatos #}
+        <!-- Contatos — -->
         <div class="col-12">
             <div class="card">
                 <div class="card-header d-flex align-items-center justify-content-between">
@@ -219,6 +219,56 @@
                 </div>
             </div>
         </div>
+        <!-- Modal contato -->
+        <div class="modal fade" id="modal-contact" tabindex="-1">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Adicionar contato</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <div class="form-floating">
+                                    <select class="form-select" id="c-tipo" name="c_tipo">
+                                        <option value="telefone">Telefone</option>
+                                        <option value="whatsapp">WhatsApp</option>
+                                        <option value="email">E-mail</option>
+                                        <option value="outro">Outro</option>
+                                    </select>
+                                    <label for="c-tipo">Tipo</label>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-floating">
+                                    <input type="text" class="form-control" id="c-nome" name="c_nome" placeholder="Label">
+                                    <label for="c-nome">Label (ex: Celular pessoal)</label>
+                                </div>
+                            </div>
+                            <div class="col-12">
+                                <div class="form-floating">
+                                    <input type="text" class="form-control" id="c-contato" name="c_contato" placeholder="Contato">
+                                    <label for="c-contato">Número / E-mail</label>
+                                </div>
+                            </div>
+                            <div class="col-12">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="c-principal" name="c_principal">
+                                    <label class="form-check-label" for="c-principal">Principal</label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="button" class="btn btn-success" id="btn-save-contact">
+                            <i class="bi bi-floppy"></i> Salvar
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
 
     </div>
 
@@ -226,56 +276,7 @@
 
 
 
-{# Modal contato #}
-<div class="modal fade" id="modal-contact" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Adicionar contato</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <div class="row g-3">
-                    <div class="col-md-6">
-                        <div class="form-floating">
-                            <select class="form-select" id="c-tipo" name="c_tipo">
-                                <option value="telefone">Telefone</option>
-                                <option value="whatsapp">WhatsApp</option>
-                                <option value="email">E-mail</option>
-                                <option value="outro">Outro</option>
-                            </select>
-                            <label for="c-tipo">Tipo</label>
-                        </div>
-                    </div>
-                    <div class="col-md-6">
-                        <div class="form-floating">
-                            <input type="text" class="form-control" id="c-nome" placeholder="Label">
-                            <label for="c-nome">Label (ex: Celular pessoal)</label>
-                        </div>
-                    </div>
-                    <div class="col-12">
-                        <div class="form-floating">
-                            <input type="text" class="form-control" id="c-contato" placeholder="Contato">
-                            <label for="c-contato">Número / E-mail</label>
-                        </div>
-                    </div>
-                    <div class="col-12">
-                        <div class="form-check">
-                            <input class="form-check-input" type="checkbox" id="c-principal">
-                            <label class="form-check-label" for="c-principal">Principal</label>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                <button type="button" class="btn btn-success" id="btn-save-contact">
-                    <i class="bi bi-floppy"></i> Salvar
-                </button>
-            </div>
-        </div>
-    </div>
-</div>
+
 {% endblock %}
 
 {% block script %}

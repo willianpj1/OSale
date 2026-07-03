@@ -194,7 +194,6 @@ Insert.addEventListener('click', applyChanges);
 // Centralizador de alertas para evitar repetição de código
 const toast = (icon, title, text, cb) => Swal.fire({ icon, title, text, timer: 2000, timerProgressBar: true }).then(cb);
 
-
 // 1. Abrir e Limpar Modal
 Adresse.addEventListener('click', () => {
     Modalclean?.show();
@@ -229,8 +228,7 @@ cep.addEventListener('blur', async (e) => {
 btnSaveAddress.addEventListener('click', async () => {
     const requests = new Requests();
     try {
-        // O .SetForm('form') já captura todos os inputs e o estado do checkbox sozinho
-        const response = await requests.setForm('form-address').post(`/cliente/${Id.value}/endereco`);
+        const response = await requests.setForm('form').post(`/cliente/${Id.value}/endereco`);
 
         if (!response.status) {
             throw new Error(response.msg);
@@ -271,138 +269,5 @@ async function deleteAddress(addressId) {
     }
 }
 
-/*async function ShowModal(id) {
-    Id.value = id;
-    Swal.fire({
-        title: "Atenção!",
-        text: "Deseja realmente excluir este registro?",
-        icon: "warning",
-        showCancelButton: true,
-        confirmButtonColor: "#d33",
-        cancelButtonColor: "#3085d6",
-        confirmButtonText: "Excluir"
-    }).then(async (result) => {
-        if (result.isConfirmed) {
-            const response = await deleteAddress();
-            if (!response.status) {
-                Swal.fire({
-                    title: "Erro!",
-                    text: response.mesg,
-                    icon: "error",
-                    timer: 3000,
-                    timerProgressBar: true
-                });
-                return;
-            }
-            Swal.fire({
-                title: "Removido!",
-                text: "Registro excluído com sucesso.",
-                icon: "success",
-                timer: 2000,
-                timerProgressBar: true
-            }).then(async () => {
-                table.ajax.reload();
-            });
-        }
-    });
-}*/
-
-window.ShowModal = ShowModal;
-
 // 4. Deletar Endereço
 window.deleteAddress = deleteAddress;
-
-// ── Contatos ──────────────────────────────────────────────────────────────────
-const elModalContact = document.getElementById('modal-contact');
-const modalContact = elModalContact ? new Modal(elModalContact) : null;
-
-document.getElementById('btn-add-contact')?.addEventListener('click', () => {
-    document.getElementById('c-tipo').value = 'telefone';
-    document.getElementById('c-nome').value = '';
-    document.getElementById('c-contato').value = '';
-    document.getElementById('c-principal').checked = false;
-    modalContact.show();
-});
-
-document.getElementById('btn-save-contact')?.addEventListener('click', async () => {
-    const contato = document.getElementById('c-contato').value.trim();
-    if (!contato) {
-        Swal.fire({ icon: 'warning', title: 'Atenção', text: 'Contato é obrigatório.', timer: 2000, timerProgressBar: true });
-        return;
-    }
-
-    const body = new URLSearchParams({
-        tipo: document.getElementById('c-tipo').value,
-        nome: document.getElementById('c-nome').value,
-        contato,
-        principal: document.getElementById('c-principal').checked ? 'true' : 'false',
-    });
-
-    try {
-        const res = await fetch(`/cliente/${Id.value}/contato`, { method: 'POST', body });
-        const data = await res.json();
-
-        if (!data.status) {
-            Swal.fire({ icon: 'error', title: 'Erro', text: data.msg, timer: 3000, timerProgressBar: true });
-            return;
-        }
-
-        modalContact.hide();
-        Swal.fire({ icon: 'success', title: 'Sucesso', text: data.msg, timer: 2000, timerProgressBar: true })
-            .then(() => { window.location.reload(); });
-    } catch (e) {
-        Swal.fire({ icon: 'error', title: 'Erro', text: e.message, timer: 3000, timerProgressBar: true });
-    }
-});
-
-async function deletecontat() {
-    const requests = new Requests();
-    try {
-        const response = await requests.setForm('form').post('/cliente/delete');
-        return response;
-    } catch (error) {
-        Swal.fire({
-            icon: 'error',
-            title: 'Erro',
-            text: `Restrição: ${error}`,
-            timer: 3000,
-            timerProgressBar: true,
-        });
-    }
-}
-
-async function ShowModal(id) {
-    Id.value = id;
-    Swal.fire({
-        title: "Atenção!",
-        text: "Deseja realmente excluir este registro?",
-        icon: "warning",
-        showCancelButton: true,
-        confirmButtonColor: "#d33",
-        cancelButtonColor: "#3085d6",
-        confirmButtonText: "Excluir"
-    }).then(async (result) => {
-        if (result.isConfirmed) {
-            const response = await deletecontat();
-            if (!response.status) {
-                Swal.fire({
-                    title: "Erro!",
-                    text: response.mesg,
-                    icon: "error",
-                    timer: 3000,
-                    timerProgressBar: true
-                });
-                return;
-            }
-            Swal.fire({
-                title: "Removido!",
-                text: "Registro excluído com sucesso.",
-                icon: "success",
-                timer: 2000,
-                timerProgressBar: true
-            }).then(async () => {
-                table.ajax.reload();
-            });
-        }
-    });
-}
