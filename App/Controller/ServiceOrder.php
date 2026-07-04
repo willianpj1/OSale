@@ -287,10 +287,14 @@ final class ServiceOrder extends Base
                 $v['tecnico_nome'] ? $v['tecnico_nome'] . ' ' . $v['tecnico_sobrenome'] : '—',
                 'R$ ' . number_format((float) $v['valor_total'], 2, ',', '.'),
                 (new DateTime($v['aberto_em']))->format('d/m/Y H:i:s'),
-                "<td>
-                    <a class='btn btn-sm btn-warning' href='/os/detalhes/{$v['id']}'><i class='bi bi-pencil-square'></i> Editar</a>
-                    <button type='button' class='btn btn-sm btn-danger' onclick='ShowModal({$v['id']});'><i class='bi bi-trash'></i> Excluir</button>
-                </td>",
+                in_array($v['status'], ['concluida', 'cancelada'])
+                    ? "<td>
+                        <a class='btn btn-sm btn-warning' href='/os/detalhes/{$v['id']}'><i class='bi bi-eye'></i> Visualizar</a>
+                    </td>"
+                    : "<td>
+                        <a class='btn btn-sm btn-warning' href='/os/detalhes/{$v['id']}'><i class='bi bi-pencil-square'></i> Editar</a>
+                        <button type='button' class='btn btn-sm btn-danger' onclick='ShowModal({$v['id']});'><i class='bi bi-trash'></i> Excluir</button>
+                    </td>",
             ], $orders);
 
             return $this->json($response, [

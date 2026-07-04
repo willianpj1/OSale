@@ -10,6 +10,7 @@ use App\Controller\Product;
 use App\Controller\Supplier;
 use App\Controller\Service;
 use App\Controller\ServiceOrder;
+use App\Controller\Purchase;
 use App\Controller\Sale;
 use App\Controller\Report;
 use App\Controller\Users;
@@ -69,12 +70,13 @@ $app->group('/cliente', function ($group) {
     $group->post('/excluir',              Customer::class . ':delete');
     // Contatos
     $group->post('/{id}/contato',         Customer::class . ':contactInsert');
+    $group->post('/{id}/contatoslista',   Customer::class . ':contactListingData');
     $group->post('/contato/{contactId}',  Customer::class . ':contactDelete');
     // Endereços
     $group->post('/{id}/endereco',        Customer::class . ':addressInsert');
+    $group->post('/{id}/enderecoslista',   Customer::class . ':addressListingData');
     $group->post('/endereco/{addressId}', Customer::class . ':addressDelete');
 });
-
 // ── Fornecedores ──────────────────────────────────────────────────────────────
 
 $app->group('/fornecedor', function ($group) {
@@ -87,9 +89,11 @@ $app->group('/fornecedor', function ($group) {
     $group->post('/excluir',              Supplier::class . ':delete');
     // Contatos
     $group->post('/{id}/contato',         Supplier::class . ':contactInsert');
+    $group->post('/{id}/contatoslista',   Supplier::class . ':contactListingData');
     $group->post('/contato/{contactId}',  Supplier::class . ':contactDelete');
     // Endereços
     $group->post('/{id}/endereco',        Supplier::class . ':addressInsert');
+    $group->post('/{id}/enderecoslista',   Supplier::class . ':addressListingData');
     $group->post('/endereco/{addressId}', Supplier::class . ':addressDelete');
 });
 
@@ -143,6 +147,24 @@ $app->group('/os', function ($group) {
     $group->post('/excluir',                  ServiceOrder::class . ':delete')->add(Middleware::api());
     $group->post('/{id}/item',                ServiceOrder::class . ':itemInsert')->add(Middleware::api());
     $group->post('/{id}/item/{itemId}',       ServiceOrder::class . ':itemDelete')->add(Middleware::api());
+});
+
+// ── Compras ───────────────────────────────────────────────────────────────────
+
+$app->group('/compras', function ($group) {
+    $group->get('/lista',                 Purchase::class . ':list')->add(Middleware::web());
+    $group->get('/detalhes',              Purchase::class . ':details')->add(Middleware::web());
+    $group->get('/detalhes/{id}',         Purchase::class . ':details')->add(Middleware::web());
+    $group->get('/buscar/produtos',       Purchase::class . ':searchProducts')->add(Middleware::web());
+
+    $group->post('/listingdata',          Purchase::class . ':listingdata')->add(Middleware::api());
+    $group->post('/inserir',              Purchase::class . ':insert')->add(Middleware::api());
+    $group->post('/atualizar',            Purchase::class . ':update')->add(Middleware::api());
+    $group->post('/receber',              Purchase::class . ':receive')->add(Middleware::api());
+    $group->post('/cancelar',             Purchase::class . ':cancel')->add(Middleware::api());
+    $group->post('/excluir',              Purchase::class . ':delete')->add(Middleware::api());
+    $group->post('/{id}/item',            Purchase::class . ':itemInsert')->add(Middleware::api());
+    $group->post('/{id}/item/{itemId}',   Purchase::class . ':itemDelete')->add(Middleware::api());
 });
 
 // ── Vendas ────────────────────────────────────────────────────────────────────
