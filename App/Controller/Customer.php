@@ -281,59 +281,107 @@ final class Customer extends Base
         $id   = $args['id'] ?? null;
         $form = $request->getParsedBody();
 
-        // Validação estrita do ID 
         if (is_null($id) || $id === '') {
             return $this->json($response, ['status' => false, 'msg' => 'ID do cliente não informado', 'id' => 0], 403);
         }
 
-        $contato = trim($form['contato'] ?? '');
+        $contato = trim($form['c-contato'] ?? '');
         if ($contato === '') {
             return $this->json($response, ['status' => false, 'msg' => 'O campo contato é obrigatório', 'id' => 0], 400);
         }
 
         try {
-            // Captura a conexão do Doctrine 
             $db = \App\Database\DB::connection();
+            $isPrincipal = (bool) filter_var($form['c-principal'] ?? false, FILTER_VALIDATE_BOOLEAN);
 
-            // Converte o valor recebido para um booleano real
-            $isPrincipal = filter_var($form['principal'] ?? false, FILTER_VALIDATE_BOOLEAN);
-
-            // Se o novo contato for o principal, desmarca os outros usando o padrão $db->update()
-            if ($isPrincipal === true) {
+            // Se for o contato principal, desmarca os outros usando o update nativo do Doctrine
+            if ($isPrincipal) {
                 $db->update(
                     'contacts',
-                    ['principal' => false],
-                    ['entidade' => 'customer', 'entidade_id' => $id]
+                    ['principal' => 0], // Colunas para atualizar
+                    ['entidade' => 'customer', 'entidade_id' => $id] // Cláusula WHERE
                 );
             }
 
-            // Mapeia os campos e valores para a inserção do novo contato
-            $fieldsAndValues = [
+            // Insere o novo contato usando o insert nativo do Doctrine
+            $db->insert('contacts', [
                 'entidade'    => 'customer',
-                'entidade_id' => $id,
-                'tipo'        => $form['tipo'] ?? 'telefone',
-                'nome'        => $form['nome'] ?? null,
+                'entidade_id' => (int) $id,
+                'tipo'        => $form['c-tipo'] ?? 'telefone',
+                'nome'        => !empty(trim($form['c-nome'] ?? '')) ? trim($form['c-nome']) : null,
                 'contato'     => $contato,
-                'principal'   => $isPrincipal,
-                'criado_em'   => (new DateTime())->format('Y-m-d H:i:s'),
-            ];
+                'principal'   => $isPrincipal ? 1 : 0,
+                'criado_em'   => (new \DateTime())->format('Y-m-d H:i:s'),
+            ]);
 
-            // Insere o registro utilizando o método nativo ensinado em aula
-            $IsInserted = $db->insert('contacts', $fieldsAndValues);
+            $contactId = (int) $db->lastInsertId();
 
-            if (!$IsInserted) {
-                return $this->json($response, ['status' => false, 'msg' => 'Restrição: O contato não pôde ser inserido.', 'id' => 0], 500);
-            }
-
-            // Captura o último ID inserido passando o nome da sequence para o PostgreSQL
-            $contactId = (int) $db->lastInsertId('contacts_id_seq');
-
-            return $this->json($response, ['status' => true, 'msg' => 'Contato adicionado!', 'id' => $contactId], 201);
+            return $this->json($response, [
+                'status' => true,
+                'msg'    => 'Contato adicionado!',
+                'id'     => $contactId
+            ], 201);
         } catch (Exception $e) {
-            return $this->json($response, ['status' => false, 'msg' => 'Restrição: ' . $e->getMessage(), 'id' => 0], 500);
+            return $this->json($response, [
+                'status' => false,
+                'msg'    => 'Restrição: ' . $e->getMessage(),
+                'id'     => 0
+            ], 500);
         }
     }
 
+    public function contactListingData($request, $response, $args)
+    {
+        $id = $args['id'] ?? null; // ID do cliente vindo da rota
+
+        // Validação estrita do ID conforme o padrão do professor
+        if (is_null($id) || $id === '') {
+            return $this->json($response, ['status' => false, 'msg' => 'ID do cliente não informado'], 403);
+        }
+
+        try {
+            // Captura a conexão do Doctrine no padrão do professor
+            $db = \App\Database\DB::connection();
+
+            // Busca trazendo apenas os dados necessários, ordenando pelo principal primeiro
+            $contacts = $db->executeQuery(
+                "SELECT 
+                id,
+                nome AS label,
+                tipo,
+                contato,
+                principal
+             FROM contacts 
+             WHERE entidade_id = :cliente_id 
+               AND entidade = :entidade 
+               --AND excluido = false 
+             ORDER BY principal DESC, id DESC",
+                ['cliente_id' => $id, 'entidade' => 'customer']
+            )->fetchAllAssociative();
+
+            // Formata os dados limpando valores nulos para strings vazias e tratando booleano
+            $formattedData = [];
+            foreach ($contacts as $item) {
+                $formattedData[] = [
+                    'id'        => (int) $item['id'],
+                    'label'     => $item['label'] ?? 'Geral / Padrão',
+                    'tipo'      => $item['tipo'] ?? '',
+                    'contato'   => $item['contato'] ?? '',
+                    'principal' => (bool) filter_var($item['principal'] ?? false, FILTER_VALIDATE_BOOLEAN),
+                ];
+            }
+            // Retorna APENAS o status e o array de dados brutos
+            return $this->json($response, [
+                'status' => true,
+                'data'   => $formattedData
+            ], 200);
+        } catch (Exception $e) {
+            return $this->json($response, [
+                'status' => false,
+                'msg'    => 'Restrição: ' . $e->getMessage()
+            ], 500);
+        }
+    }
     public function contactDelete($request, $response, $args)
     {
         $contactId = $args['contactId'] ?? null;
@@ -369,7 +417,7 @@ final class Customer extends Base
     // ── Addresses ─────────────────────────────────────────────────────────────
 
     public function addressInsert($request, $response, $args)
-    {         
+    {
         $id   = $args['id'] ?? null;
         $form = $request->getParsedBody();
 
@@ -377,7 +425,7 @@ final class Customer extends Base
             return $this->json($response, ['status' => false, 'msg' => 'ID do cliente não informado', 'id' => 0], 403);
         }
 
-        $logradouro = trim($form['logradouro'] ?? '');
+        $logradouro = trim($form['a-logradouro'] ?? '');
         if ($logradouro === '') {
             return $this->json($response, ['status' => false, 'msg' => 'O campo logradouro é obrigatório', 'id' => 0], 400);
         }
@@ -390,13 +438,13 @@ final class Customer extends Base
                 'entidade'    => 'customer',
                 'entidade_id' => $id,
                 'nome'        => $form['nome']        ?? null,
-                'cep'         => $form['cep']         ?? null,
+                'cep'         => $form['a-cep']         ?? null,
                 'logradouro'  => $logradouro,
-                'numero'      => $form['numero']      ?? null,
-                'complemento' => $form['complemento'] ?? null,
-                'bairro'      => $form['bairro']      ?? null,
-                'cidade'      => $form['cidade']      ?? null,
-                'estado'      => $form['estado']      ?? null,
+                'numero'      => $form['a-numero']      ?? null,
+                'complemento' => $form['a-complemento'] ?? null,
+                'bairro'      => $form['a-bairro']      ?? null,
+                'cidade'      => $form['a-cidade']      ?? null,
+                'estado'      => $form['a-estado']      ?? null,
                 'principal'   => isset($form['principal']) ? $form['principal'] : 'false',
             ];
 
@@ -429,7 +477,7 @@ final class Customer extends Base
             $addresses = $db->executeQuery(
                 "SELECT 
                 id,
-                nome AS label,
+                nome,
                 logradouro,
                 numero,
                 bairro,
@@ -449,7 +497,7 @@ final class Customer extends Base
             foreach ($addresses as $item) {
                 $formattedData[] = [
                     'id'         => (int) $item['id'],
-                    'label'      => $item['label'] ?? 'Geral / Padrão',
+                    'label'      => $item['nome'],
                     'logradouro' => $item['logradouro'],
                     'numero'     => $item['numero'] ?? 'S/N',
                     'bairro'     => $item['bairro'] ?? '',

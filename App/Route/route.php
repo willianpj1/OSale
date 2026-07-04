@@ -48,9 +48,11 @@ $app->group('/usuarios', function ($group) {
     $group->post('/excluir',              Users::class . ':delete');
     // Contatos
     $group->post('/{id}/contato',         Users::class . ':contactInsert');
+    $group->post('/{id}/contatoslista',   Users::class . ':contactListingData');
     $group->post('/contato/{contactId}',  Users::class . ':contactDelete');
     // Endereços
     $group->post('/{id}/endereco',        Users::class . ':addressInsert');
+    $group->post('/{id}/enderecoslista',   Users::class . ':addressListingData');
     $group->post('/endereco/{addressId}', Users::class . ':addressDelete');
 });
 
@@ -66,6 +68,7 @@ $app->group('/cliente', function ($group) {
     $group->post('/excluir',              Customer::class . ':delete');
     // Contatos
     $group->post('/{id}/contato',         Customer::class . ':contactInsert');
+    $group->post('/{id}/contatoslista',   Customer::class . ':contactListingData');
     $group->post('/contato/{contactId}',  Customer::class . ':contactDelete');
     // Endereços
     $group->post('/{id}/endereco',        Customer::class . ':addressInsert');
@@ -85,9 +88,11 @@ $app->group('/fornecedor', function ($group) {
     $group->post('/excluir',              Supplier::class . ':delete');
     // Contatos
     $group->post('/{id}/contato',         Supplier::class . ':contactInsert');
+    $group->post('/{id}/contatoslista',   Supplier::class . ':contactListingData');
     $group->post('/contato/{contactId}',  Supplier::class . ':contactDelete');
     // Endereços
     $group->post('/{id}/endereco',        Supplier::class . ':addressInsert');
+    $group->post('/{id}/enderecoslista',   Supplier::class . ':addressListingData');
     $group->post('/endereco/{addressId}', Supplier::class . ':addressDelete');
 });
 

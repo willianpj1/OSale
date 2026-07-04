@@ -9,11 +9,15 @@ const form = document.getElementById('form');
 const Insert = document.getElementById('insert');
 const Cnpj = document.getElementById('cpf_cnpj')
 const Adresse = document.getElementById('btn-add-address');
+const Contact = document.getElementById('btn-add-contact');
 const btnSaveAddress = document.getElementById('btn-save-address');
-const cep = document.getElementById('a-cep');
+const btnSaveContact = document.getElementById('btn-save-contact');
+const Cep = document.getElementById('a-cep');
 const Modaladresse = document.getElementById('modal-address');
-const Modalclean = Modaladresse ? new Modal(Modaladresse) : null;
-
+const Modalcontact = document.getElementById('modal-contact');
+const Modalcleanadresses = Modaladresse ? new Modal(Modaladresse) : null;
+const Modalcleancontact = Modalcontact ? new Modal(Modalcontact) : null;
+const toast = (icon, title, text, cb) => Swal.fire({ icon, title, text, timer: 2000, timerProgressBar: true }).then(cb);
 
 
 // ── Salvar cliente ────────────────────────────────────────────────────────────
@@ -114,7 +118,7 @@ async function listAddresses() {
         }
 
         let HTML = '';
-        response.data.forEach(item => {
+        response.data.forEach(item => {           
             HTML += `
                 <tr id="address-${item.id}">
                     <td>${item.label}</td>
@@ -143,6 +147,110 @@ async function listAddresses() {
     }
 }
 
+async function deleteAddress(addressId) {
+    document.getElementById('id_endereco').value = addressId;
+    document.getElementById('address-' + addressId)?.remove(); // Remove a linha da tabela imediatamente para feedback visual
+    const requests = new Requests();
+    try {
+        const response = await requests.setForm('form').post(`/cliente/endereco/${addressId}`);
+        if (!response.status) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Erro',
+                text: `Restrição: ${error}`,
+                timer: 3000,
+                timerProgressBar: true,
+            });
+        }
+    } catch (error) {
+        Swal.fire({
+            icon: 'error',
+            title: 'Erro',
+            text: `Restrição: ${error}`,
+            timer: 3000,
+            timerProgressBar: true,
+        });
+    }
+}
+
+async function listContact() {
+    const requests = new Requests();
+    try {
+        const response = await requests.post(`/cliente/${Id.value}/contatoslista`);
+
+        if (!response.status) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Erro',
+                text: response.msg || 'Erro ao listar contatos.',
+                timer: 3000,
+                timerProgressBar: true
+            });
+            return;
+        }
+
+        const contactsContainer = document.getElementById('table-contacts');
+
+        // Verifica se a lista veio vazia
+        if (!response.data || response.data.length === 0) {
+            contactsContainer.innerHTML = '<tr><td colspan="7" class="text-center text-muted">Nenhum contato cadastrado.</td></tr>';
+            return;
+        }
+
+        let HTML = '';
+        response.data.forEach(item => {
+            HTML += `
+                <tr id="contact-${item.id}">
+                    <td>${item.tipo}</td>
+                    <td>${item.label}</td>
+                    <td>${item.contato}</td>
+                    <td>${item.principal ? '<span class="badge bg-success">Sim</span>' : 'Não'}</td>
+                    <td>
+                        <button class="btn btn-sm btn-outline-danger" onclick="deleteContact(${item.id})">Excluir</button>
+                    </td>
+                </tr>           
+            `;
+        });
+
+        contactsContainer.innerHTML = HTML;
+
+    } catch (error) {
+        Swal.fire({
+            icon: 'error',
+            title: 'Erro',
+            text: error.message,
+            timer: 3000,
+            timerProgressBar: true
+        });
+    }
+}
+
+async function deleteContact(contactId) {
+    document.getElementById('id_contato').value = contactId;
+    document.getElementById('contact-' + contactId)?.remove(); // Remove a linha da tabela imediatamente para feedback visual
+    const requests = new Requests();
+    try {
+        const response = await requests.setForm('form').post(`/cliente/contato/${contactId}`);
+        if (!response.status) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Erro',
+                text: `Restrição: ${error}`,
+                timer: 3000,
+                timerProgressBar: true,
+            });
+        }
+    } catch (error) {
+        Swal.fire({
+            icon: 'error',
+            title: 'Erro',
+            text: `Restrição: ${error}`,
+            timer: 3000,
+            timerProgressBar: true,
+        });
+    }
+}
+
 Cnpj.addEventListener('blur', async () => {
     if (Cnpj.value.trim() === '' || Cnpj.value.replace(/\D/g, '').length < 14) {
         return;
@@ -156,6 +264,30 @@ Cnpj.addEventListener('blur', async () => {
     document.getElementById('nome').value = Nome;
     document.getElementById('rg_ie').value = Ie;
 
+});
+
+Cep.addEventListener('blur', async (e) => {
+    const cep = e.target.value.replace(/\D/g, '');
+    if (cep.length !== 8) return;
+
+    try {
+        const res = await fetch(`https://viacep.com.br/ws/${cep}/json/`);
+        if (!res.ok) return;
+
+        const data = await res.json();
+        if (data.erro) return toast('warning', 'Atenção', 'CEP não encontrado.');
+
+        // Preenche os campos automaticamente usando os IDs existentes
+        document.getElementById('a-logradouro').value = data.logradouro ?? '';
+        document.getElementById('a-bairro').value = data.bairro ?? '';
+        document.getElementById('a-cidade').value = data.localidade ?? '';
+        document.getElementById('a-estado').value = data.uf ?? '';
+
+        // Foca no campo número automaticamente para agilizar a digitação
+        document.getElementById('a-numero')?.focus();
+    } catch (err) {
+        console.error("Erro CEP:", err);
+    }
 });
 
 document.addEventListener('DOMContentLoaded', async () => {
@@ -185,46 +317,16 @@ document.addEventListener('DOMContentLoaded', async () => {
         }).mask(telInput);
     }
     if (Action.value === 'e') await listAddresses();
+    if (Action.value === 'e') await listContact();
 });
 
-Insert.addEventListener('click', applyChanges);
-
-// ── Cadastro de Endereços ─────────────────────────────────────────────────────────────────
-
-// Centralizador de alertas para evitar repetição de código
-const toast = (icon, title, text, cb) => Swal.fire({ icon, title, text, timer: 2000, timerProgressBar: true }).then(cb);
-
-// 1. Abrir e Limpar Modal
 Adresse.addEventListener('click', () => {
-    Modalclean?.show();
+    Modalcleanadresses?.show();
+});
+Contact.addEventListener('click', () => {
+    Modalcleancontact?.show();
 });
 
-// 2. Busca Automática de CEP (ViaCEP integrada diretamente)
-cep.addEventListener('blur', async (e) => {
-    const cep = e.target.value.replace(/\D/g, '');
-    if (cep.length !== 8) return;
-
-    try {
-        const res = await fetch(`https://viacep.com.br/ws/${cep}/json/`);
-        if (!res.ok) return;
-
-        const data = await res.json();
-        if (data.erro) return toast('warning', 'Atenção', 'CEP não encontrado.');
-
-        // Preenche os campos automaticamente usando os IDs existentes
-        document.getElementById('a-logradouro').value = data.logradouro ?? '';
-        document.getElementById('a-bairro').value = data.bairro ?? '';
-        document.getElementById('a-cidade').value = data.localidade ?? '';
-        document.getElementById('a-estado').value = data.uf ?? '';
-
-        // Foca no campo número automaticamente para agilizar a digitação
-        document.getElementById('a-numero')?.focus();
-    } catch (err) {
-        console.error("Erro CEP:", err);
-    }
-});
-
-// 3. Salvar Endereço (Captura automática via FormData)
 btnSaveAddress.addEventListener('click', async () => {
     const requests = new Requests();
     try {
@@ -233,41 +335,35 @@ btnSaveAddress.addEventListener('click', async () => {
         if (!response.status) {
             throw new Error(response.msg);
         }
-
-        modalAddress.hide();
         toast('success', 'Sucesso', response.msg);
         await listAddresses();
-
+        //Limpa todos os inputs do modal de endereço
+        document.querySelectorAll('#modal-address input').forEach(input => input.value = '');
+        Modalcleanadresses?.hide();
     } catch (e) {
         toast('error', 'Erro', e.message);
     }
 });
 
-async function deleteAddress(addressId) {
-    document.getElementById('id_endereco').value = addressId;
-    document.getElementById('address-' + addressId)?.remove(); // Remove a linha da tabela imediatamente para feedback visual
+btnSaveContact.addEventListener('click', async () => {
     const requests = new Requests();
     try {
-        const response = await requests.setForm('form').post(`/cliente/endereco/${addressId}`);
-        if (!response.status) {
-            Swal.fire({
-                icon: 'error',
-                title: 'Erro',
-                text: `Restrição: ${error}`,
-                timer: 3000,
-                timerProgressBar: true,
-            });
-        }
-    } catch (error) {
-        Swal.fire({
-            icon: 'error',
-            title: 'Erro',
-            text: `Restrição: ${error}`,
-            timer: 3000,
-            timerProgressBar: true,
-        });
-    }
-}
+        const response = await requests.setForm('form').post(`/cliente/${Id.value}/contato`);
 
-// 4. Deletar Endereço
+        if (!response.status) {
+            throw new Error(response.msg);
+        }
+        toast('success', 'Sucesso', response.msg);
+        await listContact();
+        //Limpa todos os inputs do modal de contatos
+        document.querySelectorAll('#modal-contact input').forEach(input => input.value = '');
+        Modalcleancontact?.hide();
+    } catch (e) {
+        toast('error', 'Erro', e.message);
+    }
+});
+
+Insert.addEventListener('click', applyChanges);
+
 window.deleteAddress = deleteAddress;
+window.deleteContact = deleteContact;
