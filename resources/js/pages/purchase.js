@@ -19,15 +19,12 @@ function setMoneyValue(input, value) {
     input.value = 'R$ ' + value.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
-// Campo de preço unitário fica disabled (não editável) — o valor real
-// que viaja no POST é o hidden #item-preco-hidden, já que inputs
-// disabled não são enviados no submit do form.
 function setItemPreco(value) {
     setMoneyValue(document.getElementById('item-preco'), value);
     document.getElementById('item-preco-hidden').value = value.toFixed(2);
 }
 
-// ── Salvar compra ────────────────────────────────────────────────────────────
+// ── Salvar compra ─────────────────────────────────────────────────────────────
 
 async function applyChanges({ silent = false } = {}) {
     $('button').prop('disabled', true);
@@ -63,14 +60,14 @@ async function applyChanges({ silent = false } = {}) {
 
         return true;
     } catch (error) {
-        Swal.fire({ icon: 'error', title: 'Erro', text: `Restrição: ${error.message}`, timer: 3000, timerProgressBar: true });
+        Swal.fire({ icon: 'error', title: 'Erro', text: error.message, timer: 3000, timerProgressBar: true });
         return false;
     } finally {
         $('button').prop('disabled', false);
     }
 }
 
-// ── Receber compra (entrada de estoque) ─────────────────────────────────────
+// ── Receber compra ────────────────────────────────────────────────────────────
 
 async function handleReceiveClick() {
     const saved = await applyChanges({ silent: true });
@@ -100,11 +97,46 @@ async function handleReceiveClick() {
         Swal.fire({ icon: 'success', title: 'Sucesso', text: response.msg || 'Compra recebida com sucesso!', timer: 3000, timerProgressBar: true })
             .then(() => { window.location.reload(); });
     } catch (error) {
-        Swal.fire({ icon: 'error', title: 'Erro', text: `Restrição: ${error.message}`, timer: 3000, timerProgressBar: true });
+        Swal.fire({ icon: 'error', title: 'Erro', text: error.message, timer: 3000, timerProgressBar: true });
     } finally {
         $('button').prop('disabled', false);
     }
 }
+
+// ── Cancelar compra ───────────────────────────────────────────────────────────
+
+async function handleCancelClick() {
+    const confirm = await Swal.fire({
+        icon: 'warning',
+        title: 'Cancelar compra?',
+        text: 'A compra será marcada como cancelada e não poderá mais ser editada.',
+        showCancelButton: true,
+        confirmButtonText: 'Sim, cancelar',
+        cancelButtonText: 'Voltar',
+        confirmButtonColor: '#dc3545',
+    });
+
+    if (!confirm.isConfirmed) return;
+
+    $('button').prop('disabled', true);
+    try {
+        const response = await postData('/compras/cancelar', { id: Id.value });
+
+        if (!response.status) {
+            Swal.fire({ icon: 'error', title: 'Erro', text: response.msg || 'Erro ao cancelar a compra.', timer: 3000, timerProgressBar: true });
+            return;
+        }
+
+        Swal.fire({ icon: 'success', title: 'Compra Cancelada', text: response.msg, timer: 2500, timerProgressBar: true })
+            .then(() => { window.location.reload(); });
+    } catch (error) {
+        Swal.fire({ icon: 'error', title: 'Erro', text: error.message, timer: 3000, timerProgressBar: true });
+    } finally {
+        $('button').prop('disabled', false);
+    }
+}
+
+// ── Estado do botão de ação ───────────────────────────────────────────────────
 
 function configureActionButton() {
     if (!BtnAction) return;
@@ -120,6 +152,11 @@ function configureActionButton() {
     } else {
         BtnActionLabel.textContent = 'Salvar';
         BtnAction.onclick = () => applyChanges();
+    }
+
+    const BtnCancel = document.getElementById('btn-cancel-compra');
+    if (BtnCancel && Action.value === 'e') {
+        BtnCancel.onclick = handleCancelClick;
     }
 }
 
@@ -205,7 +242,6 @@ if (BtnAddItem) {
     });
 
     document.getElementById('btn-save-item').addEventListener('click', async () => {
-
         $('button').prop('disabled', true);
         const purchaseId = Id.value;
 
@@ -219,7 +255,7 @@ if (BtnAddItem) {
             bootstrap.Modal.getInstance(document.getElementById('modal-item')).hide();
             window.location.reload();
         } catch (error) {
-            Swal.fire({ icon: 'error', title: 'Erro', text: `Restrição: ${error.message}`, timer: 3000, timerProgressBar: true });
+            Swal.fire({ icon: 'error', title: 'Erro', text: error.message, timer: 3000, timerProgressBar: true });
         } finally {
             $('button').prop('disabled', false);
         }
@@ -253,7 +289,7 @@ window.deleteItem = async function (itemId) {
 
         window.location.reload();
     } catch (error) {
-        Swal.fire({ icon: 'error', title: 'Erro', text: `Restrição: ${error.message}`, timer: 3000, timerProgressBar: true });
+        Swal.fire({ icon: 'error', title: 'Erro', text: error.message, timer: 3000, timerProgressBar: true });
     } finally {
         $('button').prop('disabled', false);
     }

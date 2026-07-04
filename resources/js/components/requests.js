@@ -71,9 +71,8 @@ export default class Requests {
         }
         if (!response.ok) {
             const errorBody = await this.#safeParseJson(response);
-            throw new Error(
-                `HTTP ${response.status} - ${errorBody?.message || response.statusText}`
-            );
+            const msg = errorBody?.msg || errorBody?.message || response.statusText || `HTTP ${response.status}`;
+            throw new Error(msg);
         }
         return this.#safeParseJson(response);
     }

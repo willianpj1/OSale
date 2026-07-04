@@ -87,14 +87,14 @@ final class Login extends Base
         }
 
         $conn->insert('users', [
-            'nome'          => $nome,
-            'sobrenome'     => $sobrenome,
-            'cpf'           => $cpf,
-            'rg'            => $rg,
-            'senha'         => password_hash($senha, PASSWORD_BCRYPT),
-            'email'         => $email,
-            'ativo'         => 1,
-            'administrador' => 0,
+            'nome'      => $nome,
+            'sobrenome' => $sobrenome,
+            'cpf_cnpj'  => $cpf,
+            'rg_ie'     => $rg,
+            'senha'     => password_hash($senha, PASSWORD_BCRYPT),
+            'email'     => $email,
+            'ativo'     => true,
+            'tipo'      => 'USER',
         ]);
 
         return $json(true, 'Usuário cadastrado com sucesso!', 201);
@@ -191,15 +191,15 @@ final class Login extends Base
         }
 
         $conn->insert('users', [
-            'nome'          => $nome,
-            'sobrenome'     => $sobrenome,
-            'email'         => $email,
-            'google_id'     => $googleId,
-            'senha'         => password_hash(bin2hex(random_bytes(16)), PASSWORD_BCRYPT),
-            'cpf'           => '',
-            'rg'            => '',
-            'ativo'         => 1,
-            'administrador' => 0,
+            'nome'      => $nome,
+            'sobrenome' => $sobrenome,
+            'email'     => $email,
+            'google_id' => $googleId,
+            'senha'     => password_hash(bin2hex(random_bytes(16)), PASSWORD_BCRYPT),
+            'cpf_cnpj'  => null,
+            'rg_ie'     => null,
+            'ativo'     => true,
+            'tipo'      => 'USER',
         ]);
 
         return \App\Database\DB::select('*')->from('users')

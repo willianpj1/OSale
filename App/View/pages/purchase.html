@@ -30,9 +30,9 @@
                             </span>
                             {% if id %}
                             <span class="ms-auto badge
-                        {% if purchase.status == 'pendente' %}bg-primary
-                        {% elseif purchase.status == 'recebida' %}bg-success
-                        {% else %}bg-danger{% endif %}">
+                                {% if purchase.status == 'pendente' %}bg-primary
+                                {% elseif purchase.status == 'recebida' %}bg-success
+                                {% else %}bg-danger{% endif %}">
                                 {{ purchase.status | capitalize }}
                             </span>
                             {% endif %}
@@ -169,6 +169,14 @@
                         Recebida em {{ purchase.recebido_em ? purchase.recebido_em | date('d/m/Y H:i') : '—' }}
                     </div>
                     {% endif %}
+
+                    {% if id and purchase.status == 'cancelada' %}
+                    <hr style="border-color: var(--border);">
+                    <div class="text-danger">
+                        <i class="fa-solid fa-circle-xmark me-1"></i>
+                        Compra cancelada
+                    </div>
+                    {% endif %}
                 </div>
             </div>
         </div>
@@ -178,6 +186,12 @@
 
     {% if not readonly %}
     <div class="os-action-bar position-fixed" style="z-index: 1030;">
+        {% if id %}
+        <button id="btn-cancel-compra" type="button" class="btn btn-danger">
+            <i class="bi bi-x-circle"></i>
+            <span>Cancelar Compra</span>
+        </button>
+        {% endif %}
         <button id="btn-action" type="button" class="btn btn-success" data-items-count="{{ items|length }}">
             <i class="bi bi-floppy"></i>
             <span id="btn-action-label">Salvar</span>

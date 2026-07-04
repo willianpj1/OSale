@@ -22,6 +22,12 @@ trait Template
         $env = $this->twig->getEnvironment();
         $env->addGlobal('icon', '/img/favicon.png');
 
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start();
+        }
+
+        $env->addGlobal('usuario_logado', $_SESSION['user'] ?? ['nome' => '', 'id' => null]);
+
         // Função vite(...$entries) registrada para uso em templates Twig.
         // is_safe=html → o Twig NÃO escapa o HTML retornado (são tags válidas).
         $env->addFunction(new TwigFunction(

@@ -25,7 +25,7 @@ $app->get('/login',  Login::class . ':login');
 $app->post('/login', Login::class . ':authenticate');
 
 $app->post('/auth/google',          Login::class . ':googleOneTap');
-$app->post('/auth/google/callback', Login::class . ':googleOneTap');
+$app->post('/authentication/google', Login::class . ':googleOneTap');
 
 $app->get('/cadastro',  Register::class . ':register');
 $app->post('/cadastro', Register::class . ':store');
@@ -143,6 +143,7 @@ $app->group('/os', function ($group) {
     $group->post('/listingdata',              ServiceOrder::class . ':listingdata')->add(Middleware::api());
     $group->post('/inserir',                  ServiceOrder::class . ':insert')->add(Middleware::api());
     $group->post('/atualizar',                ServiceOrder::class . ':update')->add(Middleware::api());
+    $group->post('/cancelar',                 ServiceOrder::class . ':cancel')->add(Middleware::api());
     $group->post('/concluir',                 ServiceOrder::class . ':finalize')->add(Middleware::api());
     $group->post('/excluir',                  ServiceOrder::class . ':delete')->add(Middleware::api());
     $group->post('/{id}/item',                ServiceOrder::class . ':itemInsert')->add(Middleware::api());
@@ -167,24 +168,6 @@ $app->group('/compras', function ($group) {
     $group->post('/{id}/item/{itemId}',   Purchase::class . ':itemDelete')->add(Middleware::api());
 });
 
-// ── Vendas ────────────────────────────────────────────────────────────────────
-
-$app->group('/venda', function ($group) {
-    $group->get('/lista',                 Sale::class . ':list');
-    $group->get('/detalhes',              Sale::class . ':details');
-    $group->get('/detalhes/{id}',         Sale::class . ':details');
-    $group->post('/listingdata',          Sale::class . ':listingdata');
-    $group->post('/inserir',              Sale::class . ':insert');
-    $group->post('/atualizar',            Sale::class . ':update');
-    $group->post('/finalizar',            Sale::class . ':finalize');
-    $group->post('/excluir',              Sale::class . ':delete');
-    // Itens
-    $group->post('/{id}/item',            Sale::class . ':itemInsert');
-    $group->post('/{id}/item/{itemId}',   Sale::class . ':itemDelete');
-    // Busca
-    $group->get('/buscar/produtos',       Sale::class . ':searchProducts');
-    $group->get('/buscar/servicos',       Sale::class . ':searchServices');
-});
 
 // ── Condições de Pagamento ────────────────────────────────────────────────────
 

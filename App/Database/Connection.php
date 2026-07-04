@@ -30,6 +30,7 @@ final class Connection
 
         # Lê e valida o host do banco — falha imediatamente se estiver ausente
         $host = self::requiredEnv('DB_HOST');
+        
         # Lê e valida o nome do banco — sem ele a conexão não faz sentido
         $dbname = self::requiredEnv('DB_NAME');
         # Lê e valida o usuário do banco — obrigatório para autenticar

@@ -350,7 +350,7 @@ final class ServiceOrder extends Base
             if ($produto && (float) $quantidade > (float) $produto['estoque_atual']) {
                 return $this->json($response, [
                     'status' => false,
-                    'msg'    => "Estoque insuficiente de \"{$produto['nome']}\" (disponível: {$produto['estoque_atual']})",
+                    'msg' => "Estoque insuficiente de \"{$produto['nome']}\" (disponível: " . number_format((float)$produto['estoque_atual'], 1, '.', '') . ")",
                     'id'     => 0,
                 ], 422);
             }
@@ -820,5 +820,44 @@ final class ServiceOrder extends Base
     private function now(): string
     {
         return (new DateTime())->format('Y-m-d H:i:s');
+    }
+    public function cancel($request, $response)
+    {
+        $form = $request->getParsedBody();
+        $id   = $form['id'] ?? null;
+
+        if (!$id) {
+            return $this->json($response, ['status' => false, 'msg' => 'ID não informado', 'id' => 0], 403);
+        }
+
+        try {
+            $order = DB::select('status')->from('service_orders')
+                ->where('id = :id')->andWhere('excluido = false')
+                ->setParameter('id', $id, ParameterType::INTEGER)
+                ->fetchAssociative();
+
+            if (!$order) {
+                return $this->json($response, ['status' => false, 'msg' => 'OS não encontrada', 'id' => 0], 404);
+            }
+
+            if (in_array($order['status'], ['concluida', 'cancelada'])) {
+                return $this->json($response, ['status' => false, 'msg' => 'OS já está concluída ou cancelada', 'id' => 0], 422);
+            }
+
+            DB::connection()->update('service_orders', [
+                'status'        => 'cancelada',
+                'atualizado_em' => $this->now(),
+            ], [
+                'id'       => (int) $id,
+                'excluido' => false,
+            ], [
+                'excluido' => ParameterType::BOOLEAN,
+            ]);
+
+            return $this->json($response, ['status' => true, 'msg' => 'OS cancelada com sucesso!', 'id' => (int) $id], 200);
+        } catch (Exception $e) {
+            error_log('[ServiceOrder::cancel] ' . $e->getMessage());
+            return $this->json($response, ['status' => false, 'msg' => 'Erro ao cancelar: ' . $e->getMessage(), 'id' => 0], 500);
+        }
     }
 }

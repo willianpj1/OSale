@@ -10,7 +10,7 @@
 {% endblock %}
 
 {% block main %}
-{% set readonly = id and order.status == 'concluida' %}
+{% set readonly = id and (order.status == 'concluida' or order.status == 'cancelada') %}
 <form id="form">
     <input type="hidden" id="action" name="action" value="{{ action }}">
     <input type="hidden" id="id" name="id" value="{{ id }}">
@@ -323,6 +323,12 @@
 
     {% if not readonly %}
     <div class="os-action-bar position-fixed" style="z-index: 1030;">
+        {% if id %}
+        <button id="btn-cancel-os" type="button" class="btn btn-danger">
+            <i class="bi bi-x-circle"></i>
+            <span>Cancelar OS</span>
+        </button>
+        {% endif %}
         <button id="btn-action" type="button" class="btn btn-success" data-items-count="{{ items|length }}">
             <i class="bi bi-floppy"></i>
             <span id="btn-action-label">Salvar</span>
@@ -503,8 +509,6 @@
                             </table>
                         </div>
                         <div class="col-12 d-none" id="item-form-wrap">
-                            <!-- CORREÇÃO: hidden inputs que faltavam — sem eles product_id/service_id
-                                 nunca eram enviados no submit do form e ficavam NULL no banco -->
                             <input type="hidden" id="item-product-id" name="product_id">
                             <input type="hidden" id="item-service-id" name="service_id">
                             <hr>

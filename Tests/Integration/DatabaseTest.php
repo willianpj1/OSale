@@ -2,51 +2,60 @@
 
 declare(strict_types=1);
 
-// Teste 1: conexão com PostgreSQL funciona — sem isso nada no sistema opera
+use App\Database\Connection;
+use App\Database\DB;
+use Doctrine\DBAL\Connection as DBALConnection;
+use Doctrine\DBAL\ParameterType;
+
+// Teste 1: conexão com PostgreSQL funciona
 test('conexão com PostgreSQL está ativa', function () {
-    // Usa a classe de conexão real do projeto
-    $pdo = App\Database\Connection::connection();
+    $conn = Connection::get();
 
-    // Verifica que retornou uma instância PDO válida
-    expect($pdo)->toBeInstanceOf(PDO::class);
+    expect($conn)->toBeInstanceOf(DBALConnection::class);
 
-    // Executa um comando simples para confirmar que o banco responde
-    $result = $pdo->query('SELECT 1 AS ok')->fetch();
+    $result = $conn->fetchAssociative('SELECT 1 AS ok');
 
-    expect($result['ok'])->toBe(1);
+    expect((int) $result['ok'])->toBe(1);
 });
 
-// Teste 2: ciclo insert → select → delete funciona — garante integridade do CRUD
+// Teste 2: ciclo insert → select → delete funcionam no PostgreSQL
 test('insert select e delete funcionam no PostgreSQL', function () {
-    // Documento único para não colidir com dados reais
-    $cpfTeste = '999.999.999-99';
+    $conn = Connection::get();
 
-    // INSERT — cria um registro temporário
-    $inserido = App\Database\Builder\InsertQuery::insert('customer')
-        ->save([
-            'nome_fantasia'       => 'Teste Integração',
-            'sobrenome_razao'     => 'Razão Teste',
-            'cpf_cnpj'            => $cpfTeste,
-            'inscricao_estadual'  => '000000',
-            'nascimento_fundacao' => '2025-01-01',
-            'ativo'               => true,
-        ]);
+    // INSERT — cria um serviço temporário para não colidir com dados reais
+    $conn->insert('services', [
+        'nome'          => 'Serviço Teste DatabaseTest',
+        'preco'         => 0.00,
+        'ativo'         => true,
+        'excluido'      => false,
+        'criado_em'     => (new DateTime())->format('Y-m-d H:i:s'),
+        'atualizado_em' => (new DateTime())->format('Y-m-d H:i:s'),
+    ], [
+        'ativo'    => ParameterType::BOOLEAN,
+        'excluido' => ParameterType::BOOLEAN,
+    ]);
 
-    expect($inserido)->toBeTrue();
+    $id = (int) $conn->lastInsertId();
+    expect($id)->toBeGreaterThan(0);
 
-    // SELECT — confirma que o registro foi salvo corretamente
-    $customer = App\Database\Builder\SelectQuery::select()
-        ->from('customer')
-        ->where('cpf_cnpj', '=', $cpfTeste)
-        ->fetch();
+    // SELECT — confirma que o registro foi salvo
+    $service = DB::select('*')
+        ->from('services')
+        ->where('id = :id')
+        ->setParameter('id', $id, ParameterType::INTEGER)
+        ->fetchAssociative();
 
-    expect($customer)->not->toBeEmpty();
-    expect($customer['nome_fantasia'])->toBe('Teste Integração');
+    expect($service)->not->toBeFalse();
+    expect($service['nome'])->toBe('Serviço Teste DatabaseTest');
 
-    // DELETE — remove o registro de teste para não poluir o banco
-    $deletado = App\Database\Builder\DeleteQuery::table('customer')
-        ->where('id', '=', $customer['id'])
-        ->delete();
+    // DELETE — limpa o registro de teste
+    $conn->delete('services', ['id' => $id]);
 
-    expect($deletado)->toBeTrue();
+    $serviceRemovido = DB::select('*')
+        ->from('services')
+        ->where('id = :id')
+        ->setParameter('id', $id, ParameterType::INTEGER)
+        ->fetchAssociative();
+
+    expect($serviceRemovido)->toBeFalse();
 });

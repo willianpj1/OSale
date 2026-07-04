@@ -50,14 +50,47 @@ async function applyChanges({ silent = false } = {}) {
 
         return true;
     } catch (error) {
-        Swal.fire({ icon: 'error', title: 'Erro', text: `Restrição: ${error.message}`, timer: 3000, timerProgressBar: true });
+        Swal.fire({ icon: 'error', title: 'Erro', text: error.message, timer: 3000, timerProgressBar: true });
         return false;
     } finally {
         $('button').prop('disabled', false);
     }
 }
 
-// ── Modal de pagamento (Finalizar OS) — com SPLIT ──────────────────────────
+// ── Cancelar OS ───────────────────────────────────────────────────────────────
+
+async function handleCancelClick() {
+    const confirm = await Swal.fire({
+        icon: 'warning',
+        title: 'Cancelar OS?',
+        text: 'A OS será marcada como cancelada e não poderá mais ser editada.',
+        showCancelButton: true,
+        confirmButtonText: 'Sim, cancelar OS',
+        cancelButtonText: 'Voltar',
+        confirmButtonColor: '#dc3545',
+    });
+
+    if (!confirm.isConfirmed) return;
+
+    $('button').prop('disabled', true);
+    try {
+        const response = await postData('/os/cancelar', { id: Id.value });
+
+        if (!response.status) {
+            Swal.fire({ icon: 'error', title: 'Erro', text: response.msg || 'Erro ao cancelar a OS.', timer: 3000, timerProgressBar: true });
+            return;
+        }
+
+        Swal.fire({ icon: 'success', title: 'OS Cancelada', text: response.msg, timer: 2500, timerProgressBar: true })
+            .then(() => { window.location.reload(); });
+    } catch (error) {
+        Swal.fire({ icon: 'error', title: 'Erro', text: error.message, timer: 3000, timerProgressBar: true });
+    } finally {
+        $('button').prop('disabled', false);
+    }
+}
+
+// ── Modal de pagamento (Finalizar OS) — com SPLIT ─────────────────────────────
 
 let paymentTermsData = [];
 let splits = [];
@@ -296,7 +329,7 @@ document.getElementById('btn-add-split')?.addEventListener('click', async () => 
             installments = preview.data;
         }
     } catch (error) {
-        // se o preview falhar, segue só com o valor total — o backend valida de qualquer forma no confirm
+        // se o preview falhar, segue só com o valor total
     }
 
     splits.push({
@@ -373,7 +406,7 @@ async function confirmPayment() {
         Swal.fire({ icon: 'success', title: 'Sucesso', text: response.msg || 'OS finalizada com sucesso!', timer: 3000, timerProgressBar: true })
             .then(() => { window.location.reload(); });
     } catch (error) {
-        Swal.fire({ icon: 'error', title: 'Erro', text: `Restrição: ${error.message}`, timer: 3000, timerProgressBar: true });
+        Swal.fire({ icon: 'error', title: 'Erro', text: error.message, timer: 3000, timerProgressBar: true });
         $('#modal-payment button').prop('disabled', false);
     }
 }
@@ -426,7 +459,7 @@ inputAcrescimo?.addEventListener('input', () => {
     if (valor > 0) zerarCampo(inputDesconto);
 });
 
-// ── Estado do botão de ação ──────────────────────────────────────────────────
+// ── Estado do botão de ação ───────────────────────────────────────────────────
 
 async function handleFinalizeClick() {
     const saved = await applyChanges({ silent: true });
@@ -450,6 +483,11 @@ function configureActionButton() {
     } else {
         BtnActionLabel.textContent = 'Salvar';
         BtnAction.onclick = () => applyChanges();
+    }
+
+    const BtnCancel = document.getElementById('btn-cancel-os');
+    if (BtnCancel && Action.value === 'e') {
+        BtnCancel.onclick = handleCancelClick;
     }
 }
 
@@ -485,7 +523,6 @@ if (BtnAddItem) {
         document.getElementById('item-quantidade').value = '1';
         setMoneyValue(document.getElementById('item-preco'), 0);
         document.getElementById('item-subtotal').textContent = 'R$ 0,00';
-        // CORREÇÃO: limpa os hidden inputs ao trocar tipo/reabrir modal
         document.getElementById('item-product-id').value = '';
         document.getElementById('item-service-id').value = '';
 
@@ -528,9 +565,6 @@ if (BtnAddItem) {
             document.getElementById('item-quantidade').value = '1';
             calcularSubtotal();
 
-            // CORREÇÃO PRINCIPAL: preenche os hidden inputs que o form envia no submit.
-            // Sem isso, product_id/service_id chegavam vazios no backend e o item
-            // salvava com product_id = NULL, quebrando a baixa de estoque no finalize().
             document.getElementById('item-product-id').value = tipo === 'produto' ? data.id : '';
             document.getElementById('item-service-id').value = tipo === 'servico' ? data.id : '';
 
@@ -557,7 +591,6 @@ if (BtnAddItem) {
     });
 
     document.getElementById('btn-save-item').addEventListener('click', async () => {
-
         $('button').prop('disabled', true);
         const orderId = Id.value;
         const precoInput = document.getElementById('item-preco');
@@ -574,7 +607,7 @@ if (BtnAddItem) {
             bootstrap.Modal.getInstance(document.getElementById('modal-item')).hide();
             window.location.reload();
         } catch (error) {
-            Swal.fire({ icon: 'error', title: 'Erro', text: `Restrição: ${error.message}`, timer: 3000, timerProgressBar: true });
+            Swal.fire({ icon: 'error', title: 'Erro', text: error.message, timer: 3000, timerProgressBar: true });
         } finally {
             precoInput.value = precoMasked;
             $('button').prop('disabled', false);
@@ -609,7 +642,7 @@ window.deleteItem = async function (itemId) {
 
         window.location.reload();
     } catch (error) {
-        Swal.fire({ icon: 'error', title: 'Erro', text: `Restrição: ${error.message}`, timer: 3000, timerProgressBar: true });
+        Swal.fire({ icon: 'error', title: 'Erro', text: error.message, timer: 3000, timerProgressBar: true });
     } finally {
         $('button').prop('disabled', false);
     }
