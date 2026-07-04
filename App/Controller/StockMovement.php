@@ -11,6 +11,8 @@ use Exception;
 
 final class StockMovement extends Base
 {
+    // ── Lista de produtos com saldo de estoque ──────────────────────────
+
     public function list($request, $response)
     {
         return $this->getTwig()
@@ -84,12 +86,13 @@ final class StockMovement extends Base
         }
     }
 
+    // ── Ajuste manual de estoque ─────────────────────────────────────────
+
     public function ajustar($request, $response)
     {
         $form       = $request->getParsedBody();
         $productId  = $form['product_id'] ?? null;
         $tipo       = $form['tipo']       ?? null;
-        // 'ENTRADA' | 'SAIDA' | 'AJUSTE'
         $quantidade = (float) ($form['quantidade'] ?? 0);
         $observacao = trim($form['observacao'] ?? '');
 
@@ -113,8 +116,6 @@ final class StockMovement extends Base
             $conn = DB::connection();
             $conn->beginTransaction();
 
-            // Lock pessimista — evita que dois ajustes/vendas simultâneas
-            // no mesmo produto leiam o mesmo saldo desatualizado.
             $produto = $conn->fetchAssociative(
                 'SELECT estoque_atual FROM products WHERE id = :id FOR UPDATE',
                 ['id' => (int) $productId]
@@ -175,6 +176,98 @@ final class StockMovement extends Base
                 $conn->rollBack();
             }
             return $this->json($response, ['status' => false, 'msg' => 'Erro ao ajustar: ' . $e->getMessage(), 'id' => 0], 500);
+        }
+    }
+
+    // ── Histórico de movimentações ───────────────────────────────────────
+
+    public function history($request, $response)
+    {
+        return $this->getTwig()
+            ->render($response, $this->setView('list-stockmovements'), [
+                'titulo' => 'Movimentações de estoque',
+            ])
+            ->withHeader('Content-Type', 'text/html')
+            ->withStatus(200);
+    }
+
+    public function historyData($request, $response)
+    {
+        $form   = $request->getParsedBody();
+        $term   = $form['search']['value'] ?? null;
+        $start  = (int) ($form['start']  ?? 0);
+        $length = (int) ($form['length'] ?? 10);
+
+        $columns = [
+            0 => 'sm.criado_em',
+            1 => 'p.nome',
+            2 => 'sm.tipo',
+            3 => 'sm.origem',
+            4 => 'sm.quantidade',
+            5 => 'sm.estoque_anterior',
+            6 => 'sm.estoque_posterior',
+            7 => 'u.nome',
+        ];
+
+        $posField   = (isset($form['order'][0]['column']) && isset($columns[(int) $form['order'][0]['column']]))
+            ? (int) $form['order'][0]['column'] : 0;
+        $orderType  = in_array(strtoupper($form['order'][0]['dir'] ?? 'DESC'), ['ASC', 'DESC'], true)
+            ? strtoupper($form['order'][0]['dir']) : 'DESC';
+        $orderField = $columns[$posField];
+
+        $tipos = [
+            'ENTRADA' => '<span class="badge bg-success">Entrada</span>',
+            'SAIDA'   => '<span class="badge bg-danger">Saída</span>',
+        ];
+
+        try {
+            $baseFrom = 'stock_movements sm
+                LEFT JOIN products p ON p.id = sm.product_id
+                LEFT JOIN users u ON u.id = sm.criado_por';
+
+            $totalRecords = (int) DB::select('COUNT(*)')
+                ->from($baseFrom)
+                ->fetchOne();
+
+            $query = DB::select('sm.*, p.nome AS produto_nome, u.nome AS usuario_nome')
+                ->from($baseFrom);
+
+            if (!empty($term)) {
+                $query->setParameter('term', '%' . $term . '%')
+                    ->where('p.nome ILIKE :term')
+                    ->orWhere('u.nome ILIKE :term')
+                    ->orWhere('sm.observacao ILIKE :term')
+                    ->orWhere("CAST(sm.tipo AS TEXT) ILIKE :term")
+                    ->orWhere("CAST(sm.origem AS TEXT) ILIKE :term")
+                    ->orWhere("TO_CHAR(sm.criado_em, 'DD/MM/YYYY HH24:MI:SS') ILIKE :term");
+            }
+
+            $filteredRecords = (int) (clone $query)->select('COUNT(*)')->fetchOne();
+
+            $items = $query->orderBy($orderField, $orderType)
+                ->setFirstResult($start)->setMaxResults($length)
+                ->fetchAllAssociative();
+
+            $rows = array_map(fn($v) => [
+                (new DateTime($v['criado_em']))->format('d/m/Y H:i:s'),
+                $v['produto_nome'] ?? ('#' . $v['product_id']),
+                $tipos[$v['tipo']] ?? $v['tipo'],
+                $v['origem'],
+                number_format((float) $v['quantidade'], 3, ',', '.'),
+                number_format((float) $v['estoque_anterior'], 3, ',', '.'),
+                number_format((float) $v['estoque_posterior'], 3, ',', '.'),
+                $v['usuario_nome'] ?? '—',
+                $v['observacao'] ?? '—',
+            ], $items);
+
+            return $this->json($response, [
+                'recordsTotal'    => $totalRecords,
+                'recordsFiltered' => $filteredRecords,
+                'data'            => $rows,
+            ], 200);
+        } catch (Exception $e) {
+            error_log('[StockMovement::historyData] ' . $e->getMessage());
+            return $this->json($response, ['status' => false, 'msg' => 'Restrição: ' . $e->getMessage()], 500);
         }
     }
 

@@ -1,0 +1,1 @@
+import{t as e}from"../chunks/rolldown-runtime-CacB07dV.js";import{n as t,t as n}from"../chunks/data-tables-B563O5Wu.js";var r=e((()=>{t(),n.SetId(`table-stock-movements`).setRequestVariables([]).post(`/estoque/movimentacoes/listingdata`)}));export default r();

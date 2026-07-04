@@ -11,7 +11,6 @@ use App\Controller\Supplier;
 use App\Controller\Service;
 use App\Controller\ServiceOrder;
 use App\Controller\Purchase;
-use App\Controller\Sale;
 use App\Controller\Report;
 use App\Controller\Users;
 use App\Controller\PaymentTerms;
@@ -115,6 +114,8 @@ $app->group('/estoque', function ($group) {
     $group->get('/',              StockMovement::class . ':list');
     $group->post('/listingdata',  StockMovement::class . ':listingdata');
     $group->post('/ajustar',      StockMovement::class . ':ajustar');
+    $group->get('/movimentacoes', StockMovement::class . ':history');
+    $group->post('/movimentacoes/listingdata', StockMovement::class . ':historyData');
 });
 
 // ── Serviços ──────────────────────────────────────────────────────────────────

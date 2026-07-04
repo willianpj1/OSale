@@ -297,6 +297,16 @@
       "_requests-BBYJj0MV.js"
     ]
   },
+  "resources/js/pages/list-stockmovements.js": {
+    "file": "pages/list-stockmovements-Dt8Wc02O.js",
+    "name": "pages/list-stockmovements",
+    "src": "resources/js/pages/list-stockmovements.js",
+    "isEntry": true,
+    "imports": [
+      "_rolldown-runtime-CacB07dV.js",
+      "_data-tables-B563O5Wu.js"
+    ]
+  },
   "resources/js/pages/list-supplier.js": {
     "file": "pages/list-supplier-rnNeAS6x.js",
     "name": "pages/list-supplier",

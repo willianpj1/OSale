@@ -1,0 +1,37 @@
+{% extends 'layouts/main.html' %}
+{% block breadcrumbs %}
+<ol class="breadcrumb float-sm-end">
+    <li class="breadcrumb-item"><a href="/">Início</a></li>
+    <li class="breadcrumb-item active" aria-current="page">Movimentações de estoque</li>
+    {{ vite('resources/css/pages/product.css') }}
+</ol>
+{% endblock %}
+{% block main %}
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-body">
+                <table class="table table-bordered table-striped table-hover" id="table-stock-movements">
+                    <thead>
+                        <tr>
+                            <th>Data</th>
+                            <th>Produto</th>
+                            <th>Tipo</th>
+                            <th>Origem</th>
+                            <th>Quantidade</th>
+                            <th>Estoque anterior</th>
+                            <th>Estoque posterior</th>
+                            <th>Usuário</th>
+                            <th>Observação</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+{% block script %}
+{{ vite('resources/js/pages/list-stockmovements.js') }}
+{% endblock %}
