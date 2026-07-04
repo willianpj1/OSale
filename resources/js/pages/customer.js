@@ -20,7 +20,7 @@ const Modalcleancontact = Modalcontact ? new Modal(Modalcontact) : null;
 const toast = (icon, title, text, cb) => Swal.fire({ icon, title, text, timer: 2000, timerProgressBar: true }).then(cb);
 
 
-// ── Salvar cliente ────────────────────────────────────────────────────────────
+
 async function applyChanges() {
     $('button').prop('disabled', true);
 
@@ -118,7 +118,7 @@ async function listAddresses() {
         }
 
         let HTML = '';
-        response.data.forEach(item => {           
+        response.data.forEach(item => {
             HTML += `
                 <tr id="address-${item.id}">
                     <td>${item.label}</td>
@@ -253,14 +253,13 @@ async function deleteContact(contactId) {
 
 Cnpj.addEventListener('blur', async () => {
     if (Cnpj.value.trim() === '' || Cnpj.value.replace(/\D/g, '').length < 14) {
+        console.log('CNPJ inválido ou vazio, não realizando busca.');
         return;
     }
     const findCompany = new FindCompany({ cnpjField: 'cpf_cnpj', cnaeValue: 'cnae', cnaeSearch: 'codigoAtividadeEconomica' })
     const response = await findCompany.FindCompanyData();
-
     const Ie = response?.estabelecimento?.inscricoes_estaduais[0]?.inscricao_estadual;
     const Nome = response?.estabelecimento?.nome_fantasia ?? response?.razao_social;
-
     document.getElementById('nome').value = Nome;
     document.getElementById('rg_ie').value = Ie;
 
