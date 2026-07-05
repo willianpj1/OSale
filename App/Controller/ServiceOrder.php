@@ -20,7 +20,6 @@ final class ServiceOrder extends Base
             ->withHeader('Content-Type', 'text/html')
             ->withStatus(200);
     }
-
     public function details($request, $response, $args)
     {
         $id     = $args['id'] ?? null;
@@ -106,7 +105,6 @@ final class ServiceOrder extends Base
             ->withHeader('Content-Type', 'text/html')
             ->withStatus(200);
     }
-
     public function insert($request, $response)
     {
         $form      = $request->getParsedBody();
@@ -290,6 +288,7 @@ final class ServiceOrder extends Base
                 in_array($v['status'], ['concluida', 'cancelada'])
                     ? "<td>
                         <a class='btn btn-sm btn-warning' href='/os/detalhes/{$v['id']}'><i class='bi bi-eye'></i> Visualizar</a>
+                        <a class='btn btn-sm btn-outline-info' href='/relatorio/os/{$v['id']}'><i class='bi bi-printer-fill'></i> Imprimir</a>
                     </td>"
                     : "<td>
                         <a class='btn btn-sm btn-warning' href='/os/detalhes/{$v['id']}'><i class='bi bi-pencil-square'></i> Editar</a>

@@ -35,9 +35,15 @@ $app->get('/logout', Login::class . ':logout');
 
 $app->get('/',     Home::class . ':home')->add(Middleware::web());;
 $app->get('/home', Home::class . ':home')->add(Middleware::web());;
-$app->get('/relatorio', Report::class . ':report');
-$app->get('/relatorio/curva-abc', Report::class . ':curvaAbc');
-$app->get('/relatorio/resumo',    Report::class . ':resumo');
+
+// ──Relatorios ──────────────────────────────────────────────────────────
+$app->group('/relatorio', function ($group) {
+    $group->get('/',                      Report::class . ':report');
+    $group->get('/curva-abc',             Report::class . ':curvaAbc');
+    $group->get('/resumo',                Report::class . ':resumo');
+    $group->get('/compra/{Id}',           Report::class . ':compras');
+    $group->get('/os/{Id}',               Report::class . ':ordemServico');
+});
 
 // ── Usuários ──────────────────────────────────────────────────────────────────
 
@@ -111,11 +117,11 @@ $app->group('/produto', function ($group) {
 // ── Estoque ───────────────────────────────────────────────────────────────────
 
 $app->group('/estoque', function ($group) {
-    $group->get('/',              StockMovement::class . ':list');
-    $group->post('/listingdata',  StockMovement::class . ':listingdata');
-    $group->post('/ajustar',      StockMovement::class . ':ajustar');
-    $group->get('/movimentacoes', StockMovement::class . ':history');
-    $group->post('/movimentacoes/listingdata', StockMovement::class . ':historyData');
+    $group->get('/',                            StockMovement::class . ':list');
+    $group->post('/listingdata',                StockMovement::class . ':listingdata');
+    $group->post('/ajustar',                    StockMovement::class . ':ajustar');
+    $group->get('/movimentacoes',               StockMovement::class . ':history');
+    $group->post('/movimentacoes/listingdata',  StockMovement::class . ':historyData');
 });
 
 // ── Serviços ──────────────────────────────────────────────────────────────────

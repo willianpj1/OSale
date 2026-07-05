@@ -206,25 +206,27 @@ final class Purchase extends Base
             $purchases = $query->orderBy($orderField, $orderType)
                 ->setFirstResult($start)->setMaxResults($length)
                 ->fetchAllAssociative();
-            $rows = array_map(fn($v) => [
-                $v['id'],
-                $v['numero'],
-                $v['supplier_nome'],
-                $v['nota_pedido'] ?? '—',
-                $statusLabels[$v['status']] ?? $v['status'],
-                'R$ ' . number_format((float) $v['valor_total'], 2, ',', '.'),
-                (new DateTime($v['criado_em']))->format('d/m/Y H:i:s'),
-                $v['status'] === 'pendente'
-                    ? "<td>
+            $rows = array_map(
+                fn($v) => [
+                    $v['id'],
+                    $v['numero'],
+                    $v['supplier_nome'],
+                    $v['nota_pedido'] ?? '—',
+                    $statusLabels[$v['status']] ?? $v['status'],
+                    'R$ ' . number_format((float) $v['valor_total'], 2, ',', '.'),
+                    (new DateTime($v['criado_em']))->format('d/m/Y H:i:s'),
+                    $v['status'] === 'pendente'
+                        ? "<td>
                             <a class='btn btn-sm btn-warning' href='/compras/detalhes/{$v['id']}'><i class='bi bi-pencil-square'></i> Editar</a>
                             <button type='button' class='btn btn-sm btn-danger' onclick='ShowModal({$v['id']});'><i class='bi bi-trash'></i> Excluir</button>
                         </td>"
-                    : "<td>
+                        : "<td>
                             <a class='btn btn-sm btn-warning' href='/compras/detalhes/{$v['id']}'><i class='bi bi-eye'></i> Visualizar</a>
-                            <a class='btn btn-sm btn-warning' href='/relatorio/detalhes/{$v['id']}'><i class='bi bi-eye'></i> Imprimir</a>
+                            <a class='btn btn-sm btn-outline-info' href='/relatorio/compra/{$v['id']}'><i class='bi bi-printer-fill'></i> Imprimir</a>
                         </td>",
-            ],
-            $purchases);
+                ],
+                $purchases
+            );
             return $this->json($response, [
                 'recordsTotal'    => $totalRecords,
                 'recordsFiltered' => $filteredRecords,
@@ -234,7 +236,7 @@ final class Purchase extends Base
             error_log('[Purchase::listingdata] ' . $e->getMessage());
             return $this->json($response, ['status' => false, 'msg' => $e->getMessage()], 500);
         }
-    }
+    }   
 
     // ── Items ─────────────────────────────────────────────────────────────────
     public function itemInsert($request, $response, $args)
@@ -323,13 +325,15 @@ final class Purchase extends Base
                 ->setParameter('term', '%' . $term . '%');
         }
         $produtos = $query->orderBy('nome', 'ASC')->setMaxResults(20)->fetchAllAssociative();
-        $results = array_map(fn($p) => [
-            'id'            => $p['id'],
-            'nome'          => $p['nome'],
-            'preco_compra'  => (float) $p['preco_compra'],
-            'estoque_atual' => (float) $p['estoque_atual'],
-        ], 
-        $produtos);
+        $results = array_map(
+            fn($p) => [
+                'id'            => $p['id'],
+                'nome'          => $p['nome'],
+                'preco_compra'  => (float) $p['preco_compra'],
+                'estoque_atual' => (float) $p['estoque_atual'],
+            ],
+            $produtos
+        );
         return $this->json($response, ['results' => $results], 200);
     }
 
@@ -437,7 +441,7 @@ final class Purchase extends Base
             ->setParameter('id', $purchaseId, ParameterType::INTEGER)
             ->fetchOne();
         DB::connection()->update('purchases', ['valor_total' => $total, 'atualizado_em' => $this->now()], ['id' => $purchaseId]);
-    }    
+    }
     private function gerarNumeroCompra(): string
     {
         $ano   = (new DateTime())->format('Y');

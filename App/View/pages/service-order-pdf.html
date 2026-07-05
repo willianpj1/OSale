@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>Relatório da OS {{ order.numero }}</title>
+<style>
+    /* ─── Regras gerais (dompdf: engine CSS 2.1 + parte do 3, sem flex/grid) ─── */
+    @page {
+        margin: 100px 40px 60px 40px;
+    }
+
+    * {
+        box-sizing: border-box;
+    }
+
+    body {
+        font-family: "DejaVu Sans", Arial, sans-serif;
+        font-size: 12px;
+        color: #1a1a1a;
+        margin: 0;
+        padding: 0;
+    }
+
+    /* ─── Cabeçalho fixo (repete em todas as páginas) ─── */
+    header {
+        position: fixed;
+        top: -80px;
+        left: 0;
+        right: 0;
+        height: 70px;
+        border-bottom: 2px solid #222;
+        padding-bottom: 8px;
+    }
+
+    header .empresa {
+        font-size: 18px;
+        font-weight: bold;
+        color: #1a1a1a;
+    }
+
+    header .subtitulo {
+        font-size: 10px;
+        color: #666;
+    }
+
+    header .info-doc {
+        text-align: right;
+        font-size: 11px;
+        color: #333;
+    }
+
+    /* ─── Rodapé fixo ─── */
+    footer {
+        position: fixed;
+        bottom: -50px;
+        left: 0;
+        right: 0;
+        height: 40px;
+        border-top: 1px solid #ccc;
+        padding-top: 6px;
+        font-size: 9px;
+        color: #777;
+        text-align: center;
+    }
+
+    /* ─── Utilitário de layout tipo tabela (substitui flex/grid) ─── */
+    .table-layout {
+        display: table;
+        width: 100%;
+    }
+
+    .table-row {
+        display: table-row;
+    }
+
+    .table-cell {
+        display: table-cell;
+        vertical-align: top;
+    }
+
+    /* ─── Título da OS ─── */
+    .titulo-os {
+        display: table;
+        width: 100%;
+        margin-bottom: 15px;
+    }
+
+    .titulo-os .num {
+        font-size: 15px;
+        font-weight: bold;
+    }
+
+    .status-badge {
+        display: inline-block;
+        padding: 5px 10px;
+        border-radius: 3px;
+        font-size: 10px;
+        font-weight: bold;
+        text-transform: uppercase;
+        color: #fff;
+        margin-left: 6px;
+    }
+
+    .status-aberta          { background-color: #2563eb; }
+    .status-em_andamento    { background-color: #d97706; }
+    .status-aguardando_peca { background-color: #6b7280; }
+    .status-concluida       { background-color: #16a34a; }
+    .status-cancelada       { background-color: #dc2626; }
+
+    .prioridade-badge {
+        display: inline-block;
+        padding: 2px 8px;
+        border-radius: 3px;
+        font-size: 9px;
+        font-weight: bold;
+        text-transform: uppercase;
+        color: #fff;
+    }
+
+    .prioridade-baixa   { background-color: #6b7280; }
+    .prioridade-normal  { background-color: #0891b2; }
+    .prioridade-alta    { background-color: #d97706; }
+    .prioridade-urgente { background-color: #dc2626; }
+
+    /* ─── Caixas de dados ─── */
+    .box {
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        padding: 10px 14px;
+        margin-bottom: 14px;
+    }
+
+    .box-title {
+        font-size: 11px;
+        font-weight: bold;
+        text-transform: uppercase;
+        color: #555;
+        margin-bottom: 8px;
+        border-bottom: 1px solid #eee;
+        padding-bottom: 4px;
+    }
+
+    .campo-label {
+        font-size: 9px;
+        text-transform: uppercase;
+        color: #888;
+        margin-bottom: 2px;
+    }
+
+    .campo-valor {
+        font-size: 12px;
+        color: #1a1a1a;
+        margin-bottom: 10px;
+    }
+
+    .texto-box {
+        margin-top: 6px;
+        padding: 8px 12px;
+        border: 1px solid #eee;
+        background-color: #fafafa;
+        font-size: 11px;
+        color: #333;
+        border-radius: 4px;
+    }
+
+    /* ─── Tabela de itens ─── */
+    table.itens {
+        width: 100%;
+        border-collapse: collapse;
+        margin-bottom: 14px;
+    }
+
+    table.itens th {
+        background-color: #f2f2f2;
+        border: 1px solid #ccc;
+        padding: 6px 8px;
+        font-size: 10px;
+        text-transform: uppercase;
+        text-align: left;
+        color: #444;
+    }
+
+    table.itens td {
+        border: 1px solid #ddd;
+        padding: 6px 8px;
+        font-size: 11px;
+    }
+
+    table.itens td.num,
+    table.itens th.num {
+        text-align: right;
+    }
+
+    table.itens tfoot td {
+        font-weight: bold;
+        background-color: #f8f8f8;
+    }
+
+    .tipo-tag {
+        display: inline-block;
+        padding: 1px 6px;
+        border-radius: 3px;
+        font-size: 9px;
+        font-weight: bold;
+        text-transform: uppercase;
+        color: #fff;
+    }
+
+    .tipo-servico { background-color: #0891b2; }
+    .tipo-produto { background-color: #7c3aed; }
+
+    /* ─── Resumo financeiro ─── */
+    .resumo {
+        width: 260px;
+        float: right;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        padding: 10px 14px;
+        margin-bottom: 14px;
+    }
+
+    .resumo .linha {
+        display: table;
+        width: 100%;
+        font-size: 11px;
+        margin-bottom: 4px;
+    }
+
+    .resumo .linha .lbl {
+        display: table-cell;
+        color: #555;
+    }
+
+    .resumo .linha .val {
+        display: table-cell;
+        text-align: right;
+    }
+
+    .resumo .linha.desconto .val { color: #dc2626; }
+    .resumo .linha.acrescimo .val { color: #16a34a; }
+
+    .resumo .total {
+        border-top: 1px solid #ccc;
+        margin-top: 6px;
+        padding-top: 6px;
+        font-size: 14px;
+        font-weight: bold;
+    }
+
+    .clear { clear: both; }
+
+    /* ─── Pagamento / parcelas ─── */
+    .pagamento-bloco {
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        padding: 10px 14px;
+        margin-bottom: 10px;
+    }
+
+    .pagamento-bloco .titulo-pagamento {
+        font-size: 12px;
+        font-weight: bold;
+        margin-bottom: 6px;
+    }
+
+    table.parcelas {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 4px;
+    }
+
+    table.parcelas th {
+        background-color: #f2f2f2;
+        border: 1px solid #ddd;
+        padding: 4px 8px;
+        font-size: 9px;
+        text-transform: uppercase;
+        text-align: left;
+        color: #555;
+    }
+
+    table.parcelas td {
+        border: 1px solid #eee;
+        padding: 4px 8px;
+        font-size: 10px;
+    }
+
+    table.parcelas td.num,
+    table.parcelas th.num {
+        text-align: right;
+    }
+
+    .status-concluida-txt { color: #16a34a; font-weight: bold; }
+    .status-cancelada-txt { color: #dc2626; font-weight: bold; }
+</style>
+</head>
+<body>
+
+    {# ─────────── Cabeçalho fixo ─────────── #}
+    <header>
+        <div class="table-layout">
+            <div class="table-row">
+                <div class="table-cell" style="width: 60%;">
+                    <div class="empresa">OSale</div>
+                    <div class="subtitulo">Sistema de Gestão de Ordens de Serviço e Estoque</div>
+                </div>
+                <div class="table-cell info-doc" style="width: 40%;">
+                    Relatório de Ordem de Serviço<br>
+                    Emitido em {{ emitido_em | date('d/m/Y H:i') }}
+                </div>
+            </div>
+        </div>
+    </header>
+
+    {# ─────────── Rodapé fixo ─────────── #}
+    <footer>
+        OSale — Relatório gerado automaticamente. Página <span class="pagenum"></span> de <span class="pagecount"></span>
+    </footer>
+
+    {# ─────────── Título + status + prioridade ─────────── #}
+    <div class="titulo-os">
+        <div class="table-layout">
+            <div class="table-row">
+                <div class="table-cell">
+                    <span class="num">{{ order.numero }}</span>
+                    <span class="prioridade-badge prioridade-{{ order.prioridade }}">{{ order.prioridade | capitalize }}</span>
+                </div>
+                <div class="table-cell" style="text-align: right;">
+                    <span class="status-badge status-{{ order.status }}">
+                        {{ order.status | replace({'_': ' '}) | capitalize }}
+                    </span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {# ─────────── Dados do cliente / técnico ─────────── #}
+    <div class="box">
+        <div class="box-title">Dados Gerais</div>
+        <div class="table-layout">
+            <div class="table-row">
+                <div class="table-cell" style="width: 40%;">
+                    <div class="campo-label">Cliente</div>
+                    <div class="campo-valor">{{ order.customer_nome ?? '—' }}</div>
+                </div>
+                <div class="table-cell" style="width: 30%;">
+                    <div class="campo-label">Técnico responsável</div>
+                    <div class="campo-valor">
+                        {{ order.tecnico_nome ? order.tecnico_nome ~ ' ' ~ order.tecnico_sobrenome : '—' }}
+                    </div>
+                </div>
+                <div class="table-cell" style="width: 30%;">
+                    <div class="campo-label">Aberta em</div>
+                    <div class="campo-valor">{{ order.aberto_em ? order.aberto_em | date('d/m/Y H:i') : '—' }}</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {# ─────────── Equipamento ─────────── #}
+    <div class="box">
+        <div class="box-title">Equipamento</div>
+        <div class="table-layout">
+            <div class="table-row">
+                <div class="table-cell" style="width: 40%;">
+                    <div class="campo-label">Equipamento</div>
+                    <div class="campo-valor">{{ order.equipamento ?? '—' }}</div>
+                </div>
+                <div class="table-cell" style="width: 20%;">
+                    <div class="campo-label">Marca</div>
+                    <div class="campo-valor">{{ order.marca ?? '—' }}</div>
+                </div>
+                <div class="table-cell" style="width: 20%;">
+                    <div class="campo-label">Modelo</div>
+                    <div class="campo-valor">{{ order.modelo ?? '—' }}</div>
+                </div>
+                <div class="table-cell" style="width: 20%;">
+                    <div class="campo-label">Nº de série</div>
+                    <div class="campo-valor">{{ order.numero_serie ?? '—' }}</div>
+                </div>
+            </div>
+        </div>
+
+        {% if order.defeito_relatado %}
+        <div class="campo-label" style="margin-top: 4px;">Defeito relatado</div>
+        <div class="texto-box">{{ order.defeito_relatado }}</div>
+        {% endif %}
+
+        {% if order.defeito_constatado %}
+        <div class="campo-label" style="margin-top: 8px;">Defeito constatado</div>
+        <div class="texto-box">{{ order.defeito_constatado }}</div>
+        {% endif %}
+
+        {% if order.observacoes %}
+        <div class="campo-label" style="margin-top: 8px;">Observações</div>
+        <div class="texto-box">{{ order.observacoes }}</div>
+        {% endif %}
+    </div>
+
+    {# ─────────── Itens (serviços + produtos) ─────────── #}
+    <table class="itens">
+        <thead>
+            <tr>
+                <th style="width: 90px;">Tipo</th>
+                <th>Descrição</th>
+                <th class="num">Qtd</th>
+                <th class="num">Preço Unit.</th>
+                <th class="num">Subtotal</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in items %}
+            <tr>
+                <td>
+                    <span class="tipo-tag tipo-{{ item.tipo }}">
+                        {{ item.tipo == 'servico' ? 'Serviço' : 'Produto' }}
+                    </span>
+                </td>
+                <td>{{ item.descricao ?: (item.service_nome ?? item.product_nome) }}</td>
+                <td class="num">{{ item.quantidade }}</td>
+                <td class="num">R$ {{ item.preco_unitario | number_format(2, ',', '.') }}</td>
+                <td class="num">R$ {{ item.subtotal | number_format(2, ',', '.') }}</td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="5" style="text-align:center; color:#888;">Nenhum item cadastrado.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+        <tfoot>
+            <tr>
+                <td colspan="4" style="text-align:right;">Subtotal:</td>
+                <td class="num">R$ {{ order.valor_total | number_format(2, ',', '.') }}</td>
+            </tr>
+        </tfoot>
+    </table>
+
+    {# ─────────── Resumo financeiro ─────────── #}
+    <div class="resumo">
+        {% if order.status == 'concluida' %}
+        <div class="linha">
+            <div class="lbl">Subtotal</div>
+            <div class="val">R$ {{ order.valor_total | number_format(2, ',', '.') }}</div>
+        </div>
+        {% if order.desconto %}
+        <div class="linha desconto">
+            <div class="lbl">Desconto</div>
+            <div class="val">-{{ order.desconto | number_format(2, ',', '.') }}%</div>
+        </div>
+        {% endif %}
+        {% if order.acrescimo %}
+        <div class="linha acrescimo">
+            <div class="lbl">Acréscimo</div>
+            <div class="val">+{{ order.acrescimo | number_format(2, ',', '.') }}%</div>
+        </div>
+        {% endif %}
+        <div class="linha total">
+            <div class="lbl">Total líquido</div>
+            <div class="val">R$ {{ order.valor_liquido | number_format(2, ',', '.') }}</div>
+        </div>
+        {% else %}
+        <div class="linha total">
+            <div class="lbl">Total</div>
+            <div class="val">R$ {{ order.valor_total | number_format(2, ',', '.') }}</div>
+        </div>
+        {% endif %}
+    </div>
+    <div class="clear"></div>
+
+    {# ─────────── Formas de pagamento (split) ─────────── #}
+    {% if paymentSplits|length > 0 %}
+    <div class="box-title" style="margin-top: 4px;">Formas de Pagamento</div>
+    {% for split in paymentSplits %}
+    <div class="pagamento-bloco">
+        <div class="titulo-pagamento">
+            {{ split.titulo }} — {{ split.parcelas_qtd }}x — R$ {{ split.valor | number_format(2, ',', '.') }}
+        </div>
+        {% if split.installments|length > 0 %}
+        <table class="parcelas">
+            <thead>
+                <tr>
+                    <th>Parcela</th>
+                    <th>Vencimento</th>
+                    <th class="num">Valor</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for p in split.installments %}
+                <tr>
+                    <td>{{ p.parcela }}ª</td>
+                    <td>{{ p.intervalo }} dias</td>
+                    <td class="num">R$ {{ p.valor | number_format(2, ',', '.') }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% endif %}
+    </div>
+    {% endfor %}
+    {% endif %}
+
+    {# ─────────── Status detalhado ─────────── #}
+    {% if order.status == 'concluida' %}
+    <p class="status-concluida-txt">
+        ✔ OS concluída em {{ order.concluido_em ? order.concluido_em | date('d/m/Y H:i') : '—' }}
+    </p>
+    {% endif %}
+
+    {% if order.status == 'cancelada' %}
+    <p class="status-cancelada-txt">
+        ✘ Ordem de serviço cancelada
+    </p>
+    {% endif %}
+
+</body>
+</html>

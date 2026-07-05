@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Relatório da Compra {{ purchase.numero }}</title>
+    <style>
+        /* ─── Regras gerais (dompdf usa engine CSS 2.1 + parte do 3, sem flex/grid) ─── */
+        @page {
+            margin: 100px 40px 60px 40px;
+            /* era 90px */
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: "DejaVu Sans", Arial, sans-serif;
+            font-size: 12px;
+            color: #1a1a1a;
+            margin: 0;
+            padding: 0;
+        }
+
+        /* ─── Cabeçalho fixo (repete em todas as páginas) ─── */
+        header {
+            position: fixed;
+            top: -70px;
+            left: 0;
+            right: 0;
+            height: 70px;
+            border-bottom: 2px solid #222;
+            padding-bottom: 8px;
+        }
+
+        header .empresa {
+            font-size: 18px;
+            font-weight: bold;
+            color: #1a1a1a;
+        }
+
+        header .subtitulo {
+            font-size: 10px;
+            color: #666;
+        }
+
+        header .info-doc {
+            text-align: right;
+            font-size: 11px;
+            color: #333;
+        }
+
+        /* ─── Rodapé fixo ─── */
+        footer {
+            position: fixed;
+            bottom: -50px;
+            left: 0;
+            right: 0;
+            height: 40px;
+            border-top: 1px solid #ccc;
+            padding-top: 6px;
+            font-size: 9px;
+            color: #777;
+            text-align: center;
+        }
+
+        /* ─── Utilitário de layout tipo tabela (substitui flex/grid) ─── */
+        .table-layout {
+            display: table;
+            width: 100%;
+        }
+
+        .table-row {
+            display: table-row;
+        }
+
+        .table-cell {
+            display: table-cell;
+            vertical-align: top;
+        }
+
+        /* ─── Título da compra ─── */
+        .titulo-compra {
+            margin-top: 16px;
+            /* nova linha */
+            display: table;
+            width: 100%;
+            margin-bottom: 14px;
+        }
+
+        .titulo-compra .num {
+            font-size: 16px;
+            font-weight: bold;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 3px 10px;
+            border-radius: 3px;
+            font-size: 10px;
+            font-weight: bold;
+            text-transform: uppercase;
+            color: #fff;
+        }
+
+        .status-pendente {
+            background-color: #2563eb;
+        }
+
+        .status-recebida {
+            background-color: #16a34a;
+        }
+
+        .status-cancelada {
+            background-color: #dc2626;
+        }
+
+        /* ─── Caixa de dados gerais ─── */
+        .box {
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            padding: 10px 14px;
+            margin-bottom: 14px;
+        }
+
+        .box-title {
+            font-size: 11px;
+            font-weight: bold;
+            text-transform: uppercase;
+            color: #555;
+            margin-bottom: 8px;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 4px;
+        }
+
+        .campo-label {
+            font-size: 9px;
+            text-transform: uppercase;
+            color: #888;
+            margin-bottom: 2px;
+        }
+
+        .campo-valor {
+            font-size: 12px;
+            color: #1a1a1a;
+            margin-bottom: 10px;
+        }
+
+        /* ─── Tabela de itens ─── */
+        table.itens {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 14px;
+        }
+
+        table.itens th {
+            background-color: #f2f2f2;
+            border: 1px solid #ccc;
+            padding: 6px 8px;
+            font-size: 10px;
+            text-transform: uppercase;
+            text-align: left;
+            color: #444;
+        }
+
+        table.itens td {
+            border: 1px solid #ddd;
+            padding: 6px 8px;
+            font-size: 11px;
+        }
+
+        table.itens td.num,
+        table.itens th.num {
+            text-align: right;
+        }
+
+        table.itens tfoot td {
+            font-weight: bold;
+            background-color: #f8f8f8;
+        }
+
+        /* ─── Resumo financeiro ─── */
+        .resumo {
+            width: 260px;
+            float: right;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            padding: 10px 14px;
+        }
+
+        .resumo .linha {
+            display: table;
+            width: 100%;
+            font-size: 11px;
+            margin-bottom: 4px;
+        }
+
+        .resumo .linha .lbl {
+            display: table-cell;
+            color: #555;
+        }
+
+        .resumo .linha .val {
+            display: table-cell;
+            text-align: right;
+        }
+
+        .resumo .total {
+            border-top: 1px solid #ccc;
+            margin-top: 6px;
+            padding-top: 6px;
+            font-size: 14px;
+            font-weight: bold;
+        }
+
+        .clear {
+            clear: both;
+        }
+
+        .observacoes-box {
+            margin-top: 14px;
+            padding: 10px 14px;
+            border: 1px solid #eee;
+            background-color: #fafafa;
+            font-size: 11px;
+            color: #333;
+            border-radius: 4px;
+        }
+
+        .status-recebida-txt {
+            color: #16a34a;
+            font-weight: bold;
+        }
+
+        .status-cancelada-txt {
+            color: #dc2626;
+            font-weight: bold;
+        }
+    </style>
+</head>
+
+<body>
+
+    {# ─────────── Cabeçalho fixo ─────────── #}
+    <header>
+        <div class="table-layout">
+            <div class="table-row">
+                <div class="table-cell" style="width: 60%;">
+                    <div class="empresa">OSale</div>
+                    <div class="subtitulo">Sistema de Gestão de Ordens de Serviço e Estoque</div>
+                </div>
+                <div class="table-cell info-doc" style="width: 40%;">
+                    Relatório de Compra<br>
+                    Emitido em {{ emitido_em | date('d/m/Y H:i') }}
+                </div>
+            </div>
+        </div>
+    </header>
+
+    {# ─────────── Rodapé fixo ─────────── #}
+    <footer>
+        OSale — Relatório gerado automaticamente. Página <span class="pagenum"></span> de <span
+            class="pagecount"></span>
+    </footer>
+
+    {# ─────────── Título + status ─────────── #}
+    <div class="titulo-compra">
+        <div class="table-layout">
+            <div class="table-row">
+                <div class="table-cell">
+                    <span class="num">{{ purchase.numero }}</span>
+                </div>
+                <div class="table-cell" style="text-align: right;">
+                    <span class="status-badge status-{{ purchase.status }}">
+                        {{ purchase.status | capitalize }}
+                    </span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {# ─────────── Dados gerais ─────────── #}
+    <div class="box">
+        <div class="box-title">Dados da Compra</div>
+        <div class="table-layout">
+            <div class="table-row">
+                <div class="table-cell" style="width: 55%;">
+                    <div class="campo-label">Fornecedor</div>
+                    <div class="campo-valor">
+                        {{ purchase.supplier_nome ?? '—' }}
+                        {% if purchase.supplier_cnpj %} — {{ purchase.supplier_cnpj }}{% endif %}
+                    </div>
+                </div>
+                <div class="table-cell" style="width: 25%;">
+                    <div class="campo-label">Nota do Pedido</div>
+                    <div class="campo-valor">{{ purchase.nota_pedido ?? '—' }}</div>
+                </div>
+                <div class="table-cell" style="width: 20%;">
+                    <div class="campo-label">Data da Compra</div>
+                    <div class="campo-valor">{{ purchase.criado_em ? purchase.criado_em | date('d/m/Y') : '—' }}</div>
+                </div>
+            </div>
+        </div>
+
+        {% if purchase.observacoes %}
+        <div class="observacoes-box">
+            <div class="campo-label">Observações</div>
+            {{ purchase.observacoes }}
+        </div>
+        {% endif %}
+    </div>
+
+    {# ─────────── Itens da compra ─────────── #}
+    <table class="itens">
+        <thead>
+            <tr>
+                <th>Produto</th>
+                <th class="num">Qtd</th>
+                <th class="num">Preço Unit.</th>
+                <th class="num">Subtotal</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in items %}
+            <tr>
+                <td>{{ item.product_nome }}</td>
+                <td class="num">{{ item.quantidade }}</td>
+                <td class="num">R$ {{ item.preco_unitario | number_format(2, ',', '.') }}</td>
+                <td class="num">R$ {{ item.subtotal | number_format(2, ',', '.') }}</td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="4" style="text-align:center; color:#888;">Nenhum item cadastrado.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+        <tfoot>
+            <tr>
+                <td colspan="3" style="text-align:right;">Total geral:</td>
+                <td class="num">R$ {{ purchase.valor_total | number_format(2, ',', '.') }}</td>
+            </tr>
+        </tfoot>
+    </table>
+
+    {# ─────────── Resumo / status detalhado ─────────── #}
+    <div class="resumo">
+        <div class="linha">
+            <div class="lbl">Itens</div>
+            <div class="val">{{ items|length }}</div>
+        </div>
+        <div class="linha">
+            <div class="lbl">Status</div>
+            <div class="val">{{ purchase.status | capitalize }}</div>
+        </div>
+        <div class="linha total">
+            <div class="lbl">Total</div>
+            <div class="val">R$ {{ purchase.valor_total | number_format(2, ',', '.') }}</div>
+        </div>
+    </div>
+    <div class="clear"></div>
+
+    {% if purchase.status == 'recebida' %}
+    <p class="status-recebida-txt">
+        ✔ Compra recebida em {{ purchase.recebido_em ? purchase.recebido_em | date('d/m/Y H:i') : '—' }}
+    </p>
+    {% endif %}
+
+    {% if purchase.status == 'cancelada' %}
+    <p class="status-cancelada-txt">
+        ✘ Compra cancelada{% if purchase.cancelado_em %} em {{ purchase.cancelado_em | date('d/m/Y H:i') }}{% endif %}
+    </p>
+    {% endif %}
+
+</body>
+
+</html>
