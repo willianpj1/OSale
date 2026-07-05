@@ -17,7 +17,6 @@ abstract class Base
         if (session_status() === PHP_SESSION_NONE) {
             session_start();
         }
-
         return $_SESSION['user'] ?? ['nome' => '', 'id' => null];
     }
 }

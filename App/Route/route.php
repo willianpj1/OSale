@@ -23,8 +23,8 @@ use App\Middleware\Middleware;
 $app->get('/login',  Login::class . ':login');
 $app->post('/login', Login::class . ':authenticate');
 
-$app->post('/auth/google',          Login::class . ':googleOneTap');
-$app->post('/authentication/google', Login::class . ':googleOneTap');
+$app->post('/auth/google',              Login::class . ':googleOneTap');
+$app->post('/authentication/google',    Login::class . ':googleOneTap');
 
 $app->get('/cadastro',  Register::class . ':register');
 $app->post('/cadastro', Register::class . ':store');

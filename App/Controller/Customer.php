@@ -19,7 +19,6 @@ final class Customer extends Base
             ->withHeader('Content-Type', 'text/html')
             ->withStatus(200);
     }
-
     public function details($request, $response, $args)
     {
         $id        = $args['id'] ?? null;
@@ -27,34 +26,28 @@ final class Customer extends Base
         $customer  = [];
         $contacts  = [];
         $addresses = [];
-
         if ($id !== null) {
             $connection = \App\Database\DB::connection();
-
             // 1. Busca os detalhes do cliente (Retorna array associativo ou false)
             $customer = $connection->fetchAssociative(
                 'SELECT * FROM customers WHERE id = :id AND excluido = false',
                 ['id' => $id]
             );
-
             // Se o cliente não existir, você pode tratar aqui (ex: zerar ou redirecionar)
             if ($customer === false) {
                 $customer = [];
             }
-
             // 2. Busca os contatos vinculados
             $contacts = $connection->fetchAllAssociative(
                 'SELECT * FROM contacts WHERE entidade = :entidade AND entidade_id = :id ORDER BY principal DESC, id ASC',
                 ['entidade' => 'customer', 'id' => $id]
             );
-
             // 3. Busca os endereços vinculados
             $addresses = $connection->fetchAllAssociative(
                 'SELECT * FROM addresses WHERE entidade = :entidade AND entidade_id = :id ORDER BY principal DESC, id ASC',
                 ['entidade' => 'customer', 'id' => $id]
             );
         }
-
         return $this->getTwig()
             ->render($response, $this->setView('customer'), [
                 'titulo'    => 'Detalhes do cliente',
@@ -67,17 +60,16 @@ final class Customer extends Base
             ->withHeader('Content-Type', 'text/html')
             ->withStatus(200);
     }
-
     public function insert($request, $response)
     {
         $form = $request->getParsedBody();
         $FieldsAndValues = [
-            'nome' => $form['nome'],
-            'tipo' => $form['tipo'] ?? 'fisica',
-            'cpf_cnpj' => $form['cpf_cnpj'] ?? '',
-            'rg_ie' => $form['rg_ie'] ?? '',
-            'observacoes' => $form['observacoes'] ?? '',
-            'ativo' => ($form['ativo'] === 'true') ? true : false
+            'nome'          => $form['nome'],
+            'tipo'          => $form['tipo'] ?? 'fisica',
+            'cpf_cnpj'      => $form['cpf_cnpj'] ?? '',
+            'rg_ie'         => $form['rg_ie'] ?? '',
+            'observacoes'   => $form['observacoes'] ?? '',
+            'ativo'         => true,
         ];
         try {
             $IsInserted = \App\Database\DB::connection()->insert('customers', $FieldsAndValues);
@@ -85,30 +77,24 @@ final class Customer extends Base
                 return $this->json($response, ['status' => false, 'msg' => 'Restrição: ' . $IsInserted, 'id' => 0], 500);
             }
             $id = \App\Database\DB::connection()->lastInsertId('id');
-
             return $this->json($response, ['status' => true, 'msg' => 'Salvo com sucesso!', 'id' => $id], 201);
         } catch (\Exception $e) {
             return $this->json($response, ['status' => false, 'msg' => 'Restrição: ' . $e->getMessage(), 'id' => 0], 500);
         }
     }
-
     public function update($request, $response)
     {
         $form = $request->getParsedBody();
         $id   = $form['id'] ?? null;
-
         if (!$id) {
             return $this->json($response, ['status' => false, 'msg' => 'ID não informado', 'id' => 0], 403);
         }
-
         $nome = trim($form['nome'] ?? '');
         if ($nome === '') {
             return $this->json($response, ['status' => false, 'msg' => 'O campo nome é obrigatório', 'id' => 0], 400);
         }
-
         try {
             $connection = \App\Database\DB::connection();
-
             // Dados que serão atualizados na tabela
             $data = [
                 'nome'          => $nome,
@@ -119,16 +105,17 @@ final class Customer extends Base
                 'ativo'         => isset($form['ativo']) ? filter_var($form['ativo'], FILTER_VALIDATE_BOOLEAN) : true,
                 'atualizado_em' => (new \DateTime())->format('Y-m-d H:i:s'),
             ];
-
             // Condições para a cláusula WHERE
             $criteria = [
                 'id'       => $id,
                 'excluido' => false, // Garante que não altera registros deletados logicamente
             ];
-
+            $types = [
+                'ativo'    => \Doctrine\DBAL\ParameterType::BOOLEAN,
+                'excluido' => \Doctrine\DBAL\ParameterType::BOOLEAN,
+            ];
             // O Doctrine DBAL executa o UPDATE de forma totalmente segura
-            $connection->update('customers', $data, $criteria);
-
+            $connection->update('customers', $data, $criteria, $types);
             return $this->json($response, ['status' => true, 'msg' => 'Cliente atualizado com sucesso!', 'id' => (int) $id], 200);
         } catch (\Exception $e) {
             return $this->json($response, ['status' => false, 'msg' => 'Erro ao atualizar: ' . $e->getMessage(), 'id' => 0], 500);
@@ -139,46 +126,36 @@ final class Customer extends Base
     {
         $form = $request->getParsedBody();
         $id   = $form['id'] ?? null;
-
         // Validação estrita do ID seguindo o exemplo do professor
         if (is_null($id) || $id === '') {
             return $this->json($response, ['status' => false, 'msg' => 'Informe o código do cliente', 'id' => 0], 403);
         }
-
         try {
             // Captura a conexão do Doctrine DBAL
             $db = \App\Database\DB::connection();
-
             // Valores que serão atualizados no banco
             $fieldsAndValues = [
                 'excluido'      => true,
                 'atualizado_em' => (new DateTime())->format('Y-m-d H:i:s')
             ];
-
             // Condição WHERE para aplicar a alteração apenas no ID correto
             $whereCondition = ['id' => $id];
-
             // Executa o UPDATE de forma segura através do Doctrine
             $IsUpdated = $db->update('customers', $fieldsAndValues, $whereCondition);
-
             if (!$IsUpdated) {
                 return $this->json($response, ['status' => false, 'msg' => 'Restrição: O cliente não pôde ser atualizado.', 'id' => $id], 403);
             }
-
             return $this->json($response, ['status' => true, 'msg' => 'Cliente removido com sucesso!', 'id' => (int) $id]);
         } catch (Exception $e) {
             return $this->json($response, ['status' => false, 'msg' => 'Restrição: ' . $e->getMessage(), 'id' => 0], 500);
         }
     }
-
     public function listingdata($request, $response)
     {
         $form = $request->getParsedBody();
-
         $term   = $form['search']['value'] ?? null;
         $start  = (int) ($form['start']  ?? 0);
         $length = (int) ($form['length'] ?? 10);
-
         # Whitelist de colunas — proteção contra SQL injection no orderBy
         $columns = [
             0 => 'id',
@@ -188,23 +165,19 @@ final class Customer extends Base
             4 => 'ativo',
             5 => 'criado_em',
         ];
-
         $posField = (isset($form['order'][0]['column']) && isset($columns[(int) $form['order'][0]['column']]))
             ? (int) $form['order'][0]['column']
             : 0;
-
         # Validação da direção evita SQL injection no ORDER BY
         $orderType  = strtoupper($form['order'][0]['dir'] ?? 'DESC');
         $orderType  = in_array($orderType, ['ASC', 'DESC'], true) ? $orderType : 'DESC';
         $orderField = $columns[$posField];
-
         try {
             # Total geral DataTables: recordsTotal (adicionado o filtro excluido = false da sua regra original)
             $totalRecords = (int) \App\Database\DB::select('COUNT(*)')
                 ->from('customers')
                 ->where('excluido = false')
                 ->fetchOne();
-
             # Query principal montando a estrutura fluída do Doctrine baseada no exemplo do professor
             $query = \App\Database\DB::select("
             id,
@@ -213,14 +186,12 @@ final class Customer extends Base
             tipo,
             ativo,
             to_char(criado_em, 'DD/MM/YYYY HH24:MI:SS') AS criado_em
-        ")
+            ")
                 ->from('customers')
                 ->where('excluido = false');
-
             # Se houver termo de busca, aplica os filtros de OR de forma encadeada
             if (!is_null($term) && $term !== '') {
                 $query->setParameter('term', '%' . $term . '%');
-
                 $query->andWhere(
                     $query->expr()->orX(
                         'CAST(id AS TEXT) ILIKE :term',
@@ -230,19 +201,16 @@ final class Customer extends Base
                     )
                 );
             }
-
             # Total com filtro aplicado — clona o query e troca o SELECT por COUNT
             $filteredRecords = (int) (clone $query)
                 ->select('COUNT(*)')
                 ->fetchOne();
-
             # Resultados paginados e ordenados usando os métodos do Doctrine
             $customers = $query
                 ->orderBy($orderField, $orderType)
                 ->setFirstResult($start)
                 ->setMaxResults($length)
                 ->fetchAllAssociative();
-
             # Formatação para o DataTables mantendo seus campos originais (nome, tipo, ativo)
             $rows = [];
             foreach ($customers as $key => $value) {
@@ -259,7 +227,6 @@ final class Customer extends Base
                 </td>",
                 ];
             }
-
             return $this->json($response, [
                 'recordsTotal'    => $totalRecords,
                 'recordsFiltered' => $filteredRecords,
@@ -275,25 +242,20 @@ final class Customer extends Base
     }
 
     // ── Contacts ──────────────────────────────────────────────────────────────
-
     public function contactInsert($request, $response, $args)
     {
         $id   = $args['id'] ?? null;
         $form = $request->getParsedBody();
-
         if (is_null($id) || $id === '') {
             return $this->json($response, ['status' => false, 'msg' => 'ID do cliente não informado', 'id' => 0], 403);
         }
-
         $contato = trim($form['c-contato'] ?? '');
         if ($contato === '') {
             return $this->json($response, ['status' => false, 'msg' => 'O campo contato é obrigatório', 'id' => 0], 400);
         }
-
         try {
             $db = \App\Database\DB::connection();
             $isPrincipal = (bool) filter_var($form['c-principal'] ?? false, FILTER_VALIDATE_BOOLEAN);
-
             // Se for o contato principal, desmarca os outros usando o update nativo do Doctrine
             if ($isPrincipal) {
                 $db->update(
@@ -302,7 +264,6 @@ final class Customer extends Base
                     ['entidade' => 'customer', 'entidade_id' => $id] // Cláusula WHERE
                 );
             }
-
             // Insere o novo contato usando o insert nativo do Doctrine
             $db->insert('contacts', [
                 'entidade'    => 'customer',
@@ -313,9 +274,7 @@ final class Customer extends Base
                 'principal'   => $isPrincipal ? 1 : 0,
                 'criado_em'   => (new \DateTime())->format('Y-m-d H:i:s'),
             ]);
-
             $contactId = (int) $db->lastInsertId();
-
             return $this->json($response, [
                 'status' => true,
                 'msg'    => 'Contato adicionado!',
@@ -329,20 +288,16 @@ final class Customer extends Base
             ], 500);
         }
     }
-
     public function contactListingData($request, $response, $args)
     {
         $id = $args['id'] ?? null; // ID do cliente vindo da rota
-
         // Validação estrita do ID conforme o padrão do professor
         if (is_null($id) || $id === '') {
             return $this->json($response, ['status' => false, 'msg' => 'ID do cliente não informado'], 403);
         }
-
         try {
             // Captura a conexão do Doctrine no padrão do professor
             $db = \App\Database\DB::connection();
-
             // Busca trazendo apenas os dados necessários, ordenando pelo principal primeiro
             $contacts = $db->executeQuery(
                 "SELECT 
@@ -358,7 +313,6 @@ final class Customer extends Base
              ORDER BY principal DESC, id DESC",
                 ['cliente_id' => $id, 'entidade' => 'customer']
             )->fetchAllAssociative();
-
             // Formata os dados limpando valores nulos para strings vazias e tratando booleano
             $formattedData = [];
             foreach ($contacts as $item) {
@@ -385,29 +339,23 @@ final class Customer extends Base
     public function contactDelete($request, $response, $args)
     {
         $contactId = $args['contactId'] ?? null;
-
         // Validação estrita do ID conforme o padrão do professor
         if (is_null($contactId) || $contactId === '') {
             return $this->json($response, ['status' => false, 'msg' => 'ID do contato não informado', 'id' => 0], 403);
         }
-
         try {
             // Captura a conexão do Doctrine no padrão estabelecido
             $db = \App\Database\DB::connection();
-
             // Define os critérios do WHERE para garantir que exclua o ID correto e da entidade certa
             $whereCondition = [
                 'id'       => $contactId,
                 'entidade' => 'customer'
             ];
-
             // Executa o DELETE físico no banco de dados através do Doctrine
             $IsDeleted = $db->delete('contacts', $whereCondition);
-
             if (!$IsDeleted) {
                 return $this->json($response, ['status' => false, 'msg' => 'Restrição: O contato não pôde ser removido.', 'id' => $contactId], 403);
             }
-
             return $this->json($response, ['status' => true, 'msg' => 'Contato removido!', 'id' => (int) $contactId]);
         } catch (Exception $e) {
             return $this->json($response, ['status' => false, 'msg' => 'Restrição: ' . $e->getMessage(), 'id' => 0], 500);
@@ -415,24 +363,19 @@ final class Customer extends Base
     }
 
     // ── Addresses ─────────────────────────────────────────────────────────────
-
     public function addressInsert($request, $response, $args)
     {
         $id   = $args['id'] ?? null;
         $form = $request->getParsedBody();
-
         if (!$id) {
             return $this->json($response, ['status' => false, 'msg' => 'ID do cliente não informado', 'id' => 0], 403);
         }
-
         $logradouro = trim($form['a-logradouro'] ?? '');
         if ($logradouro === '') {
             return $this->json($response, ['status' => false, 'msg' => 'O campo logradouro é obrigatório', 'id' => 0], 400);
         }
-
         try {
             $connection = \App\Database\DB::connection();
-
             // 2. Mapeia os dados para a inserção limpa
             $data = [
                 'entidade'    => 'customer',
@@ -447,32 +390,25 @@ final class Customer extends Base
                 'estado'      => $form['a-estado']      ?? null,
                 'principal'   => isset($form['principal']) ? $form['principal'] : 'false',
             ];
-
             // 3. Insere o registro na tabela de forma segura
             $connection->insert('addresses', $data);
-
             // 4. Captura o ID gerado diretamente da instância da conexão ativa
             $addressId = (int) $connection->lastInsertId('addresses_id_seq');
-
             return $this->json($response, ['status' => true, 'msg' => 'Endereço adicionado!', 'id' => $addressId], 201);
         } catch (\Exception $e) {
             return $this->json($response, ['status' => false, 'msg' => 'Erro: ' . $e->getMessage(), 'id' => 0], 500);
         }
     }
-
     public function addressListingData($request, $response, $args)
     {
         $id = $args['id'] ?? null; // ID do cliente vindo da rota
-
         // Validação estrita do ID conforme o padrão do professor
         if (is_null($id) || $id === '') {
             return $this->json($response, ['status' => false, 'msg' => 'ID do cliente não informado'], 403);
         }
-
         try {
             // Captura a conexão do Doctrine no padrão do professor
             $db = \App\Database\DB::connection();
-
             // Busca trazendo apenas os dados necessários, ordenando pelo principal primeiro
             $addresses = $db->executeQuery(
                 "SELECT 
@@ -491,7 +427,6 @@ final class Customer extends Base
              ORDER BY principal DESC, id DESC",
                 ['cliente_id' => $id, 'entidade' => 'customer']
             )->fetchAllAssociative();
-
             // Formata os dados limpando valores nulos para strings vazias e tratando booleano
             $formattedData = [];
             foreach ($addresses as $item) {
@@ -506,7 +441,6 @@ final class Customer extends Base
                     'principal'  => (bool) filter_var($item['principal'] ?? false, FILTER_VALIDATE_BOOLEAN),
                 ];
             }
-
             // Retorna APENAS o status e o array de dados brutos
             return $this->json($response, [
                 'status' => true,
@@ -519,7 +453,6 @@ final class Customer extends Base
             ], 500);
         }
     }
-
     public function addressDelete($request, $response, $args)
     {
         $form = $request->getParsedBody();

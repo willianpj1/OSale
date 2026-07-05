@@ -15,7 +15,6 @@ final class Register extends Base
             ->withHeader('Content-Type', 'text/html')
             ->withStatus(200);
     }
-
     public function store($request, $response)
     {
         $form      = $request->getParsedBody();
@@ -25,7 +24,6 @@ final class Register extends Base
         $cpf       = preg_replace('/\D/', '', $form['cpf'] ?? '');
         $rg        = preg_replace('/\D/', '', $form['rg']  ?? '');
         $senha     = $form['senha'] ?? '';
-
         if (!$nome || !$sobrenome || !$email || !$cpf || !$rg || !$senha) {
             if (ob_get_length()) ob_clean();
             return $this->json($response, [
@@ -33,7 +31,6 @@ final class Register extends Base
                 'message' => 'Preencha todos os campos.',
             ], 400);
         }
-
         if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
             if (ob_get_length()) ob_clean();
             return $this->json($response, [
@@ -41,15 +38,12 @@ final class Register extends Base
                 'message' => 'Ensira um E-mail válido. Ex: usuario@gmail.com',
             ], 400);
         }
-
         try {
             $conn = \App\Database\DB::connection();
-
             $existeEmail = \App\Database\DB::select('id')
                 ->from('users')
                 ->where("email = " . $conn->quote($email))
                 ->fetchOne();
-
             if ($existeEmail) {
                 if (ob_get_length()) ob_clean();
                 return $this->json($response, [
@@ -57,13 +51,11 @@ final class Register extends Base
                     'message' => 'Este e-mail já está cadastrado.',
                 ], 409);
             }
-
             // Ajustado para funcionar com o nosso novo DB.php em PDO Puro
             $existeCpf = \App\Database\DB::select('id')
                 ->from('users')
                 ->where("cpf_cnpj = " . $conn->quote($cpf))
                 ->fetchOne();
-
             if ($existeCpf) {
                 if (ob_get_length()) ob_clean();
                 return $this->json($response, [
@@ -78,20 +70,18 @@ final class Register extends Base
                 'message' => 'Erro ao verificar dados: ' . $e->getMessage(),
             ], 500);
         }
-
         try {
             if (ob_get_length()) ob_clean();
-
             $IsInserted = \App\Database\DB::connection()->insert('users', [
-                'nome' => $nome,
+                'nome'      => $nome,
                 'sobrenome' => $sobrenome,
-                'email' => $email,
-                'tipo' => 'USER',
-                'cpf_cnpj' => $cpf,
-                'rg_ie' => $rg,
-                'senha' => password_hash($senha, PASSWORD_DEFAULT),
-                'ativo' => 'true',
-                'excluido' => 'false'
+                'email'     => $email,
+                'tipo'      => 'USER',
+                'cpf_cnpj'  => $cpf,
+                'rg_ie'     => $rg,
+                'senha'     => password_hash($senha, PASSWORD_DEFAULT),
+                'ativo'     => 'true',
+                'excluido'  => 'false'
             ]);
             #Caso de erro ao inserir matamos o processo arqui.
             if (!$IsInserted) {
@@ -99,7 +89,6 @@ final class Register extends Base
             }
             #Captura o ultimo ID cadastrado na tabela de usuario
             $id = \App\Database\DB::connection()->lastInsertId();
-
             return $this->json($response, [
                 'status'  => true,
                 'msg' => 'Conta criada com sucesso!',

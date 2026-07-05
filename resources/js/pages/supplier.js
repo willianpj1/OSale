@@ -8,7 +8,7 @@ const Id = document.getElementById('id');
 const form = document.getElementById('form');
 const Insert = document.getElementById('insert');
 const Cnpj = document.getElementById('cnpj');
-const Adresse = document.getElementById('btn-add-address');
+const Address = document.getElementById('btn-add-address');
 const Contact = document.getElementById('btn-add-contact');
 const btnSaveAddress = document.getElementById('btn-save-address');
 const btnSaveContact = document.getElementById('btn-save-contact');
@@ -19,10 +19,8 @@ const Modalcleanadresses = Modaladresse ? new Modal(Modaladresse) : null;
 const Modalcleancontact = Modalcontact ? new Modal(Modalcontact) : null;
 const toast = (icon, title, text, cb) => Swal.fire({ icon, title, text, timer: 2000, timerProgressBar: true }).then(cb);
 
-
-// ── Salvar cliente ────────────────────────────────────────────────────────────
-async function applyChanges() {
-    $('button').prop('disabled', true);
+//---------------------------- Functions -----------------------------------------------
+async function saveSupplier() {
 
     const IsValid = Validate.SetForm('form').Validate();
     if (!IsValid) {
@@ -33,16 +31,13 @@ async function applyChanges() {
             timer: 3000,
             timerProgressBar: true
         });
-        $('button').prop('disabled', false);
-        return;
+        return false;
     }
-
     const requests = new Requests();
     try {
         const response = Action.value !== 'e'
             ? await requests.setForm('form').post('/fornecedor/inserir')
             : await requests.setForm('form').post('/fornecedor/atualizar');
-
         if (!response.status) {
             Swal.fire({
                 icon: 'error',
@@ -51,34 +46,15 @@ async function applyChanges() {
                 timer: 3000,
                 timerProgressBar: true
             });
-            return;
+            return false;
         }
-
-        if (Action.value === 'e') {
-            Swal.fire({
-                icon: 'success',
-                title: 'Sucesso',
-                text: response.msg,
-                timer: 3000,
-                timerProgressBar: true
-            })
-                .then(() => { window.location.href = '/fornecedor/lista'; });
-            return;
+        // Se ainda não era edição, promove para "editando" e atualiza a URL
+        if (Action.value !== 'e') {
+            Action.value = 'e';
+            Id.value = response.id;
+            window.history.pushState({}, '', `${window.location.origin}/fornecedor/detalhes/${response.id}`);
         }
-
-        Action.value = 'e';
-        Id.value = response.id;
-        window.history.pushState({}, '', `${window.location.origin}/fornecedor/detalhes/${response.id}`);
-
-        Swal.fire({
-            icon: 'success',
-            title: 'Sucesso',
-            text: response.msg,
-            timer: 3000,
-            timerProgressBar: true
-        })
-            .then(() => { window.location.reload(); });
-
+        return true;
     } catch (error) {
         Swal.fire({
             icon: 'error',
@@ -87,11 +63,36 @@ async function applyChanges() {
             timer: 3000,
             timerProgressBar: true
         });
-    } finally {
-        $('button').prop('disabled', false);
+        return false;
     }
 }
+async function applyChanges() {
 
+    $('button').prop('disabled', true);
+    const wasEditing = Action.value === 'e';
+    const success = await saveSupplier();
+    if (success) {
+        if (wasEditing) {
+            Swal.fire({
+                icon: 'success',
+                title: 'Sucesso',
+                text: 'Fornecedor atualizado com sucesso!',
+                timer: 3000,
+                timerProgressBar: true
+            }).then(() => { window.location.href = '/fornecedor/lista'; });
+        } else {
+            Swal.fire({
+                icon: 'success',
+                title: 'Sucesso',
+                text: 'Fornecedor cadastrado com sucesso!',
+                timer: 3000,
+                timerProgressBar: true
+            })
+                .then(() => { window.location.reload(); });
+        }
+    }
+    $('button').prop('disabled', false);
+}
 async function listAddresses() {
 
     const requests = new Requests();
@@ -108,15 +109,12 @@ async function listAddresses() {
             });
             return;
         }
-
         const addressesContainer = document.getElementById('table-addresses');
-
         // Verifica se a lista veio vazia
         if (!response.data || response.data.length === 0) {
             addressesContainer.innerHTML = '<tr><td colspan="7" class="text-center text-muted">Nenhum endereço cadastrado.</td></tr>';
             return;
         }
-
         let HTML = '';
         response.data.forEach(item => {
             HTML += `
@@ -133,9 +131,7 @@ async function listAddresses() {
                 </tr>           
             `;
         });
-
         addressesContainer.innerHTML = HTML;
-
     } catch (error) {
         Swal.fire({
             icon: 'error',
@@ -146,8 +142,8 @@ async function listAddresses() {
         });
     }
 }
-
 async function deleteAddress(addressId) {
+
     document.getElementById('id_endereco').value = addressId;
     document.getElementById('address-' + addressId)?.remove(); // Remove a linha da tabela imediatamente para feedback visual
     const requests = new Requests();
@@ -172,7 +168,6 @@ async function deleteAddress(addressId) {
         });
     }
 }
-
 async function listContact() {
     const requests = new Requests();
     try {
@@ -224,8 +219,8 @@ async function listContact() {
         });
     }
 }
-
 async function deleteContact(contactId) {
+
     document.getElementById('id_contato').value = contactId;
     document.getElementById('contact-' + contactId)?.remove(); // Remove a linha da tabela imediatamente para feedback visual
     const requests = new Requests();
@@ -250,42 +245,38 @@ async function deleteContact(contactId) {
         });
     }
 }
-
+//---------------------------- Buscadores -----------------------------------------------
 Cnpj.addEventListener('blur', async () => {
+
     if (Cnpj.value.trim() === '' || Cnpj.value.replace(/\D/g, '').length < 14) {
         return;
     }
     const findCompany = new FindCompany({ cnpjField: 'cnpj', cnaeValue: 'cnae', cnaeSearch: 'codigoAtividadeEconomica' })
-    const response = await findCompany.FindCompanyData();    
+    const response = await findCompany.FindCompanyData();
     const Nome = response?.estabelecimento?.nome_fantasia ?? response?.razao_social;
-
     document.getElementById('nome').value = Nome;
 });
-
 Cep.addEventListener('blur', async (e) => {
+
     const cep = e.target.value.replace(/\D/g, '');
     if (cep.length !== 8) return;
-
     try {
         const res = await fetch(`https://viacep.com.br/ws/${cep}/json/`);
         if (!res.ok) return;
-
         const data = await res.json();
         if (data.erro) return toast('warning', 'Atenção', 'CEP não encontrado.');
-
         // Preenche os campos automaticamente usando os IDs existentes
         document.getElementById('a-logradouro').value = data.logradouro ?? '';
         document.getElementById('a-bairro').value = data.bairro ?? '';
         document.getElementById('a-cidade').value = data.localidade ?? '';
         document.getElementById('a-estado').value = data.uf ?? '';
-
         // Foca no campo número automaticamente para agilizar a digitação
         document.getElementById('a-numero')?.focus();
     } catch (err) {
         console.error("Erro CEP:", err);
     }
 });
-
+//---------------------------- DOMContentLoaded -----------------------------------------------
 document.addEventListener('DOMContentLoaded', async () => {
 
     // 1. Máscara dinâmica para CNPJ no mesmo field
@@ -297,13 +288,11 @@ document.addEventListener('DOMContentLoaded', async () => {
             clearIncomplete: false
         }).mask(cpfCnpjInput);
     }
-
     // 2. Máscara de CEP no modal de endereços
     const cepInput = document.getElementById('a-cep');
     if (cepInput) {
         Inputmask('99999-999').mask(cepInput);
     }
-
     // 3. Máscara dinâmica para Celular/Telefone no modal de contatos
     const telInput = document.getElementById('c-contato');
     if (telInput) {
@@ -315,19 +304,35 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (Action.value === 'e') await listAddresses();
     if (Action.value === 'e') await listContact();
 });
+//---------------------------- Endereços/Contatos -----------------------------------------------
+Address.addEventListener('click', async () => {
 
-Adresse.addEventListener('click', () => {
+    if (Action.value !== 'e') {
+        $('button').prop('disabled', true);
+        const success = await saveSupplier();
+        $('button').prop('disabled', false);
+        if (!success) return; // não abre o modal se o salvamento falhou
+        toast('success', 'Fornecedor salvo', 'Agora você pode adicionar o endereço.');
+    }
     Modalcleanadresses?.show();
 });
-Contact.addEventListener('click', () => {
+Contact.addEventListener('click', async () => {
+
+    if (Action.value !== 'e') {
+        $('button').prop('disabled', true);
+        const success = await saveSupplier();
+        $('button').prop('disabled', false);
+        if (!success) return;
+        toast('success', 'Fornecedor salvo', 'Agora você pode adicionar o contato.');
+    }
     Modalcleancontact?.show();
 });
-
+//---------------------------- Botões de salvamento -----------------------------------------------
 btnSaveAddress.addEventListener('click', async () => {
+
     const requests = new Requests();
     try {
         const response = await requests.setForm('form').post(`/fornecedor/${Id.value}/endereco`);
-
         if (!response.status) {
             throw new Error(response.msg);
         }
@@ -340,12 +345,11 @@ btnSaveAddress.addEventListener('click', async () => {
         toast('error', 'Erro', e.message);
     }
 });
-
 btnSaveContact.addEventListener('click', async () => {
+
     const requests = new Requests();
     try {
         const response = await requests.setForm('form').post(`/fornecedor/${Id.value}/contato`);
-
         if (!response.status) {
             throw new Error(response.msg);
         }
@@ -358,8 +362,7 @@ btnSaveContact.addEventListener('click', async () => {
         toast('error', 'Erro', e.message);
     }
 });
-
+//---------------------------- Eventos ao click -----------------------------------------------
 Insert.addEventListener('click', applyChanges);
-
 window.deleteAddress = deleteAddress;
 window.deleteContact = deleteContact;

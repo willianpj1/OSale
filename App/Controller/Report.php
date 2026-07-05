@@ -41,34 +41,25 @@ final class Report extends Base
              HAVING SUM(si.subtotal) > 0
              ORDER BY total DESC"
             );
-
             $totalGeral = array_sum(
                 array_map(
                     static fn($r) => (float) $r['total'],
                     $rows
                 )
             );
-
             $acumulado = 0.0;
-
             $contadores = [
                 'A' => 0,
                 'B' => 0,
                 'C' => 0,
             ];
-
             $data = [];
-
             foreach ($rows as $row) {
-
                 $valor = (float) $row['total'];
-
                 $percentual = $totalGeral > 0
                     ? ($valor / $totalGeral) * 100
                     : 0.0;
-
                 $acumulado += $percentual;
-
                 $classe = match (true) {
                     $acumulado <= 80.0 => 'A',
                     $acumulado <= 95.0 => 'B',
@@ -79,9 +70,7 @@ final class Report extends Base
                 if ($contadores[$classe] >= 10) {
                     continue;
                 }
-
                 $contadores[$classe]++;
-
                 $data[] = [
                     'nome'       => $row['nome'],
                     'tipo'       => $row['tipo'],
@@ -90,7 +79,6 @@ final class Report extends Base
                     'acumulado'  => round(min($acumulado, 100), 2),
                     'classe'     => $classe,
                 ];
-
                 // Se já temos 10 de cada classe, interrompe o loop
                 if (
                     $contadores['A'] >= 10 &&
@@ -100,7 +88,6 @@ final class Report extends Base
                     break;
                 }
             }
-
             return $this->json($response, [
                 'status' => true,
                 'total'  => round($totalGeral, 2),
@@ -119,27 +106,23 @@ final class Report extends Base
     public function resumo($request, $response)
     {
         try {
-
             $vendas = (int) DB::queryOne(
                 "SELECT COUNT(*) AS total
              FROM sales
              WHERE excluido = false"
             )['total'];
-
             $ordensAtivas = (int) DB::queryOne(
                 "SELECT COUNT(*) AS total
              FROM service_orders
              WHERE excluido = false
                AND status <> 'cancelada'"
             )['total'];
-
             $ordensCanceladas = (int) DB::queryOne(
                 "SELECT COUNT(*) AS total
              FROM service_orders
              WHERE excluido = false
                AND status = 'cancelada'"
             )['total'];
-
             return $this->json($response, [
                 'status' => true,
                 'data' => [
@@ -155,5 +138,9 @@ final class Report extends Base
                 'msg'    => $e->getMessage(),
             ], 500);
         }
+    }
+    public function reportPrint($request, $response)
+    {
+        
     }
 }

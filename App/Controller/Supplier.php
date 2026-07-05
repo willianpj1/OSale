@@ -20,7 +20,6 @@ final class Supplier extends Base
             ->withHeader('Content-Type', 'text/html')
             ->withStatus(200);
     }
-
     public function details($request, $response, $args)
     {
         $id        = $args['id'] ?? null;
@@ -68,15 +67,14 @@ final class Supplier extends Base
             ->withHeader('Content-Type', 'text/html')
             ->withStatus(200);
     }
-
     public function insert($request, $response)
     {
         $form = $request->getParsedBody();
         $FieldsAndValues = [
-            'nome' => $form['nome'],
-            'cnpj' => $form['cnpj'] ?? '',
-            'observacoes' => $form['observacoes'] ?? '',
-            'ativo' => ($form['ativo'] === 'true') ? true : false
+            'nome'          => $form['nome'],
+            'cnpj'          => $form['cnpj'] ?? '',
+            'observacoes'   => $form['observacoes'] ?? '',
+            'ativo'         => true,
         ];
         try {
             $IsInserted = \App\Database\DB::connection()->insert('suppliers', $FieldsAndValues);
@@ -90,7 +88,6 @@ final class Supplier extends Base
             return $this->json($response, ['status' => false, 'msg' => 'Restrição: ' . $e->getMessage(), 'id' => 0], 500);
         }
     }
-
     public function update($request, $response)
     {
         $form = $request->getParsedBody();
@@ -123,15 +120,19 @@ final class Supplier extends Base
                 'excluido' => false, // Garante que não altera registros deletados logicamente
             ];
 
+            // Tipos explícitos evitam o erro de binding de boolean (SQLSTATE[22P02]) no PostgreSQL
+            $types = [
+                'ativo'    => \Doctrine\DBAL\ParameterType::BOOLEAN,
+                'excluido' => \Doctrine\DBAL\ParameterType::BOOLEAN,
+            ];
             // O Doctrine DBAL executa o UPDATE de forma totalmente segura
-            $connection->update('suppliers', $data, $criteria);
+            $connection->update('suppliers', $data, $criteria, $types);
 
             return $this->json($response, ['status' => true, 'msg' => 'Fornecedor atualizado com sucesso!', 'id' => (int) $id], 200);
         } catch (\Exception $e) {
             return $this->json($response, ['status' => false, 'msg' => 'Erro ao atualizar: ' . $e->getMessage(), 'id' => 0], 500);
         }
     }
-
     public function delete($request, $response)
     {
         $form = $request->getParsedBody();
@@ -167,8 +168,6 @@ final class Supplier extends Base
             return $this->json($response, ['status' => false, 'msg' => 'Restrição: ' . $e->getMessage(), 'id' => 0], 500);
         }
     }
-
-
     public function listingdata($request, $response)
     {
         $form   = $request->getParsedBody();
@@ -254,107 +253,6 @@ final class Supplier extends Base
             ], 500);
         }
     }
-
-    /*{
-        $form = $request->getParsedBody();
-
-        $term   = $form['search']['value'] ?? null;
-        $start  = (int) ($form['start']  ?? 0);
-        $length = (int) ($form['length'] ?? 10);
-
-        # Whitelist de colunas — proteção contra SQL injection no orderBy
-        $columns = [
-            0 => 'id',
-            1 => 'nome',
-            2 => 'cnpj',
-            4 => 'ativo',
-            5 => 'criado_em',
-        ];
-
-        $posField = (isset($form['order'][0]['column']) && isset($columns[(int) $form['order'][0]['column']]))
-            ? (int) $form['order'][0]['column']
-            : 0;
-
-        # Validação da direção evita SQL injection no ORDER BY
-        $orderType  = strtoupper($form['order'][0]['dir'] ?? 'DESC');
-        $orderType  = in_array($orderType, ['ASC', 'DESC'], true) ? $orderType : 'DESC';
-        $orderField = $columns[$posField];
-
-        try {
-            # Total geral DataTables: recordsTotal (adicionado o filtro excluido = false da sua regra original)
-            $totalRecords = (int) \App\Database\DB::select('COUNT(*)')
-                ->from('suppliers')
-                ->where('excluido = false')
-                ->fetchOne();
-
-            # Query principal montando a estrutura fluída do Doctrine baseada no exemplo do professor
-            $query = \App\Database\DB::select("
-            id,
-            nome,
-            cnpj,
-            tipo,
-            ativo,
-            to_char(criado_em, 'DD/MM/YYYY HH24:MI:SS') AS criado_em
-        ")
-                ->from('suppliers')
-                ->where('excluido = false');
-
-            # Se houver termo de busca, aplica os filtros de OR de forma encadeada
-            if (!is_null($term) && $term !== '') {
-                $query->setParameter('term', '%' . $term . '%');
-
-                $query->andWhere(
-                    $query->expr()->orX(
-                        'CAST(id AS TEXT) ILIKE :term',
-                        'nome ILIKE :term',
-                        'cnpj ILIKE :term',
-                        "TO_CHAR(criado_em, 'DD/MM/YYYY HH24:MI:SS') ILIKE :term"
-                    )
-                );
-            }
-
-            # Total com filtro aplicado — clona o query e troca o SELECT por COUNT
-            $filteredRecords = (int) (clone $query)
-                ->select('COUNT(*)')
-                ->fetchOne();
-
-            # Resultados paginados e ordenados usando os métodos do Doctrine
-            $customers = $query
-                ->orderBy($orderField, $orderType)
-                ->setFirstResult($start)
-                ->setMaxResults($length)
-                ->fetchAllAssociative();
-
-            # Formatação para o DataTables mantendo seus campos originais (nome, tipo, ativo)
-            $rows = [];
-            foreach ($customers as $key => $value) {
-                $rows[$key] = [
-                    $value['id'],
-                    $value['nome'],
-                    $value['cnpj'] ?? '',                    
-                    ($value['ativo'] === true || $value['ativo'] == 1) ? 'Ativo' : 'Inativo',
-                    $value['criado_em'],
-                    "<td>
-                    <a class='btn btn-sm btn-warning' href='/fornecedor/detalhes/" . $value['id'] . "'> <i class='bi bi-pencil-square'></i> Editar</a>
-                    <button type='button' class='btn btn-sm btn-danger' onclick='ShowModal(" . $value['id'] . ");'> <i class='bi bi-trash'></i> Excluir</button>
-                </td>",
-                ];
-            }
-
-            return $this->json($response, [
-                'recordsTotal'    => $totalRecords,
-                'recordsFiltered' => $filteredRecords,
-                'data'            => $rows,
-            ], 200);
-        } catch (Exception $e) {
-            return $this->json($response, [
-                'status' => false,
-                'msg'    => 'Restrição: ' . $e->getMessage(),
-                'id'     => 0,
-            ], 500);
-        }
-    }*/
-
     // ── Contacts ──────────────────────────────────────────────────────────────
 
     public function contactInsert($request, $response, $args)
@@ -410,7 +308,6 @@ final class Supplier extends Base
             ], 500);
         }
     }
-
     public function contactListingData($request, $response, $args)
     {
         $id = $args['id'] ?? null; // ID do fornecedor vindo da rota
@@ -540,7 +437,6 @@ final class Supplier extends Base
             return $this->json($response, ['status' => false, 'msg' => 'Erro: ' . $e->getMessage(), 'id' => 0], 500);
         }
     }
-
     public function addressListingData($request, $response, $args)
     {
         $id = $args['id'] ?? null; // ID do fornecedor vindo da rota
@@ -600,7 +496,6 @@ final class Supplier extends Base
             ], 500);
         }
     }
-
     public function addressDelete($request, $response, $args)
     {
         $form = $request->getParsedBody();
@@ -618,4 +513,4 @@ final class Supplier extends Base
             return $this->json($response, ['status' => false, 'msg' => 'Restrição: ' . $e->getMessage(), 'id' => 0], 500);
         }
     }
-} 
+}
