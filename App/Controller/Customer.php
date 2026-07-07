@@ -121,7 +121,6 @@ final class Customer extends Base
             return $this->json($response, ['status' => false, 'msg' => 'Erro ao atualizar: ' . $e->getMessage(), 'id' => 0], 500);
         }
     }
-
     public function delete($request, $response)
     {
         $form = $request->getParsedBody();

@@ -239,7 +239,7 @@ final class ServiceOrder extends Base
         $statusLabels = [
             'aberta'          => '<span class="badge bg-primary">Aberta</span>',
             'em_andamento'    => '<span class="badge bg-warning text-dark">Em andamento</span>',
-            'aguardando_peca' => '<span class="badge bg-secondary">Aguardando peça</span>',
+            'orcamento'       => '<span class="badge bg-secondary">Orçamento</span>',
             'concluida'       => '<span class="badge bg-success">Concluída</span>',
             'cancelada'       => '<span class="badge bg-danger">Cancelada</span>',
         ];
@@ -285,16 +285,23 @@ final class ServiceOrder extends Base
                 $v['tecnico_nome'] ? $v['tecnico_nome'] . ' ' . $v['tecnico_sobrenome'] : '—',
                 'R$ ' . number_format((float) $v['valor_total'], 2, ',', '.'),
                 (new DateTime($v['aberto_em']))->format('d/m/Y H:i:s'),
-                in_array($v['status'], ['concluida', 'cancelada'])
+                $v['status'] === 'orcamento'
                     ? "<td>
                         <a class='btn btn-sm btn-warning' href='/os/detalhes/{$v['id']}'><i class='bi bi-eye'></i> Visualizar</a>
                         <a class='btn btn-sm btn-outline-info' href='/relatorio/os/{$v['id']}'><i class='bi bi-printer-fill'></i> Imprimir</a>
-                    </td>"
-                    : "<td>
-                        <a class='btn btn-sm btn-warning' href='/os/detalhes/{$v['id']}'><i class='bi bi-pencil-square'></i> Editar</a>
                         <button type='button' class='btn btn-sm btn-danger' onclick='ShowModal({$v['id']});'><i class='bi bi-trash'></i> Excluir</button>
-                    </td>",
+                    </td>"
+                    : (in_array($v['status'], ['em_andamento', 'concluida', 'cancelada'])
+                        ? "<td>
+                            <a class='btn btn-sm btn-warning' href='/os/detalhes/{$v['id']}'><i class='bi bi-eye'></i> Visualizar</a>
+                            <a class='btn btn-sm btn-outline-info' href='/relatorio/os/{$v['id']}'><i class='bi bi-printer-fill'></i> Imprimir</a>
+                        </td>"
+                        : "<td>
+                            <a class='btn btn-sm btn-warning' href='/os/detalhes/{$v['id']}'><i class='bi bi-pencil-square'></i> Editar</a>
+                            <button type='button' class='btn btn-sm btn-danger' onclick='ShowModal({$v['id']});'><i class='bi bi-trash'></i> Excluir</button>
+                        </td>")
             ], $orders);
+
 
             return $this->json($response, [
                 'recordsTotal'    => $totalRecords,

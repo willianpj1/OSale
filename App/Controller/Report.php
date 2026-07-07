@@ -102,9 +102,6 @@ final class Report extends Base
             ], 500);
         }
     }
-    /**
-     * Contadores simples de Vendas x Ordens de Serviço.
-     */
     public function resumo($request, $response)
     {
         try {

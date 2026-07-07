@@ -32,7 +32,7 @@
                             <span class="ms-auto badge
                         {% if order.status == 'aberta' %}bg-primary
                         {% elseif order.status == 'em_andamento' %}bg-warning text-dark
-                        {% elseif order.status == 'aguardando_peca' %}bg-secondary
+                        {% elseif order.status == 'orcamento' %}bg-secondary
                         {% elseif order.status == 'concluida' %}bg-success
                         {% else %}bg-danger{% endif %}">
                                 {{ order.status | replace({'_': ' '}) | capitalize }}
@@ -98,8 +98,8 @@
                                             <option value="em_andamento" {{ order.status=='em_andamento' ? 'selected'
                                                 : '' }}>Em
                                                 andamento</option>
-                                            <option value="aguardando_peca" {{ order.status=='aguardando_peca'
-                                                ? 'selected' : '' }}>Aguardando peça</option>
+                                            <option value="orcamento" {{ order.status=='orcamento'
+                                                ? 'selected' : '' }}>Orçamento</option>
                                             <option value="concluida" {{ order.status=='concluida' ? 'selected' : '' }}>
                                                 Concluída</option>
                                             <option value="cancelada" {{ order.status=='cancelada' ? 'selected' : '' }}>
