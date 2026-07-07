@@ -144,3 +144,5 @@ public/hot
 /docker/traefik/certs
 /docker/traefik/certs
 *.pem
+/public/assets
+/public
